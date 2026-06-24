@@ -7,11 +7,12 @@
         body { font-family: sans-serif; margin: 10px; background-color: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 90vh; }
         ul { list-style-type: none; padding: 0; }
         li { background: #ecf0f1; margin: 8px 0; padding: 12px; border-radius: 4px; border-left: 5px solid #3498db; }
-        input, button { padding: 10px; margin: 8px 0; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        select, input, button { padding: 10px; margin: 8px 0; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; }
         button { background-color: #3498db; color: white; border: none; cursor: pointer; font-weight: bold; }
         button:hover { background-color: #2980b9; }
+        label { font-size: 0.9em; color: #2c3e50; font-weight: bold; display: block; margin-top: 10px; }
 
-        /* 保護者スマホ画面（画面いっぱいにフィット） */
+        /* 保護者スマホ画面 */
         .parent-screen { background-color: #fffaf0; border: 4px solid #333; border-radius: 20px; padding: 20px; width: 100%; max-width: 360px; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.2); position: relative; overflow: hidden; min-height: 460px; box-sizing: border-box; }
         .parent-header { background-color: #ff9f43; color: white; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; margin-bottom: 15px; }
         .logout-btn { background-color: #7f8c8d; font-size: 0.8em; padding: 5px; margin-top: 25px; width: 100%; }
@@ -39,16 +40,20 @@
         <!-- ログイン画面 -->
         <div id="loginForm">
             <div class="parent-header">塾アプリ ログイン</div>
-            <p style="font-size:0.85em; text-align:center; color:#666;">パスワードを入力してください</p>
-            <input type="password" id="parentPassword" placeholder="例：sato123">
-            <button onclick="checkLogin()">ログイン</button>
             
-            <!-- ヒント（スマホ単体でもテストできるように下部に小さく配置） -->
-            <div style="background:#fcf8e3; padding:8px; border-radius:4px; font-size:0.75em; margin-top:30px; color:#8a6d3b; line-height: 1.4;">
-                💡 <strong>テスト用パス（親子データ）:</strong><br>
-                佐藤: <code>sato123</code> ｜ 鈴木: <code>suzuki123</code><br>
-                高橋: <code>takahashi123</code> ｜ 田中: <code>tanaka123</code>
-            </div>
+            <label for="studentSelect">お子様のお名前:</label>
+            <select id="studentSelect">
+                <option value="佐藤 拓海">佐藤 拓海 くん</option>
+                <option value="鈴木 結衣">鈴木 結衣 さん</option>
+                <option value="高橋 蓮">高橋 蓮 くん</option>
+                <option value="田中 葵">田中 葵 さん</option>
+                <option value="渡辺 翔太">渡辺 翔太 くん</option>
+            </select>
+
+            <label for="parentPassword">パスワード:</label>
+            <input type="password" id="parentPassword" placeholder="パスワードを入力">
+            
+            <button onclick="checkLogin()" style="margin-top: 15px;">ログイン</button>
         </div>
 
         <!-- ログイン後のマイページ -->
@@ -63,7 +68,7 @@
     </div>
 
     <script>
-        // 5名分のユーザーデータベース
+        // 5名分のユーザーデータベース（パスワードと生徒名を紐付け）
         const userDatabase = {
             "sato123": { student: "佐藤 拓海", parent: "佐藤 美穂 さん" },
             "suzuki123": { student: "鈴木 結衣", parent: "鈴木 一郎 さん" },
@@ -75,28 +80,30 @@
         let loggedInUser = null;
         let schedules = [];
 
-        // 起動時にデータを読み込む＆塾長側からのデータ変更をリアルタイムに検知する（簡易シミュレート用）
+        // 起動時＆定期データチェック
         function loadSchedules() {
             schedules = JSON.parse(localStorage.getItem('juku_final_schedules')) || [];
             if (loggedInUser) {
                 displayParentSchedules();
             }
         }
-
-        // 定期的にデータを確認（塾長画面で追加されたらすぐスマホに反映されるようにする裏技）
         setInterval(loadSchedules, 2000);
 
-        // 保護者ログイン
+        // 保護者ログイン（選択された生徒とパスワードが一致するか検証）
         function checkLogin() {
-            const pass = document.getElementById('parentPassword').value;
+            const selectedStudent = document.getElementById('studentSelect').value;
+            const inputPass = document.getElementById('parentPassword').value;
             
-            if (userDatabase[pass]) {
-                loggedInUser = userDatabase[pass];
+            const userData = userDatabase[inputPass];
+            
+            // パスワードが存在し、かつ選択された生徒名と一致するかチェック
+            if (userData && userData.student === selectedStudent) {
+                loggedInUser = userData;
                 document.getElementById('loginForm').style.display = 'none';
                 document.getElementById('parentDashboard').style.display = 'block';
                 loadSchedules();
             } else {
-                alert('パスワードが正しくありません。');
+                alert('お子様のお名前、またはパスワードが正しくありません。');
             }
             document.getElementById('parentPassword').value = '';
         }
@@ -106,12 +113,10 @@
             const list = document.getElementById('parentScheduleList');
             document.getElementById('parentHeaderTitle').innerText = `${loggedInUser.parent} 専用`;
             
-            // 新しい予定が増えたかチェックして疑似通知を出す
             let myChildSchedules = schedules.filter(item => item.student === loggedInUser.student);
             myChildSchedules.sort((a, b) => new Date(a.date) - new Date(b.date));
 
             const currentCount = list.getElementsByTagName('li').length;
-            
             list.innerHTML = '';
 
             if (myChildSchedules.length === 0) {
@@ -123,7 +128,6 @@
                     list.appendChild(li);
                 });
 
-                // ログイン中に、塾長画面側で新しく予定が追加されたら上部にポップアップ通知を出す
                 if (currentCount > 0 && myChildSchedules.length > currentCount) {
                     const latest = myChildSchedules[myChildSchedules.length - 1];
                     triggerPushNotification(`【新着】${latest.date}：${latest.text}`);
@@ -131,7 +135,7 @@
             }
         }
 
-        // 疑似プッシュ通知のアニメーション
+        // 疑似プッシュ通知
         function triggerPushNotification(message) {
             const banner = document.getElementById('pushBanner');
             const msgSpan = document.getElementById('pushMessage');
