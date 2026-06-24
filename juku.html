@@ -7,13 +7,19 @@
         body { font-family: sans-serif; margin: 20px; background-color: #f0f4f8; }
         h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
         .mode-container { display: flex; gap: 20px; margin-top: 20px; }
-        .box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex: 1; }
-        select, input, button { padding: 10px; margin: 8px 0; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex: 1; max-width: 500px; }
+        select, input, button { padding: 10px; margin: 8px 0; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; }
         button { background-color: #3498db; color: white; border: none; cursor: pointer; font-weight: bold; }
         button:hover { background-color: #2980b9; }
         .notify-btn { background-color: #e67e22; }
         .notify-btn:hover { background-color: #d35400; }
         .clear-btn { background-color: #e74c3c; margin-top: 20px; }
+        label { font-size: 0.9em; color: #2c3e50; font-weight: bold; display: block; margin-top: 12px; }
+        
+        /* プルダウンを横並びにするためのスタイル */
+        .inline-selects { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+        .inline-selects select { margin: 0; flex: 1; }
+        .inline-selects span { font-size: 0.9em; color: #555; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -26,7 +32,7 @@
         <div class="box">
             <h2>【塾長画面】予定追加 ＆ 即時通知</h2>
             
-            <label>対象の生徒を指定（最大25人対応枠）:</label>
+            <label>対象の生徒を指定:</label>
             <select id="studentSelect">
                 <option value="佐藤 拓海">佐藤 拓海 くん</option>
                 <option value="鈴木 結衣">鈴木 結衣 さん</option>
@@ -34,41 +40,138 @@
                 <option value="田中 葵">田中 葵 さん</option>
                 <option value="渡辺 翔太">渡辺 翔太 くん</option>
             </select>
+
+            <label>教科を選択:</label>
+            <select id="subjectSelect">
+                <option value="英語">英語</option>
+                <option value="数学">数学</option>
+                <option value="国語">国語</option>
+                <option value="理科">理科</option>
+                <option value="社会">社会</option>
+                <option value="その他">その他（面談・イベント等）</option>
+            </select>
             
-            <label>日付:</label>
-            <input type="date" id="scheduleDate">
+            <label>日付を指定:</label>
+            <div class="inline-selects">
+                <select id="yearSelect">
+                    <option value="2026">2026</option>
+                    <option value="2027">2027</option>
+                </select>
+                <span>年</span>
+                
+                <select id="monthSelect"></select>
+                <span>月</span>
+                
+                <select id="daySelect"></select>
+                <span>日</span>
+            </div>
+
+            <label>開始時刻を指定:</label>
+            <div class="inline-selects">
+                <select id="hourSelect"></select>
+                <span>時</span>
+                
+                <select id="minuteSelect"></select>
+                <span>分 〜</span>
+            </div>
             
-            <label>予定内容:</label>
-            <input type="text" id="scheduleText" placeholder="例：【時間変更】本日の指導は19:30開始となります">
+            <label>追加の連絡事項（あれば入力）:</label>
+            <input type="text" id="scheduleText" placeholder="例：本日は10分拡大して指導します（空欄でもOK）">
             
-            <button class="notify-btn" onclick="sendUrgentNotification()">予定を保存し、保護者へプッシュ通知</button>
+            <button class="notify-btn" onclick="sendUrgentNotification()" style="margin-top: 15px;">予定を保存し、保護者へプッシュ通知</button>
             <button class="clear-btn" onclick="clearAllData()">全データを完全リセット</button>
         </div>
 
     </div>
 
     <script>
+        // プルダウンの選択肢を自動生成する関数
+        function generateDropdowns() {
+            const monthSel = document.getElementById('monthSelect');
+            const daySel = document.getElementById('daySelect');
+            const hourSel = document.getElementById('hourSelect');
+            const minuteSel = document.getElementById('minuteSelect');
+
+            // 現在のトータルの日付を初期値にするための準備
+            const today = new Date();
+
+            // 月 (1-12)
+            for (let i = 1; i <= 12; i++) {
+                let opt = document.createElement('option');
+                opt.value = String(i).padStart(2, '0');
+                opt.innerText = i;
+                if (i === (today.getMonth() + 1)) opt.selected = true;
+                monthSel.appendChild(opt);
+            }
+
+            // 日 (1-31)
+            for (let i = 1; i <= 31; i++) {
+                let opt = document.createElement('option');
+                opt.value = String(i).padStart(2, '0');
+                opt.innerText = i;
+                if (i === today.getDate()) opt.selected = true;
+                daySel.appendChild(opt);
+            }
+
+            // 時 (0-23)
+            for (let i = 0; i <= 23; i++) {
+                let opt = document.createElement('option');
+                opt.value = String(i).padStart(2, '0');
+                opt.innerText = i;
+                if (i === 18) opt.selected = true; // 初期値を夕方の18時に設定
+                hourSel.appendChild(opt);
+            }
+
+            // 分 (10分刻み)
+            for (let i = 0; i < 60; i += 10) {
+                let opt = document.createElement('option');
+                opt.value = String(i).padStart(2, '0');
+                opt.innerText = String(i).padStart(2, '0');
+                minuteSel.appendChild(opt);
+            }
+        }
+
+        // 起動時にプルダウンを生成
+        generateDropdowns();
+
         let schedules = JSON.parse(localStorage.getItem('juku_final_schedules')) || [];
 
         // 塾長が予定を登録し、通知を送る
         function sendUrgentNotification() {
             const student = document.getElementById('studentSelect').value;
-            const date = document.getElementById('scheduleDate').value;
-            const text = document.getElementById('scheduleText').value;
+            const subject = document.getElementById('subjectSelect').value;
+            
+            // 日付と時刻を組み立てる
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            const day = document.getElementById('daySelect').value;
+            const hour = document.getElementById('hourSelect').value;
+            const minute = document.getElementById('minuteSelect').value;
 
-            if (!date || !text) {
-                alert('日付と予定内容を入力してください！');
-                return;
+            const dateStr = `${year}-${month}-${day}`;
+            const timeStr = `${hour}:${minute}`;
+
+            const extraText = document.getElementById('scheduleText').value.trim();
+
+            // 保護者画面で見やすいように、教科と時間を合体させた文章を組み立てる
+            let finalMessage = `【${subject}】 ${timeStr}〜 開始`;
+            if (extraText) {
+                finalMessage += ` ｜ 連絡事項: ${extraText}`;
             }
 
-            const newSchedule = { student, date, text };
+            const newSchedule = { 
+                student: student, 
+                date: dateStr, 
+                text: finalMessage 
+            };
+
             schedules.push(newSchedule);
             localStorage.setItem('juku_final_schedules', JSON.stringify(schedules));
 
             // 入力欄クリア
             document.getElementById('scheduleText').value = '';
 
-            alert(`（システムログ）${student} 宛ての変更を保存し、通知信号を送信しました。`);
+            alert(`（システムログ）${student} くん/さん 宛ての【${subject}】の予定を保存し、通知信号を送信しました。`);
         }
 
         // データクリア
