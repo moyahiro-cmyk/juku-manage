@@ -11,15 +11,12 @@
         button { background-color: #3498db; color: white; border: none; cursor: pointer; font-weight: bold; }
         button:hover { background-color: #2980b9; }
         label { font-size: 0.9em; color: #2c3e50; font-weight: bold; display: block; margin-top: 10px; }
-
         .parent-screen { background-color: #fffaf0; border: 4px solid #333; border-radius: 20px; padding: 20px; width: 100%; max-width: 360px; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.2); position: relative; overflow: hidden; min-height: 540px; box-sizing: border-box; display: flex; flex-direction: column; }
         .parent-header { background-color: #ff9f43; color: white; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; margin-bottom: 15px; }
         .logout-btn { background-color: #7f8c8d; font-size: 0.8em; padding: 5px; margin-top: auto; width: 100%; }
-
         .tab-container { display: flex; gap: 5px; margin-bottom: 10px; }
         .tab-btn { flex: 1; padding: 6px; font-size: 0.85em; background-color: #ddd; color: #333; border-radius: 4px; border: none; cursor: pointer; }
         .tab-btn.active { background-color: #3498db; color: white; }
-
         .calendar-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-bottom: 5px; font-size: 0.95em; color: #2c3e50; }
         .calendar-nav-btn { width: auto; padding: 2px 10px; margin: 0; background: #e0e0e0; color: #333; font-size: 0.8em; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 0.8em; background: white; padding: 8px; border-radius: 8px; border: 1px solid #ddd; }
@@ -33,17 +30,14 @@
         .calendar-day.selected { background-color: #ffeaa7; border: 1px solid #ff9f43; }
         .calendar-day.empty { cursor: default; }
         .calendar-day.empty:hover { background: none; }
-
         .day-detail-box { background: #fff; padding: 8px; margin-top: 8px; border-radius: 6px; border: 1px dashed #ff9f43; min-height: 50px; font-size: 0.85em; }
     </style>
 </head>
 <body>
 
     <div class="parent-screen">
-        <!-- ログインフォーム -->
         <div id="loginForm">
             <div class="parent-header">塾アプリ ログイン</div>
-            
             <label for="studentSelect">お子様のお名前:</label>
             <select id="studentSelect">
                 <option value="佐藤 拓海">佐藤 拓海 くん</option>
@@ -52,23 +46,18 @@
                 <option value="田中 葵">田中 葵 さん</option>
                 <option value="渡辺 翔太">渡辺 翔太 くん</option>
             </select>
-
             <label for="parentPassword">パスワード:</label>
             <input type="password" id="parentPassword" placeholder="パスワードを入力">
-            
             <button onclick="checkLogin()" style="margin-top: 15px;">ログイン</button>
         </div>
 
-        <!-- ログイン後のマイページ -->
         <div id="parentDashboard" style="display: none; flex-direction: column; flex-grow: 1;">
             <div class="parent-header" id="parentHeaderTitle">〇〇様のマイページ</div>
-            
             <div class="tab-container">
                 <button id="tabCal" class="tab-btn active" onclick="switchView('calendar')">📅 カレンダー表示</button>
                 <button id="tabList" class="tab-btn" onclick="switchView('list')">📋 一覧リスト表示</button>
             </div>
 
-            <!-- カレンダービュー -->
             <div id="calendarView">
                 <div class="calendar-header">
                     <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀</button>
@@ -81,7 +70,6 @@
                 </div>
             </div>
 
-            <!-- リストビュー -->
             <div id="listView" style="display: none;">
                 <p style="font-weight:bold; color:#2c3e50; margin: 5px 0;">📅 全ての予定一覧</p>
                 <ul id="parentScheduleList" style="max-height: 260px; overflow-y: auto;"></ul>
@@ -100,16 +88,16 @@
             "watanabe123": { student: "渡辺 翔太", parent: "渡辺 真由美 さん" }
         };
 
+        // 🌟 合言葉を「juku_shared_database」に完全統一
+        const DB_KEY = 'juku_shared_database';
         let loggedInUser = null;
         let schedules = [];
         let currentView = 'calendar';
-        
         let currentYear = 2026;
         let currentMonth = 5;
 
-        // 💾 データを読み込んで画面を更新する関数
         function loadData() {
-            schedules = JSON.parse(localStorage.getItem('juku_final_schedules')) || [];
+            schedules = JSON.parse(localStorage.getItem(DB_KEY)) || [];
             if (loggedInUser) {
                 displayParentSchedules();
                 renderCalendar();
@@ -123,10 +111,7 @@
             
             if (userData && userData.student === selectedStudent) {
                 loggedInUser = userData;
-                
-                // セッションストレージにログイン情報を一時保存（リロード対策）
                 sessionStorage.setItem('juku_logged_in_user', JSON.stringify(userData));
-                
                 initDashboard();
             } else {
                 alert('お子様のお名前、またはパスワードが正しくありません。');
@@ -137,11 +122,9 @@
         function initDashboard() {
             document.getElementById('loginForm').style.display = 'none';
             document.getElementById('parentDashboard').style.display = 'flex';
-            
             const d = new Date();
             currentYear = d.getFullYear();
             currentMonth = d.getMonth();
-
             loadData();
         }
 
@@ -159,11 +142,8 @@
             
             let myChildSchedules = schedules.filter(item => item.student === loggedInUser.student || item.student === '全員');
             
-            // 日付文字列を綺麗に統一してソート
             myChildSchedules.sort((a, b) => {
-                const dateA = a.date.replace(/–/g, '-');
-                const dateB = b.date.replace(/–/g, '-');
-                return new Date(dateA) - new Date(dateB);
+                return new Date(a.date.replace(/–/g, '-')) - new Date(b.date.replace(/–/g, '-'));
             });
 
             list.innerHTML = '';
@@ -172,12 +152,11 @@
             } else {
                 myChildSchedules.forEach(item => {
                     const li = document.createElement('li');
-                    const cleanDate = item.date.replace(/–/g, '-');
                     if(item.type === 'urgent') {
                         li.style.background = '#ffeae6';
                         li.style.borderLeft = '5px solid #e74c3c';
                     }
-                    li.innerHTML = `<strong>📅 ${cleanDate}</strong><br>${item.text}`;
+                    li.innerHTML = `<strong>📅 ${item.date.replace(/–/g, '-')}</strong><br>${item.text}`;
                     list.appendChild(li);
                 });
             }
@@ -211,13 +190,10 @@
                 if (currentDayOfWeek === 0) div.classList.add('sunday');
                 if (currentDayOfWeek === 6) div.classList.add('saturday');
 
-                // 塾長側（ハイフン）の形式に100%合わせる
                 const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 
-                // 特殊なハイフン記号のブレをすべて通常のハイフンに統一して判定
                 const hasEvent = myChildSchedules.some(item => {
-                    const itemDate = item.date.replace(/–/g, '-');
-                    return itemDate === dateStr;
+                    return item.date.replace(/–/g, '-') === dateStr;
                 });
 
                 if (hasEvent) div.classList.add('has-event');
@@ -234,8 +210,7 @@
         function showDayDetail(dateStr, dayNum) {
             const detailBox = document.getElementById('dayDetailBox');
             let myChildSchedules = schedules.filter(item => {
-                const itemDate = item.date.replace(/–/g, '-');
-                return (item.student === loggedInUser.student || item.student === '全員') && itemDate === dateStr;
+                return (item.student === loggedInUser.student || item.student === '全員') && item.date.replace(/–/g, '-') === dateStr;
             });
 
             if (myChildSchedules.length === 0) {
@@ -256,7 +231,6 @@
             if (currentMonth > 11) { currentMonth = 0; currentYear += 1; } 
             else if (currentMonth < 0) { currentMonth = 11; currentYear -= 1; }
             renderCalendar();
-            document.getElementById('dayDetailBox').innerHTML = '<p style="color:#777; margin:5px 0;">日付をタップすると、その日の指導予定が表示されます。</p>';
         }
 
         function logout() {
@@ -266,7 +240,6 @@
             document.getElementById('parentDashboard').style.display = 'none';
         }
 
-        // 🌟 画面を開いた瞬間に、もしログイン済みなら自動で最新データを読み込む処理
         window.onload = function() {
             const savedUser = sessionStorage.getItem('juku_logged_in_user');
             if (savedUser) {
