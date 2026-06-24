@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>塾の予定管理・リアルタイム通知デモ（塾長画面）</title>
+    <title>塾の予定管理システム（塾長画面）</title>
     <style>
         body { font-family: sans-serif; margin: 20px; background-color: #f0f4f8; }
         h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
@@ -12,25 +12,23 @@
         button { background-color: #3498db; color: white; border: none; cursor: pointer; font-weight: bold; }
         button:hover { background-color: #2980b9; }
         
-        .notify-btn { background-color: #e67e22; }
-        .notify-btn:hover { background-color: #d35400; }
+        .notify-btn { background-color: #3498db; }
         .urgent-btn { background-color: #e74c3c; }
         .urgent-btn:hover { background-color: #c0392b; }
         .clear-btn { background-color: #7f8c8d; margin-top: 30px; font-size: 0.9em; }
         label { font-size: 0.9em; color: #2c3e50; font-weight: bold; display: block; margin-top: 12px; }
         
-        /* 横並びプルダウン用 */
         .inline-selects { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
         .inline-selects select { margin: 0; flex: 1; }
         .inline-selects span { font-size: 0.9em; color: #555; font-weight: bold; }
 
         /* 3面切り替えタブ */
         .tab-container { display: flex; gap: 8px; max-width: 550px; margin-top: 15px; }
-        .tab-btn { flex: 1; padding: 10px; background-color: #dcdde1; color: #2f3640; border-radius: 6px 6px 0 0; margin: 0; font-size: 0.9em; }
+        .tab-btn { flex: 1; padding: 10px; background-color: #dcdde1; color: #2f3640; border-radius: 6px 6px 0 0; margin: 0; font-size: 0.9em; cursor: pointer; border: none; }
         .tab-btn.active { background-color: #3498db; color: white; }
         .tab-btn.urgent-tab.active { background-color: #e74c3c; }
 
-        /* 管理用カレンダーのスタイル */
+        /* 管理用カレンダー */
         .calendar-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-bottom: 10px; }
         .calendar-nav-btn { width: auto; padding: 4px 12px; margin: 0; background: #e0e0e0; color: #333; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 0.85em; background: #fafafa; padding: 8px; border-radius: 8px; border: 1px solid #ddd; }
@@ -49,10 +47,9 @@
 
     <h1>塾・生徒予定管理システム（塾長画面）</h1>
 
-    <!-- 3面切り替えタブボタン -->
     <div class="tab-container">
         <button id="tab1" class="tab-btn active" onclick="switchTab(1)">📅 1. 授業予定の入力</button>
-        <button id="tab2" class="tab-btn urgent-tab" onclick="switchTab(2)">🚨 2. 緊急連絡の送信</button>
+        <button id="tab2" class="tab-btn urgent-tab" onclick="switchTab(2)">🚨 2. 緊急連絡の入力</button>
         <button id="tab3" class="tab-btn" onclick="switchTab(3)">👁 3. カレンダー確認</button>
     </div>
 
@@ -95,13 +92,12 @@
         <label>追加の連絡事項（あれば入力）:</label>
         <input type="text" id="scheduleText" placeholder="例：本日は単語テストから始めます">
         
-        <button class="notify-btn" onclick="sendSchedule()">予定を登録し、通常通知</button>
+        <button class="notify-btn" onclick="sendSchedule()">予定を登録する</button>
     </div>
 
-    <!-- 2ページ目：緊急連絡の送信 -->
+    <!-- 2ページ目：緊急連絡の入力 -->
     <div id="page2" class="box" style="display: none;">
-        <h2 style="color: #e74c3c;">【即時】緊急一斉連絡の送信</h2>
-        <p style="font-size:0.85em; color:#666; margin-top:-5px;">※ここで送信した内容は、現在ログインしている保護者のスマホ画面にリアルタイムで強制プッシュ通知されます。</p>
+        <h2 style="color: #e74c3c;">【一斉/個別】緊急連絡の送信登録</h2>
         
         <label>通知を送る対象:</label>
         <select id="broadcastTarget">
@@ -114,12 +110,12 @@
         </select>
 
         <label>緊急連絡の件名:</label>
-        <input type="text" id="urgentTitle" placeholder="例：【重要】急な大雨にともなう休校のご案内">
+        <input type="text" id="urgentTitle" placeholder="例：【重要】大雨にともなう休校のご案内">
 
         <label>連絡内容（本文）:</label>
-        <textarea id="urgentBody" rows="4" placeholder="例：本日の指導は安全を最優先とし、すべてオンライン指導（ZOOM）に切り替えます。URLは後ほど送信します。"></textarea>
+        <textarea id="urgentBody" rows="4" placeholder="例：本日の指導は安全を最優先とし、すべてオンライン指導（ZOOM）に切り替えます。"></textarea>
 
-        <button class="urgent-btn" onclick="sendUrgentBroadcast()">🚨 緊急連絡を送信（スマホへ即時プッシュ）</button>
+        <button class="urgent-btn" onclick="sendUrgentBroadcast()">🚨 緊急連絡を登録する</button>
     </div>
 
     <!-- 3ページ目：管理用カレンダー -->
@@ -146,18 +142,15 @@
         </div>
     </div>
 
-    <!-- 全データクリア（下部に配置） -->
     <div style="max-width:550px; text-align:right;">
-        <button class="clear-btn" onclick="clearAllData()">⚠ 塾・保護者の全データを完全リセット</button>
+        <button class="clear-btn" onclick="clearAllData()">⚠ データを完全リセット</button>
     </div>
 
     <script>
         let schedules = JSON.parse(localStorage.getItem('juku_final_schedules')) || [];
-        
         let currentYear = 2026;
-        let currentMonth = 5; // 6月
+        let currentMonth = 5;
 
-        // タブ切り替え機能
         function switchTab(pageNum) {
             document.getElementById('page1').style.display = pageNum === 1 ? 'block' : 'none';
             document.getElementById('page2').style.display = pageNum === 2 ? 'block' : 'none';
@@ -170,7 +163,6 @@
             if (pageNum === 3) { renderCalendar(); }
         }
 
-        // プルダウン生成
         function generateDropdowns() {
             const monthSel = document.getElementById('monthSelect');
             const daySel = document.getElementById('daySelect');
@@ -206,7 +198,6 @@
         }
         generateDropdowns();
 
-        // 1. 通常の授業予定を保存
         function sendSchedule() {
             const student = document.getElementById('studentSelect').value;
             const subject = document.getElementById('subjectSelect').value;
@@ -228,7 +219,6 @@
             alert(`${student} くん/さんの予定を保存しました！`);
         }
 
-        // 2. 【大改造】緊急連絡を送信（保護者へのプッシュ信号を仕込む）
         function sendUrgentBroadcast() {
             const target = document.getElementById('broadcastTarget').value;
             const title = document.getElementById('urgentTitle').value.trim();
@@ -243,23 +233,14 @@
             const dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
             const fullUrgentMessage = `🚨【緊急連絡】${title}：${body}`;
 
-            // 予定データベースにも「緊急フラグ」付きで保存
-            schedules.push({ student: target, date: dateStr, text: fullUrgentMessage, type: 'urgent', timestamp: Date.now() });
+            schedules.push({ student: target, date: dateStr, text: fullUrgentMessage, type: 'urgent' });
             localStorage.setItem('juku_final_schedules', JSON.stringify(schedules));
-
-            // 保護者スマホ側に「今すぐポップアップを出すための合図（シグナル）」をlocalStorageに書き込む
-            localStorage.setItem('juku_push_signal', JSON.stringify({
-                target: target,
-                message: `${title} （※詳細は予定欄をご確認ください）`,
-                time: Date.now()
-            }));
 
             document.getElementById('urgentTitle').value = '';
             document.getElementById('urgentBody').value = '';
-            alert(`緊急連絡を送信しました！\n対象の保護者スマホ画面を開いている場合、数秒以内に画面上部にプッシュ通知が走ります。`);
+            alert(`緊急連絡を登録しました！保護者画面に反映されます。`);
         }
 
-        // 3. 塾長用の全体カレンダー描画
         function renderCalendar() {
             const grid = document.getElementById('calendarGrid');
             const monthTitle = document.getElementById('calendarMonthTitle');
@@ -291,7 +272,6 @@
 
                 const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 
-                // フィルター条件に合わせてポチ（●）を出すか判定
                 let targetEvents = schedules.filter(item => {
                     if (filter === 'すべて') return item.date === dateStr;
                     return item.date === dateStr && (item.student === filter || item.student === '全員');
@@ -338,9 +318,8 @@
         }
 
         function clearAllData() {
-            if (confirm('保護者用カレンダーを含む、すべての登録データを完全に削除しますか？')) {
+            if (confirm('すべての登録データを完全に削除しますか？')) {
                 localStorage.removeItem('juku_final_schedules');
-                localStorage.removeItem('juku_push_signal');
                 schedules = [];
                 if (document.getElementById('page3').style.display === 'block') renderCalendar();
                 alert('すべてのデータを完全にリセットしました。');
