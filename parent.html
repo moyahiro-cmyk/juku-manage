@@ -12,17 +12,17 @@
         button:hover { background-color: #2980b9; }
         label { font-size: 0.9em; color: #2c3e50; font-weight: bold; display: block; margin-top: 10px; }
 
-        /* 保護者スマホ画面 */
-        .parent-screen { background-color: #fffaf0; border: 4px solid #333; border-radius: 20px; padding: 20px; width: 100%; max-width: 360px; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.2); position: relative; overflow: hidden; min-height: 520px; box-sizing: border-box; display: flex; flex-direction: column; }
+        /* 保護者スマホ風画面 */
+        .parent-screen { background-color: #fffaf0; border: 4px solid #333; border-radius: 20px; padding: 20px; width: 100%; max-width: 360px; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.2); position: relative; overflow: hidden; min-height: 540px; box-sizing: border-box; display: flex; flex-direction: column; }
         .parent-header { background-color: #ff9f43; color: white; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; margin-bottom: 15px; }
         .logout-btn { background-color: #7f8c8d; font-size: 0.8em; padding: 5px; margin-top: auto; width: 100%; }
 
-        /* 表示切り替えタブ */
+        /* タブ切り替え */
         .tab-container { display: flex; gap: 5px; margin-bottom: 10px; }
         .tab-btn { flex: 1; padding: 6px; font-size: 0.85em; background-color: #ddd; color: #333; border-radius: 4px; }
         .tab-btn.active { background-color: #3498db; color: white; }
 
-        /* カレンダーのスタイル */
+        /* カレンダー用スタイル */
         .calendar-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-bottom: 5px; font-size: 0.95em; color: #2c3e50; }
         .calendar-nav-btn { width: auto; padding: 2px 10px; margin: 0; background: #e0e0e0; color: #333; font-size: 0.8em; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 0.8em; background: white; padding: 8px; border-radius: 8px; border: 1px solid #ddd; }
@@ -37,12 +37,12 @@
         .calendar-day.empty { cursor: default; }
         .calendar-day.empty:hover { background: none; }
 
-        /* 選択された日の詳細表示エリア */
+        /* 詳細ボックス */
         .day-detail-box { background: #fff; padding: 8px; margin-top: 8px; border-radius: 6px; border: 1px dashed #ff9f43; min-height: 50px; font-size: 0.85em; }
 
-        /* 疑似プッシュ通知バナー */
+        /* 🚨 疑似プッシュ通知バナー（初期状態は画面上の外側に隠れています） */
         .push-notification {
-            position: absolute; top: -100px; left: 10px; right: 10px;
+            position: absolute; top: -120px; left: 10px; right: 10px;
             background: rgba(231, 76, 60, 0.95); color: white; padding: 12px 15px;
             border-radius: 12px; font-size: 0.85em; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             transition: top 0.5s ease-in-out; z-index: 999; pointer-events: none;
@@ -54,13 +54,13 @@
 <body>
 
     <div class="parent-screen">
-        <!-- 疑似プッシュ通知バナー -->
+        <!-- リアルタイムプッシュ通知バナー構造 -->
         <div id="pushBanner" class="push-notification">
             <span class="push-icon">🚨 塾からの緊急連絡:</span><br>
-            <span id="pushMessage">通知内容</span>
+            <span id="pushMessage">通知内容がここに表示されます</span>
         </div>
 
-        <!-- ログイン画面 -->
+        <!-- ログインフォーム -->
         <div id="loginForm">
             <div class="parent-header">塾アプリ ログイン</div>
             
@@ -79,7 +79,7 @@
             <button onclick="checkLogin()" style="margin-top: 15px;">ログイン</button>
         </div>
 
-        <!-- ログイン後のマイページ -->
+        <!-- ログイン後のマイページ表示 -->
         <div id="parentDashboard" style="display: none; flex-direction: column; flex-grow: 1;">
             <div class="parent-header" id="parentHeaderTitle">〇〇様のマイページ</div>
             
@@ -88,7 +88,7 @@
                 <button id="tabList" class="tab-btn" onclick="switchView('list')">📋 一覧リスト表示</button>
             </div>
 
-            <!-- カレンダー表示エリア -->
+            <!-- カレンダービュー -->
             <div id="calendarView">
                 <div class="calendar-header">
                     <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀</button>
@@ -101,7 +101,7 @@
                 </div>
             </div>
 
-            <!-- 一覧リスト表示エリア -->
+            <!-- リストビュー -->
             <div id="listView" style="display: none;">
                 <p style="font-weight:bold; color:#2c3e50; margin: 5px 0;">📅 全ての予定一覧</p>
                 <ul id="parentScheduleList" style="max-height: 260px; overflow-y: auto;"></ul>
@@ -123,31 +123,32 @@
         let loggedInUser = null;
         let schedules = [];
         let currentView = 'calendar';
-        let lastSignalTime = Date.now(); // ログインした瞬間の時刻を記録
+        let lastSignalTime = Date.now(); // 立ち上げ・ログインした時刻を起点にする
         
         let currentYear = 2026;
         let currentMonth = 5;
 
-        // 【ここが超重要】定期的にデータと「緊急通知の合図」を監視するタイマー
+        // 🌟 1秒ごとに塾長側からの合図がないかをチェックする心臓部
         function watchSystem() {
-            // 1. 予定データの読み込み
             schedules = JSON.parse(localStorage.getItem('juku_final_schedules')) || [];
+            
             if (loggedInUser) {
                 displayParentSchedules();
                 renderCalendar();
                 
-                // 2. 塾長画面からの「緊急通知の合図（シグナル）」をチェック
+                // 塾長が書き込んだ最新のプッシュ通知用シグナルを読み込む
                 const signal = JSON.parse(localStorage.getItem('juku_push_signal'));
+                
+                // 新しい信号があり、かつ自分が対象（あるいは全員宛て）の場合に発動
                 if (signal && signal.time > lastSignalTime) {
-                    // 自分が対象（または全員宛て）の場合だけポップアップを出す
                     if (signal.target === '全員' || signal.target === loggedInUser.student) {
                         triggerPushNotification(signal.message);
                     }
-                    lastSignalTime = signal.time; // 処理済みとして時刻を更新
+                    lastSignalTime = signal.time; // 処理済みの合図として記録
                 }
             }
         }
-        // 1秒ごとに超高速で塾長からの合図を見に行くように設定
+        // 定期監視をスタート
         setInterval(watchSystem, 1000);
 
         function checkLogin() {
@@ -157,7 +158,7 @@
             
             if (userData && userData.student === selectedStudent) {
                 loggedInUser = userData;
-                lastSignalTime = Date.now(); // ログイン時にタイマーを同期
+                lastSignalTime = Date.now(); // ログイン時点にリセットして、古い通知が誤作動するのを防止
                 document.getElementById('loginForm').style.display = 'none';
                 document.getElementById('parentDashboard').style.display = 'flex';
                 
@@ -193,8 +194,7 @@
             } else {
                 myChildSchedules.forEach(item => {
                     const li = document.createElement('li');
-                    const isUrgent = item.type === 'urgent';
-                    if(isUrgent) {
+                    if(item.type === 'urgent') {
                         li.style.background = '#ffeae6';
                         li.style.borderLeft = '5px solid #e74c3c';
                     }
@@ -232,14 +232,17 @@
                 if (currentDayOfWeek === 0) div.classList.add('sunday');
                 if (currentDayOfWeek === 6) div.classList.add('saturday');
 
-                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const hasEvent = myChildSchedules.some(item => item.date === dateStr);
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}–${String(day).padStart(2, '0')}`;
+                // Safariや環境による表記揺れ吸収
+                const altDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                
+                const hasEvent = myChildSchedules.some(item => item.date === dateStr || item.date === altDateStr);
                 if (hasEvent) div.classList.add('has-event');
 
                 div.onclick = () => {
                     document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
                     div.classList.add('selected');
-                    showDayDetail(dateStr, day);
+                    showDayDetail(altDateStr, day);
                 };
                 grid.appendChild(div);
             }
@@ -270,15 +273,15 @@
             document.getElementById('dayDetailBox').innerHTML = '<p style="color:#777; margin:5px 0;">日付をタップすると、その日の指導予定が表示されます。</p>';
         }
 
-        // 疑似プッシュ通知を発動させる関数
+        // アニメーション付きプッシュ通知表示
         function triggerPushNotification(message) {
             const banner = document.getElementById('pushBanner');
             const msgSpan = document.getElementById('pushMessage');
             
             msgSpan.innerText = message;
-            banner.classList.add('show');
+            banner.classList.add('show'); // CSSのトグルで上からスライドイン
 
-            // 7秒後に自動で隠す
+            // 7秒後に自動的に引っ込む
             setTimeout(() => {
                 banner.classList.remove('show');
             }, 7000);
