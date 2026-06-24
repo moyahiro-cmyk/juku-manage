@@ -107,6 +107,7 @@
         let currentYear = 2026;
         let currentMonth = 5;
 
+        // 💾 データを読み込んで画面を更新する関数
         function loadData() {
             schedules = JSON.parse(localStorage.getItem('juku_final_schedules')) || [];
             if (loggedInUser) {
@@ -122,18 +123,26 @@
             
             if (userData && userData.student === selectedStudent) {
                 loggedInUser = userData;
-                document.getElementById('loginForm').style.display = 'none';
-                document.getElementById('parentDashboard').style.display = 'flex';
                 
-                const d = new Date();
-                currentYear = d.getFullYear();
-                currentMonth = d.getMonth();
-
-                loadData();
+                // セッションストレージにログイン情報を一時保存（リロード対策）
+                sessionStorage.setItem('juku_logged_in_user', JSON.stringify(userData));
+                
+                initDashboard();
             } else {
                 alert('お子様のお名前、またはパスワードが正しくありません。');
             }
             document.getElementById('parentPassword').value = '';
+        }
+
+        function initDashboard() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('parentDashboard').style.display = 'flex';
+            
+            const d = new Date();
+            currentYear = d.getFullYear();
+            currentMonth = d.getMonth();
+
+            loadData();
         }
 
         function switchView(view) {
@@ -149,7 +158,13 @@
             document.getElementById('parentHeaderTitle').innerText = `${loggedInUser.parent} 専用`;
             
             let myChildSchedules = schedules.filter(item => item.student === loggedInUser.student || item.student === '全員');
-            myChildSchedules.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            // 日付文字列を綺麗に統一してソート
+            myChildSchedules.sort((a, b) => {
+                const dateA = a.date.replace(/–/g, '-');
+                const dateB = b.date.replace(/–/g, '-');
+                return new Date(dateA) - new Date(dateB);
+            });
 
             list.innerHTML = '';
             if (myChildSchedules.length === 0) {
@@ -157,11 +172,12 @@
             } else {
                 myChildSchedules.forEach(item => {
                     const li = document.createElement('li');
+                    const cleanDate = item.date.replace(/–/g, '-');
                     if(item.type === 'urgent') {
                         li.style.background = '#ffeae6';
                         li.style.borderLeft = '5px solid #e74c3c';
                     }
-                    li.innerHTML = `<strong>📅 ${item.date}</strong><br>${item.text}`;
+                    li.innerHTML = `<strong>📅 ${cleanDate}</strong><br>${item.text}`;
                     list.appendChild(li);
                 });
             }
@@ -195,9 +211,15 @@
                 if (currentDayOfWeek === 0) div.classList.add('sunday');
                 if (currentDayOfWeek === 6) div.classList.add('saturday');
 
+                // 塾長側（ハイフン）の形式に100%合わせる
                 const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 
-                const hasEvent = myChildSchedules.some(item => item.date === dateStr);
+                // 特殊なハイフン記号のブレをすべて通常のハイフンに統一して判定
+                const hasEvent = myChildSchedules.some(item => {
+                    const itemDate = item.date.replace(/–/g, '-');
+                    return itemDate === dateStr;
+                });
+
                 if (hasEvent) div.classList.add('has-event');
 
                 div.onclick = () => {
@@ -211,7 +233,10 @@
 
         function showDayDetail(dateStr, dayNum) {
             const detailBox = document.getElementById('dayDetailBox');
-            let myChildSchedules = schedules.filter(item => (item.student === loggedInUser.student || item.student === '全員') && item.date === dateStr);
+            let myChildSchedules = schedules.filter(item => {
+                const itemDate = item.date.replace(/–/g, '-');
+                return (item.student === loggedInUser.student || item.student === '全員') && itemDate === dateStr;
+            });
 
             if (myChildSchedules.length === 0) {
                 detailBox.innerHTML = `<strong>📅 ${currentMonth + 1}月${dayNum}日</strong><br><p style="color:#999; margin:5px 0;">予定はありません。</p>`;
@@ -236,9 +261,19 @@
 
         function logout() {
             loggedInUser = null;
+            sessionStorage.removeItem('juku_logged_in_user');
             document.getElementById('loginForm').style.display = 'block';
             document.getElementById('parentDashboard').style.display = 'none';
         }
+
+        // 🌟 画面を開いた瞬間に、もしログイン済みなら自動で最新データを読み込む処理
+        window.onload = function() {
+            const savedUser = sessionStorage.getItem('juku_logged_in_user');
+            if (savedUser) {
+                loggedInUser = JSON.parse(savedUser);
+                initDashboard();
+            }
+        };
     </script>
 </body>
 </html>
