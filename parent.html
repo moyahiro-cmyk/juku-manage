@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>塾の予定管理・リアルタイム通知デモ（完成版）</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f0f4f8; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .mode-container { display: flex; gap: 20px; margin-top: 20px; }
+        .box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex: 1; }
+        select, input, button { padding: 10px; margin: 8px 0; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #3498db; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #2980b9; }
+        .notify-btn { background-color: #e67e22; }
+        .notify-btn:hover { background-color: #d35400; }
+        ul { list-style-type: none; padding: 0; }
+        li { background: #ecf0f1; margin: 8px 0; padding: 12px; border-radius: 4px; border-left: 5px solid #3498db; }
+        
+        /* 保護者スマホ画面 */
+        .parent-screen { background-color: #fffaf0; border: 4px solid #333; border-radius: 20px; padding: 20px; max-width: 360px; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.2); position: relative; overflow: hidden; height: 460px; }
+        .parent-header { background-color: #ff9f43; color: white; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; margin-bottom: 15px; }
+        .logout-btn { background-color: #7f8c8d; font-size: 0.8em; padding: 5px; margin-top: 15px; width: auto; position: absolute; bottom: 20px; left: 20px; right: 20px; }
+        .clear-btn { background-color: #e74c3c; margin-top: 20px; }
+
+        /* 疑似プッシュ通知バナー */
+        .push-notification {
+            position: absolute; top: -80px; left: 10px; right: 10px;
+            background: rgba(0, 0, 0, 0.85); color: white; padding: 10px 15px;
+            border-radius: 12px; font-size: 0.85em; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: top 0.5s ease-in-out; z-index: 999; pointer-events: none;
+        }
+        .push-notification.show { top: 10px; }
+        .push-icon { color: #ff9f43; font-weight: bold; margin-right: 5px; }
+    </style>
+</head>
+<body>
+
+    <h1>塾・生徒予定管理システム（デモ統合版）</h1>
+
+    <!-- 開発・デモ用ヒント（5名のログイン情報） -->
+    <div style="background:#e8f4fd; padding:12px; border-radius:6px; font-size:0.85em; margin-bottom:15px; line-height: 1.5;">
+        🔑 <strong>デモ用保護者パスワード（5組の親子データ）:</strong><br>
+        佐藤 拓海 くん ＝ <code>sato123</code> ｜ 鈴木 結衣 さん ＝ <code>suzuki123</code> ｜ 高橋 蓮 くん ＝ <code>takahashi123</code><br>
+        田中 葵 さん ＝ <code>tanaka123</code> ｜ 渡辺 翔太 くん ＝ <code>watanabe123</code>
+    </div>
+
+    <div class="mode-container">
+        
+        <!-- 【左側：塾長（管理者）の画面】 -->
+        
+
+        <!-- 【右側：保護者のスマホ画面】 -->
+        <div class="box" style="background-color: #eaedd1;">
+            <h2>【保護者スマホ】シミュレーター</h2>
+            
+            <div class="parent-screen">
+                <!-- 疑似プッシュ通知バナー -->
+                <div id="pushBanner" class="push-notification">
+                    <span class="push-icon">🔔 塾からのお知らせ:</span>
+                    <span id="pushMessage">通知内容</span>
+                </div>
+
+                <!-- ログイン画面 -->
+                <div id="loginForm">
+                    <div class="parent-header">塾アプリ ログイン</div>
+                    <p style="font-size:0.85em; text-align:center; color:#666;">パスワードを入力してください</p>
+                    <input type="password" id="parentPassword" placeholder="例：sato123">
+                    <button onclick="checkLogin()">ログイン</button>
+                </div>
+
+                <!-- ログイン後のマイページ -->
+                <div id="parentDashboard" style="display: none; height: 100%;">
+                    <div class="parent-header" id="parentHeaderTitle">〇〇様のマイページ</div>
+                    <p style="font-weight:bold; color:#2c3e50; margin-top:10px;">📅 お子様の予定一覧</p>
+                    <ul id="parentScheduleList" style="max-height: 220px; overflow-y: auto;">
+                        <!-- 予定がここに表示されます -->
+                    </ul>
+                    <button class="logout-btn" onclick="logout()">ログアウト</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 5名分のユーザーデータベース
+        const userDatabase = {
+            "sato123": { student: "佐藤 拓海", parent: "佐藤 美穂 さん" },
+            "suzuki123": { student: "鈴木 結衣", parent: "鈴木 一郎 さん" },
+            "takahashi123": { student: "高橋 蓮", parent: "高橋 恵子 さん" },
+            "tanaka123": { student: "田中 葵", parent: "田中 健一 さん" },
+            "watanabe123": { student: "渡辺 翔太", parent: "渡辺 真由美 さん" }
+        };
+
+        let loggedInUser = null;
+        let schedules = JSON.parse(localStorage.getItem('juku_final_schedules')) || [];
+
+        // 塾長が予定を登録し、通知を送る
+        function sendUrgentNotification() {
+            const student = document.getElementById('studentSelect').value;
+            const date = document.getElementById('scheduleDate').value;
+            const text = document.getElementById('scheduleText').value;
+
+            if (!date || !text) {
+                alert('日付と予定内容を入力してください！');
+                return;
+            }
+
+            const newSchedule = { student, date, text };
+            schedules.push(newSchedule);
+            localStorage.setItem('juku_final_schedules', JSON.stringify(schedules));
+
+            // 入力欄クリア
+            document.getElementById('scheduleText').value = '';
+
+            // 現在ログイン中の保護者宛ての予定なら、スマホ画面に通知を発動＆表示更新
+            if (loggedInUser && loggedInUser.student === student) {
+                displayParentSchedules();
+                triggerPushNotification(`【日程変更】${date} の予定：${text}`);
+            } else {
+                alert(`（システムログ）${student} 宛ての変更を保存し、通知信号を送信しました。`);
+            }
+        }
+
+        // 保護者ログイン
+        function checkLogin() {
+            const pass = document.getElementById('parentPassword').value;
+            
+            if (userDatabase[pass]) {
+                loggedInUser = userDatabase[pass];
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('parentDashboard').style.display = 'block';
+                displayParentSchedules();
+            } else {
+                alert('パスワードが正しくありません。');
+            }
+            document.getElementById('parentPassword').value = '';
+        }
+
+        // ログイン中の子供の予定を表示
+        function displayParentSchedules() {
+            const list = document.getElementById('parentScheduleList');
+            document.getElementById('parentHeaderTitle').innerText = `${loggedInUser.parent} 専用画面`;
+            list.innerHTML = '';
+
+            let myChildSchedules = schedules.filter(item => item.student === loggedInUser.student);
+            myChildSchedules.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            if (myChildSchedules.length === 0) {
+                list.innerHTML = '<li>現在、登録されている予定はありません。</li>';
+            } else {
+                myChildSchedules.forEach(item => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<strong>📅 ${item.date}</strong><br>${item.text}`;
+                    list.appendChild(li);
+                });
+            }
+        }
+
+        // 疑似プッシュ通知のアニメーション
+        function triggerPushNotification(message) {
+            const banner = document.getElementById('pushBanner');
+            const msgSpan = document.getElementById('pushMessage');
+            
+            msgSpan.innerText = message;
+            banner.classList.add('show');
+
+            setTimeout(() => {
+                banner.classList.remove('show');
+            }, 5000);
+        }
+
+        // ログアウト
+        function logout() {
+            loggedInUser = null;
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('parentDashboard').style.display = 'none';
+        }
+
+        // データクリア
+        function clearAllData() {
+            if (confirm('すべての予定データを完全にリセットしますか？')) {
+                localStorage.removeItem('juku_final_schedules');
+                schedules = [];
+                if (loggedInUser) displayParentSchedules();
+            }
+        }
+    </script>
+</body>
+</html>
