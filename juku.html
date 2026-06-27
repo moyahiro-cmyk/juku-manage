@@ -195,6 +195,11 @@
         let currentMonth = 5;
 
         // Firebaseデータの監視と右側欄外への自動反映
+        let schedules = [];
+        let currentYear = 2026;
+        let currentMonth = 5;
+
+        // Firebaseデータの監視と右側欄外への自動反映
         db.collection("schedules").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
             schedules = [];
             snapshot.forEach((doc) => {
@@ -209,16 +214,18 @@
             }
         });
 
-        // 🌟 右側の2つの履歴リストを条件に合わせて並び替えて描画する関数
+        // 🌟 右側の2つの履歴リストを最新順（上が新しい）で描画する関数
         function updateRightPanelLists() {
             const urgentListEl = document.getElementById('urgentHistoryList');
             const normalListEl = document.getElementById('normalHistoryList');
+
+            if (!urgentListEl || !normalListEl) return;
 
             // 一旦クリア
             urgentListEl.innerHTML = '';
             normalListEl.innerHTML = '';
 
-            // 1. 緊急連絡の抽出（Firebase側でdescで並んでいるので、そのまま上が新しい状態）
+            // 1. 緊急連絡の抽出（上が新しい状態）
             const urgentEvents = schedules.filter(item => item.type === 'urgent');
             if (urgentEvents.length === 0) {
                 urgentListEl.innerHTML = '<li style="color:#999; border-left-color:#ccc;">送信済みの緊急連絡はありません。</li>';
@@ -231,7 +238,7 @@
                 });
             }
 
-            // 2. 授業予定の抽出（緊急連絡と同じく、上が最新になるようそのまま取得）
+            // 2. 授業予定の抽出（こちらも上が新しい状態）
             const normalEvents = schedules.filter(item => item.type === 'normal');
             if (normalEvents.length === 0) {
                 normalListEl.innerHTML = '<li style="color:#999; border-left-color:#ccc;">登録済みの授業予定はありません。</li>';
@@ -239,15 +246,14 @@
                 normalEvents.forEach(item => {
                     const li = document.createElement('li');
                     li.className = 'item-normal';
-                    // 日付（YYYY-MM-DD）を少し見やすくカットして結合
                     const shortDate = item.date ? item.date.substring(5) + ' ' : '';
                     li.innerHTML = `<strong>${item.student}</strong> ： ${shortDate}${item.text}`;
                     normalListEl.appendChild(li);
                 });
                 
-                // 💡 上が最新になったので、スクロール位置を常に一番上（最初）に合わせる
+                // スクロール位置を常に一番上（最新）に合わせる
                 const container = document.querySelector('.normal-history');
-                container.scrollTop = 0;
+                if (container) { container.scrollTop = 0; }
             }
         }
 
@@ -289,6 +295,9 @@
             const minuteSel = document.getElementById('minuteSelect');
             const today = new Date();
 
+            if (!monthSel || !hourSel || !minuteSel) return;
+
+            monthSel.innerHTML = '';
             for (let i = 1; i <= 12; i++) {
                 let opt = document.createElement('option');
                 opt.value = String(i).padStart(2, '0'); opt.innerText = i;
@@ -300,12 +309,15 @@
             const daySel = document.getElementById('daySelect');
             if (daySel) { daySel.value = String(today.getDate()).padStart(2, '0'); }
 
+            hourSel.innerHTML = '';
             for (let i = 0; i <= 23; i++) {
                 let opt = document.createElement('option');
                 opt.value = String(i).padStart(2, '0'); opt.innerText = i;
                 if (i === 18) opt.selected = true;
                 hourSel.appendChild(opt);
             }
+            
+            minuteSel.innerHTML = '';
             for (let i = 0; i < 60; i += 10) {
                 let opt = document.createElement('option');
                 opt.value = String(i).padStart(2, '0'); opt.innerText = String(i).padStart(2, '0');
