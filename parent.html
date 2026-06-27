@@ -184,14 +184,9 @@
                         }
                     });
 
-                    // 🌟 バッジの更新
-                    const totalNotifications = urgentCount + normalCount;
-                    if ('setAppBadge' in navigator) {
-                        if (totalNotifications > 0) {
-                            navigator.setAppBadge(totalNotifications).catch(() => {});
-                        } else {
-                            navigator.clearAppBadge().catch(() => {});
-                        }
+                    // 🌟 バッジの更新（アプリが開いている間は、新着があってもバッジを0で上書き消去する）
+                    if ('clearAppBadge' in navigator) {
+                        navigator.clearAppBadge().catch(() => {});
                     }
 
                     if (urgentCount === 0) urgentListEl.innerHTML = '<div class="no-data">現在、緊急連絡はありません。</div>';
