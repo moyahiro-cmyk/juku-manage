@@ -4,25 +4,47 @@
     <meta charset="UTF-8">
     <title>塾の予定管理システム（塾長画面）</title>
     <style>
+        /* 🌟 全体のレイアウトを左右に分割する設定 */
         body { font-family: sans-serif; margin: 20px; background-color: #f0f4f8; }
-        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-        .box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 550px; margin-top: 15px; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-bottom: 20px; }
+        
+        .main-container { display: flex; gap: 25px; max-width: 1200px; align-items: flex-start; }
+        .left-col { flex: 1; max-width: 550px; }
+        .right-col { flex: 1; max-width: 550px; display: flex; flex-direction: column; gap: 20px; }
+
+        /* ボックスのデザイン */
+        .box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); box-sizing: border-box; }
+        .history-box { background: #fff; min-height: 250px; max-height: 350px; overflow-y: auto; border: 1px solid #ddd; }
+        .history-box h3 { margin-top: 0; color: #2c3e50; border-left: 4px solid #3498db; padding-left: 8px; font-size: 1.1em; position: sticky; top: 0; background: white; padding-bottom: 8px; margin-bottom: 10px; }
+        .history-box.urgent-history h3 { border-left-color: #e74c3c; }
+
+        /* 履歴のリストデザイン */
+        .history-list { list-style: none; padding: 0; margin: 0; }
+        .history-list li { padding: 8px 10px; margin-bottom: 6px; border-radius: 4px; font-size: 0.9em; border-left: 4px solid #3498db; background: #f8f9fa; }
+        .history-list .item-urgent { border-left-color: #e74c3c; background: #ffeae6; }
+        .history-list .item-normal { border-left-color: #3498db; background: #e8f4fd; }
+        .history-list .time-tag { font-size: 0.75em; color: #999; display: block; margin-bottom: 2px; }
+
+        /* 入力フォーム等のデザイン */
         select, input, button, textarea { padding: 10px; margin: 8px 0; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; }
         textarea { resize: vertical; font-family: sans-serif; }
         button { background-color: #3498db; color: white; border: none; cursor: pointer; font-weight: bold; }
         button:hover { background-color: #2980b9; }
-        .notify-btn { background-color: #3498db; }
         .urgent-btn { background-color: #e74c3c; }
         .urgent-btn:hover { background-color: #c0392b; }
-        .clear-btn { background-color: #e74c3c; margin-top: 30px; font-size: 0.9em; }
+        .clear-btn { background-color: #e74c3c; margin-top: 20px; font-size: 0.9em; width: auto; padding: 8px 15px; }
         label { font-size: 0.9em; color: #2c3e50; font-weight: bold; display: block; margin-top: 12px; }
+        
         .inline-selects { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
         .inline-selects select { margin: 0; flex: 1; }
         .inline-selects span { font-size: 0.9em; color: #555; font-weight: bold; }
-        .tab-container { display: flex; gap: 8px; max-width: 550px; margin-top: 15px; }
+        
+        .tab-container { display: flex; gap: 8px; margin-bottom: 0; }
         .tab-btn { flex: 1; padding: 10px; background-color: #dcdde1; color: #2f3640; border-radius: 6px 6px 0 0; margin: 0; font-size: 0.9em; cursor: pointer; border: none; }
         .tab-btn.active { background-color: #3498db; color: white; }
         .tab-btn.urgent-tab.active { background-color: #e74c3c; }
+        
+        /* カレンダー */
         .calendar-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-bottom: 10px; }
         .calendar-nav-btn { width: auto; padding: 4px 12px; margin: 0; background: #e0e0e0; color: #333; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 0.85em; background: #fafafa; padding: 8px; border-radius: 8px; border: 1px solid #ddd; }
@@ -43,95 +65,118 @@
 
     <h1>塾・生徒予定管理システム（塾長画面）</h1>
 
-    <div class="tab-container">
-        <button id="tab1" class="tab-btn active" onclick="switchTab(1)">📅 1. 授業予定の入力</button>
-        <button id="tab2" class="tab-btn urgent-tab" onclick="switchTab(2)">🚨 2. 緊急連絡の入力</button>
-        <button id="tab3" class="tab-btn" onclick="switchTab(3)">👁 3. カレンダー確認</button>
-    </div>
+    <div class="main-container">
+        
+        <div class="left-col">
+            <div class="tab-container">
+                <button id="tab1" class="tab-btn active" onclick="switchTab(1)">📅 1. 授業予定の入力</button>
+                <button id="tab2" class="tab-btn urgent-tab" onclick="switchTab(2)">🚨 2. 緊急連絡の入力</button>
+                <button id="tab3" class="tab-btn" onclick="switchTab(3)">👁 3. カレンダー確認</button>
+            </div>
 
-    <div id="page1" class="box">
-        <h2>【個別】授業予定の登録</h2>
-        <label>対象の生徒を指定:</label>
-        <select id="studentSelect">
-            <option value="佐藤 拓海">佐藤 拓海 くん</option>
-            <option value="鈴木 結衣">鈴木 結衣 さん</option>
-            <option value="高橋 蓮">高橋 蓮 くん</option>
-            <option value="田中 葵">田中 葵 さん</option>
-            <option value="渡辺 翔太">渡辺 翔太 くん</option>
-        </select>
-        <label>教科を選択:</label>
-        <select id="subjectSelect">
-            <option value="英語">英語</option>
-            <option value="数学">数学</option>
-            <option value="国語">国語</option>
-            <option value="理科">理科</option>
-            <option value="社会">社会</option>
-            <option value="その他">その他（面談・イベント等）</option>
-        </select>
-        <label>日付を指定:</label>
-        <div class="inline-selects">
-            <select id="yearSelect" onchange="updateDayDropdown()">
-                <option value="2026">2026年</option>
-                <option value="2027">2027年</option>
-                <option value="2028">2028年</option>
-            </select>
-            <select id="monthSelect" onchange="updateDayDropdown()"></select>
-            <select id="daySelect"></select><span>日</span>
+            <div id="page1" class="box">
+                <h2>【個別】授業予定の登録</h2>
+                <label>対象の生徒を指定:</label>
+                <select id="studentSelect">
+                    <option value="佐藤 拓海">佐藤 拓海 くん</option>
+                    <option value="鈴木 結衣">鈴木 結衣 さん</option>
+                    <option value="高橋 蓮">高橋 蓮 くん</option>
+                    <option value="田中 葵">田中 葵 さん</option>
+                    <option value="渡辺 翔太">渡辺 翔太 くん</option>
+                </select>
+                <label>教科を選択:</label>
+                <select id="subjectSelect">
+                    <option value="英語">英語</option>
+                    <option value="数学">数学</option>
+                    <option value="国語">国語</option>
+                    <option value="理科">理科</option>
+                    <option value="社会">社会</option>
+                    <option value="その他">その他（面談・イベント等）</option>
+                </select>
+                <label>日付を指定:</label>
+                <div class="inline-selects">
+                    <select id="yearSelect" onchange="updateDayDropdown()">
+                        <option value="2026">2026年</option>
+                        <option value="2027">2027年</option>
+                        <option value="2028">2028年</option>
+                    </select>
+                    <select id="monthSelect" onchange="updateDayDropdown()"></select>
+                    <select id="daySelect"></select><span>日</span>
+                </div>
+                <label>開始時刻を指定:</label>
+                <div class="inline-selects">
+                    <select id="hourSelect"></select><span>時</span>
+                    <select id="minuteSelect"></select><span>分 〜</span>
+                </div>
+                <label>追加の連絡事項:</label>
+                <input type="text" id="scheduleText" placeholder="例：本日は単語テストから始めます">
+                <button class="notify-btn" onclick="sendSchedule()">予定を登録する</button>
+            </div>
+
+            <div id="page2" class="box" style="display: none;">
+                <h2 style="color: #e74c3c;">【一斉/個別】緊急連絡の送信登録</h2>
+                <label>通知を送る対象:</label>
+                <select id="broadcastTarget">
+                    <option value="全員">全生徒の保護者（一斉通知）</option>
+                    <option value="佐藤 拓海">佐藤 拓海 くんの保護者のみ</option>
+                    <option value="鈴木 結衣">鈴木 結衣 さんの保護者のみ</option>
+                    <option value="高橋 蓮">高橋 蓮 くんの保護者のみ</option>
+                    <option value="田中 葵">田中 葵 さんの保護者のみ</option>
+                    <option value="渡辺 翔太">渡辺 翔太 くんの保護者のみ</option>
+                </select>
+                <label>緊急連絡の件名:</label>
+                <input type="text" id="urgentTitle" placeholder="例：【重要】大雨にともなう休校のご案内">
+                <label>連絡内容（本文）:</label>
+                <textarea id="urgentBody" rows="4" placeholder="例：本日の指導はZOOM指導に切り替えます。"></textarea>
+                <button class="urgent-btn" onclick="sendUrgentBroadcast()">🚨 緊急連絡を登録する</button>
+            </div>
+
+            <div id="page3" class="box" style="display: none;">
+                <h2>生徒予定カレンダー（全体把握用）</h2>
+                <label>表示する生徒で絞り込み:</label>
+                <select id="calendarFilter" onchange="renderCalendar()">
+                    <option value="すべて">すべての生徒の予定を表示</option>
+                    <option value="佐藤 拓海">佐藤 拓海 くん</option>
+                    <option value="鈴木 結衣">鈴木 結衣 さん</option>
+                    <option value="高橋 蓮">高橋 蓮 くん</option>
+                    <option value="田中 葵">田中 葵 さん</option>
+                    <option value="渡辺 翔太">渡辺 翔太 くん</option>
+                </select>
+                <div class="calendar-header" style="margin-top:15px;">
+                    <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀</button>
+                    <span id="calendarMonthTitle">2026年06月</span>
+                    <button class="calendar-nav-btn" onclick="changeMonth(1)">▶</button>
+                </div>
+                <div class="calendar-grid" id="calendarGrid"></div>
+                <div class="day-detail-box" id="dayDetailBox">
+                    <p style="color:#777; margin:5px 0;">日付をタップすると、その日の予定リストが表示されます。</p>
+                </div>
+            </div>
+            
+            <div style="text-align:left;">
+                <button class="clear-btn" onclick="clearAllData()">⚠ クラウドデータを完全リセット</button>
+            </div>
         </div>
-        <label>開始時刻を指定:</label>
-        <div class="inline-selects">
-            <select id="hourSelect"></select><span>時</span>
-            <select id="minuteSelect"></select><span>分 〜</span>
+
+        <div class="right-col">
+            
+            <div class="box history-box urgent-history">
+                <h3>🚨 緊急連絡の送信履歴（上が最新）</h3>
+                <ul id="urgentHistoryList" class="history-list">
+                    <li style="color:#aaa; border-left-color:#ccc;">履歴を読み込み中...</li>
+                </ul>
+            </div>
+
+            <div class="box history-box normal-history">
+                <h3>📅 指導予定の登録履歴（下が最新）</h3>
+                <ul id="normalHistoryList" class="history-list">
+                    <li style="color:#aaa; border-left-color:#ccc;">履歴を読み込み中...</li>
+                </ul>
+            </div>
+
         </div>
-        <label>追加の連絡事項:</label>
-        <input type="text" id="scheduleText" placeholder="例：本日は単語テストから始めます">
-        <button class="notify-btn" onclick="sendSchedule()">予定を登録する</button>
-    </div>
 
-    <div id="page2" class="box" style="display: none;">
-        <h2 style="color: #e74c3c;">【一斉/個別】緊急連絡の送信登録</h2>
-        <label>通知を送る対象:</label>
-        <select id="broadcastTarget">
-            <option value="全員">全生徒の保護者（一斉通知）</option>
-            <option value="佐藤 拓海">佐藤 拓海 くんの保護者のみ</option>
-            <option value="鈴木 結衣">鈴木 結衣 さんの保護者のみ</option>
-            <option value="高橋 蓮">高橋 蓮 くんの保護者のみ</option>
-            <option value="田中 葵">田中 葵 さんの保護者のみ</option>
-            <option value="渡辺 翔太">渡辺 翔太 くんの保護者のみ</option>
-        </select>
-        <label>緊急連絡の件名:</label>
-        <input type="text" id="urgentTitle" placeholder="例：【重要】大雨にともなう休校のご案内">
-        <label>連絡内容（本文）:</label>
-        <textarea id="urgentBody" rows="4" placeholder="例：本日の指導はZOOM指導に切り替えます。"></textarea>
-        <button class="urgent-btn" onclick="sendUrgentBroadcast()">🚨 緊急連絡を登録する</button>
     </div>
-
-    <div id="page3" class="box" style="display: none;">
-        <h2>生徒予定カレンダー（全体把握用）</h2>
-        <label>表示する生徒で絞り込み:</label>
-        <select id="calendarFilter" onchange="renderCalendar()">
-            <option value="すべて">すべての生徒の予定を表示</option>
-            <option value="佐藤 拓海">佐藤 拓海 くん</option>
-            <option value="鈴木 結衣">鈴木 結衣 さん</option>
-            <option value="高橋 蓮">高橋 蓮 くん</option>
-            <option value="田中 葵">田中 葵 さん</option>
-            <option value="渡辺 翔太">渡辺 翔太 くん</option>
-        </select>
-        <div class="calendar-header" style="margin-top:15px;">
-            <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀</button>
-            <span id="calendarMonthTitle">2026年06月</span>
-            <button class="calendar-nav-btn" onclick="changeMonth(1)">▶</button>
-        </div>
-        <div class="calendar-grid" id="calendarGrid"></div>
-        <div class="day-detail-box" id="dayDetailBox">
-            <p style="color:#777; margin:5px 0;">日付をタップすると、その日の予定リストが表示されます。</p>
-        </div>
-    </div>
-
-    <div style="max-width:550px; text-align:right;">
-        <button class="clear-btn" onclick="clearAllData()">⚠ クラウドのデータを完全リセット</button>
-    </div>
-
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyCvsoHNZ_XcrSMB1ZQp0MZEjaQ9_4twiZK",
@@ -145,22 +190,66 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         
-        // 🌟 クラウドからリアルタイムにデータを同期する配列
         let schedules = [];
         let currentYear = 2026;
         let currentMonth = 5;
 
-        // 🌟 Firebaseのデータを自動で監視して、カレンダーにリアルタイム反映する仕組みを導入
-        db.collection("schedules").onSnapshot((snapshot) => {
+        // Firebaseデータの監視と右側欄外への自動反映
+        db.collection("schedules").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
             schedules = [];
             snapshot.forEach((doc) => {
                 schedules.push(doc.data());
             });
-            // 画面をカレンダータブにしている場合は自動で再描画
+
+            // 右側の履歴欄を更新
+            updateRightPanelLists();
+
             if (document.getElementById('page3').style.display === 'block') {
                 renderCalendar();
             }
         });
+
+        // 🌟 右側の2つの履歴リストを条件に合わせて並び替えて描画する関数
+        function updateRightPanelLists() {
+            const urgentListEl = document.getElementById('urgentHistoryList');
+            const normalListEl = document.getElementById('normalHistoryList');
+
+            // 一旦クリア
+            urgentListEl.innerHTML = '';
+            normalListEl.innerHTML = '';
+
+            // 1. 緊急連絡の抽出（Firebase側でdescで並んでいるので、そのまま上が新しい状態）
+            const urgentEvents = schedules.filter(item => item.type === 'urgent');
+            if (urgentEvents.length === 0) {
+                urgentListEl.innerHTML = '<li style="color:#999; border-left-color:#ccc;">送信済みの緊急連絡はありません。</li>';
+            } else {
+                urgentEvents.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'item-urgent';
+                    li.innerHTML = `<strong>${item.student}</strong> ： ${item.text}`;
+                    urgentListEl.appendChild(li);
+                });
+            }
+
+            // 2. 授業予定の抽出（緊急連絡と同じく、上が最新になるようそのまま取得）
+            const normalEvents = schedules.filter(item => item.type === 'normal');
+            if (normalEvents.length === 0) {
+                normalListEl.innerHTML = '<li style="color:#999; border-left-color:#ccc;">登録済みの授業予定はありません。</li>';
+            } else {
+                normalEvents.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'item-normal';
+                    // 日付（YYYY-MM-DD）を少し見やすくカットして結合
+                    const shortDate = item.date ? item.date.substring(5) + ' ' : '';
+                    li.innerHTML = `<strong>${item.student}</strong> ： ${shortDate}${item.text}`;
+                    normalListEl.appendChild(li);
+                });
+                
+                // 💡 上が最新になったので、スクロール位置を常に一番上（最初）に合わせる
+                const container = document.querySelector('.normal-history');
+                container.scrollTop = 0;
+            }
+        }
 
         function switchTab(pageNum) {
             document.getElementById('page1').style.display = pageNum === 1 ? 'block' : 'none';
@@ -250,7 +339,7 @@
             })
             .then(() => {
                 document.getElementById('scheduleText').value = '';
-                alert(`${student} くん/さんの予定をクラウドに保存しました！`);
+                alert(`${student} くん/さんの予定を登録しました！`);
             })
             .catch((error) => {
                 alert("保存に失敗しました。");
@@ -278,7 +367,7 @@
             .then(() => {
                 document.getElementById('urgentTitle').value = '';
                 document.getElementById('urgentBody').value = '';
-                alert(`緊急連絡をクラウドに登録しました！`);
+                alert(`緊急連絡を登録しました！`);
             })
             .catch((error) => {
                 alert("保存に失敗しました。");
@@ -340,42 +429,4 @@
             if (targetEvents.length === 0) {
                 detailBox.innerHTML = `<strong>📅 ${currentMonth + 1}月${dayNum}日</strong><br><p style="color:#999; margin:5px 0;">この日の予定はありません。</p>`;
             } else {
-                let html = `<strong>📅 ${currentMonth + 1}月${dayNum}日の予定リスト</strong><ul style="margin:5px 0 0 0; padding-left:0;">`;
-                targetEvents.forEach(item => {
-                    const isUrgent = item.type === 'urgent';
-                    const nameTag = item.student === '全員' ? '【全員一斉】' : `【${item.student}】`;
-                    html += `<li style="background:${isUrgent?'#ffeae6':'#e8f4fd'}; border-left:5px solid ${isUrgent?'#e74c3c':'#3498db'}; margin:4px 0; padding:6px; list-style:none; font-size:0.9em;"><strong>${nameTag}</strong> ${item.text}</li>`;
-                });
-                html += '</ul>';
-                detailBox.innerHTML = html;
-            }
-        }
-
-        function changeMonth(dir) {
-            currentMonth += dir;
-            if (currentMonth > 11) { currentMonth = 0; currentYear += 1; }
-            else if (currentMonth < 0) { currentMonth = 11; currentYear -= 1; }
-            renderCalendar();
-        }
-
-        // 🌟 リセットボタンを押したときに Firebase のクラウドデータを全削除する命令に修正
-        function clearAllData() {
-            if (confirm('【重要】クラウド(Firebase)上のすべての登録データを完全に削除しますか？\nこの操作を行うと保護者側の画面もすべて初期化されます。')) {
-                db.collection("schedules").get().then((querySnapshot) => {
-                    const batch = db.batch();
-                    querySnapshot.forEach((doc) => {
-                        batch.delete(doc.ref);
-                    });
-                    return batch.commit();
-                }).then(() => {
-                    alert('クラウド上のすべてのデータを完全にリセットしました！');
-                    schedules = [];
-                    renderCalendar();
-                }).catch((error) => {
-                    alert('削除に失敗しました。');
-                });
-            }
-        }
-    </script>
-</body>
-</html>
+                let html = `<strong>📅 ${currentMonth + 1}月
