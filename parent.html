@@ -33,7 +33,6 @@
 </head>
 <body>
 
-    <!-- 🌟 タイトル部分を丸ごと「えんごばと」に差し替えました -->
     <h1>📅 えんごばと</h1>
     <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
 
@@ -77,31 +76,26 @@
         let currentStudent = "";
         let unsubscribeSnapshot = null;
         let isPopUpShownThisSession = false; 
+        let latestTotalCount = 0; // 最新の件数を常に記憶しておく変数
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then(() => console.log('SW Registered'));
         }
 
+        // 🌟 アプリが開いた瞬間（または裏から戻ったとき）のトリガー
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 isPopUpShownThisSession = false; 
+                // 画面が開いたときに、新着があれば1回だけポップアップを出す
+                if (latestTotalCount > 0) {
+                    askToClearBadge();
+                }
             }
         });
 
-        window.onload = function() {
-            if ('Notification' in window && Notification.permission !== 'granted') {
-                document.getElementById("enableBadgeBtn").style.display = "block";
-            }
-
-            const savedStudent = localStorage.getItem("juku_parent_student");
-            if (savedStudent) {
-                currentStudent = savedStudent;
-                showMainContent();
-            }
-        };
-
-        function askToClearBadge(totalCount) {
-            if ('clearAppBadge' in navigator && totalCount > 0 && !isPopUpShownThisSession) {
+        // 🌟 ポップアップとお伺い（バッジ操作とは分離）
+        function askToClearBadge() {
+            if ('clearAppBadge' in navigator && !isPopUpShownThisSession) {
                 isPopUpShownThisSession = true; 
                 setTimeout(() => {
                     if (confirm("新着連絡を確認しましたか？\n（OKを押すとアイコンのバッジが消えます）")) {
@@ -149,6 +143,7 @@
                 document.getElementById("welcomeArea").style.display = "none";
                 document.getElementById("studentSelect").value = "";
                 isPopUpShownThisSession = false;
+                latestTotalCount = 0;
             }
         }
 
@@ -184,20 +179,21 @@
                         }
                     });
 
-                    const totalNotifications = urgentCount + normalCount;
+                    // 最新の合計件数を更新
+                    latestTotalCount = urgentCount + normalCount;
 
-                    // バッジ競合を避けるクリーンな制御
+                    // 🌟 【最終シンプルなバッジ制御】
+                    // 届いたら四の五の言わずにバッジを反映する（これでスリープ前や受信時に確実にバッジがつきます）
                     if ('setAppBadge' in navigator) {
-                        if (document.visibilityState === 'hidden') {
-                            if (totalNotifications > 0) {
-                                navigator.setAppBadge(totalNotifications).catch(() => {});
+                        if (latestTotalCount > 0) {
+                            navigator.setAppBadge(latestTotalCount).catch(() => {});
+                            
+                            // 初回起動時（すでに画面が開いている状態でデータが降ってきた場合）のポップアップ誘発
+                            if (document.visibilityState === 'visible') {
+                                askToClearBadge();
                             }
                         } else {
-                            if (totalNotifications > 0) {
-                                askToClearBadge(totalNotifications);
-                            } else {
-                                navigator.clearAppBadge().catch(() => {});
-                            }
+                            navigator.clearAppBadge().catch(() => {});
                         }
                     }
 
