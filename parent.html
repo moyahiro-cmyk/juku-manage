@@ -40,7 +40,7 @@
 </head>
 <body>
 
-    <h1>📅 えんごかい ＷＥＢ</h1>
+    <h1>📅 塾・指導予定 確認コプロ</h1>
     <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
 
     <!-- 初回ログイン（生徒選択）エリア -->
@@ -83,9 +83,15 @@
         let currentStudent = "";
         let unsubscribeSnapshot = null;
 
+        // 🌟 iPhone用のサービスワーカー（お世話係）の登録処理
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+            .then(() => console.log('Service Worker 登録完了！'))
+            .catch(err => console.log('Service Worker 登録失敗:', err));
+        }
+
         // ページが読み込まれたときの処理
         window.onload = function() {
-            // 🌟 記憶された生徒名があるか確認（常時サインイン機能）
             const savedStudent = localStorage.getItem("juku_parent_student");
             if (savedStudent) {
                 currentStudent = savedStudent;
@@ -99,7 +105,6 @@
             if (!select.value) return;
             
             currentStudent = select.value;
-            // 🌟 スマホに生徒名を保存する
             localStorage.setItem("juku_parent_student", currentStudent);
             showMainContent();
         }
@@ -113,7 +118,6 @@
             welcome.innerText = `固定表示中：${currentStudent} の保護者様`;
             welcome.style.display = "block";
 
-            // リアルタイムデータの監視を開始
             startListening();
         }
 
@@ -123,7 +127,6 @@
                 localStorage.removeItem("juku_parent_student");
                 if (unsubscribeSnapshot) unsubscribeSnapshot();
                 
-                // アプリバッジをクリア
                 if ('clearAppBadge' in navigator) { navigator.clearAppBadge(); }
 
                 document.getElementById("loginArea").style.display = "block";
@@ -137,7 +140,6 @@
         function startListening() {
             if (unsubscribeSnapshot) unsubscribeSnapshot();
 
-            // データの並び順を createdAt の降順（最新が上）にする
             unsubscribeSnapshot = db.collection("schedules")
                 .orderBy("createdAt", "desc")
                 .onSnapshot((snapshot) => {
@@ -154,17 +156,14 @@
                     snapshot.forEach((doc) => {
                         const item = doc.data();
                         
-                        // 自分に関係あるデータか判定（本人宛、または全員宛）
                         if (item.student === currentStudent || item.student === "全員") {
                             
-                            // 日付の表示調整 (YYYY-MM-DD -> MM月DD日)
                             let dateDisplay = item.date;
                             if (item.date && item.date.includes("-")) {
                                 const parts = item.date.split("-");
                                 dateDisplay = `${parseInt(parts[1])}月${parseInt(parts[2])}日`;
                             }
 
-                            // カード型のHTMLを作成
                             const card = document.createElement("div");
                             card.className = `card ${item.type === 'urgent' ? 'card-urgent' : 'card-normal'}`;
                             card.innerHTML = `
@@ -183,7 +182,6 @@
                     });
 
                     // 🌟 通知バッジ（数字）の制御機能
-                    // 今回は「自分に関係のある連絡の合計数」を仮にバッジとして表示します
                     const totalNotifications = urgentCount + normalCount;
                     if ('setAppBadge' in navigator) {
                         if (totalNotifications > 0) {
@@ -193,7 +191,6 @@
                         }
                     }
 
-                    // データがゼロのときの案内
                     if (urgentCount === 0) {
                         urgentListEl.innerHTML = '<div class="no-data">現在、緊急連絡はありません。</div>';
                     }
