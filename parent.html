@@ -33,7 +33,7 @@
 </head>
 <body>
 
-    <h1>📅 えんごかい　伝書鳩</h1>
+    <h1>📅 塾・指導予定 確認コプロ</h1>
     <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
 
     <button id="enableBadgeBtn" class="badge-btn" onclick="requestNotificationPermission()">📱 タップして通知・バッジを有効にする</button>
@@ -75,16 +75,16 @@
 
         let currentStudent = "";
         let unsubscribeSnapshot = null;
-        let isBadgeClearedForThisSession = false; // 🌟 1回の起動中に何度もポップアップが出るのを防ぐフラグ
+        let isBadgeClearedForThisSession = false; // ポップアップ連打防止フラグ
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then(() => console.log('SW Registered'));
         }
 
-        // アプリがバックグラウンドから復帰した時もポップアップ判定を行う
+        // アプリがバックグラウンドから復帰した時は、再度ポップアップ確認をできるようにする
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
-                isBadgeClearedForThisSession = false; // 復帰時は再度ポップアップを許可
+                isBadgeClearedForThisSession = false; 
             }
         });
 
@@ -100,15 +100,15 @@
             }
         };
 
-        // 🌟 塾長先生のアイデア：ポップアップでバッジを消す関数
+        // 🌟 塾長先生のアイデア：起動した・戻ってきたときに確認してバッジをクリアする
         function askToClearBadge() {
             if ('clearAppBadge' in navigator && !isBadgeClearedForThisSession) {
-                isBadgeClearedForThisSession = true; // 連打防止
+                isBadgeClearedForThisSession = true; // 処理の重複防止
                 setTimeout(() => {
                     if (confirm("新着連絡を確認しましたか？\n（OKを押すとアイコンのバッジが消えます）")) {
                         navigator.clearAppBadge().catch(() => {});
                     }
-                }, 1200); // 画面が描画されてから1.2秒後にポップアップ
+                }, 1000); // 画面が見えてから1秒後に優しく表示
             }
         }
 
@@ -187,13 +187,13 @@
 
                     const totalNotifications = urgentCount + normalCount;
 
-                    // 🌟 【シンプルで確実な制御】
+                    // 🌟 【一番シンプルで確実なバッジ制御】
                     if ('setAppBadge' in navigator) {
                         if (totalNotifications > 0 && !isBadgeClearedForThisSession) {
-                            // 閉じている時にデータが増えたら、素直にバッジを反映させる（これでバッジが復活します！）
+                            // 閉じている裏側で予定が増えたら、素直に件数をバッジに出す（これでバッジ機能が完全復活します）
                             navigator.setAppBadge(totalNotifications).catch(() => {});
                             
-                            // 画面が開いている状態なら、データ受信後にポップアップをトリガー
+                            // 画面が開いている状態なら、データ受信後にポップアップを優しく呼ぶ
                             askToClearBadge();
                         } else if (totalNotifications === 0) {
                             navigator.clearAppBadge().catch(() => {});
