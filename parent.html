@@ -13,24 +13,17 @@
     <style>
         body { font-family: sans-serif; margin: 0; padding: 15px; background-color: #f5f6fa; color: #2f3640; }
         h1 { font-size: 1.3em; color: #2c3e50; text-align: center; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 8px; }
-        
         .box { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 15px; box-sizing: border-box; }
         label { font-size: 0.9em; font-weight: bold; color: #2c3e50; display: block; margin-bottom: 5px; }
         select { padding: 10px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 1em; box-sizing: border-box; background: #fff; }
-        
-        /* 🌟 通知許可ボタンのスタイル */
         .badge-btn { display: none; width: 100%; background: #e67e22; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 0.95em; cursor: pointer; margin-bottom: 15px; text-align: center; box-sizing: border-box; }
-        
         .section-title { font-size: 1.1em; font-weight: bold; margin: 15px 0 8px 0; display: flex; align-items: center; gap: 5px; }
         .list-container { display: flex; flex-direction: column; gap: 10px; }
-        
         .card { padding: 12px; border-radius: 6px; border-left: 5px solid #ccc; position: relative; }
         .card-urgent { background: #ffeae6; border-left-color: #e74c3c; }
         .card-normal { background: #e8f4fd; border-left-color: #3498db; }
-        
         .card-date { font-size: 0.8em; color: #7f8c8d; margin-bottom: 4px; font-weight: bold; }
         .card-text { font-size: 0.95em; line-height: 1.4; }
-        
         .no-data { text-align: center; color: #95a5a6; padding: 20px; font-size: 0.9em; }
         .welcome-msg { font-size: 0.9em; color: #2980b9; text-align: center; margin-top: -10px; margin-bottom: 15px; font-weight: bold; }
         .signout-btn { background: none; border: none; color: #7f8c8d; font-size: 0.8em; text-decoration: underline; cursor: pointer; display: block; margin: 10px auto 0 auto; }
@@ -40,13 +33,11 @@
 </head>
 <body>
 
-    <h1>📅 えんごかい　ＷＥＢ</h1>
+    <h1>📅 えんごかい・うぇぶ</h1>
     <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
 
-    <!-- 🌟 通知許可を促すボタン（iPhoneでバッジを出すための必須機能） -->
     <button id="enableBadgeBtn" class="badge-btn" onclick="requestNotificationPermission()">📱 タップして通知・バッジを有効にする</button>
 
-    <!-- 初回ログイン（生徒選択）エリア -->
     <div id="loginArea" class="box">
         <label>お子様のお名前を選択してください：</label>
         <select id="studentSelect" onchange="loginAsStudent()">
@@ -59,7 +50,6 @@
         </select>
     </div>
 
-    <!-- 予定表示エリア -->
     <div id="contentArea" style="display: none;">
         <div class="section-title">🚨 緊急連絡</div>
         <div id="urgentList" class="list-container"></div>
@@ -85,19 +75,26 @@
 
         let currentStudent = "";
         let unsubscribeSnapshot = null;
+        let isAppVisible = true; // 🌟 アプリが画面に映っているかどうかのフラグ
 
-        // サービスワーカーの登録
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then(() => console.log('SW Registered'));
         }
 
+        // 🌟 アプリが開かれたり閉じられたりしたのを検知する仕組み
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                isAppVisible = true;
+                if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(() => {}); }
+            } else {
+                isAppVisible = false; // 閉じられた
+            }
+        });
+
         window.onload = function() {
-            // 🌟 通知の許可状態をチェックして、未許可ならボタンを表示
             if ('Notification' in window && Notification.permission !== 'granted') {
                 document.getElementById("enableBadgeBtn").style.display = "block";
             }
-
-// 🌟 👇ここを追加！ 画面を開いた瞬間にアプリアイコンのバッジを消す
             if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(() => {}); }
 
             const savedStudent = localStorage.getItem("juku_parent_student");
@@ -107,15 +104,12 @@
             }
         };
 
-        // 🌟 ボタンをタップしたときに、iPhoneにポップアップを強制する関数
         function requestNotificationPermission() {
             if ('Notification' in window) {
                 Notification.requestPermission().then(permission => {
                     if (permission === 'granted') {
                         alert('通知とバッジが有効になりました！');
                         document.getElementById("enableBadgeBtn").style.display = "none";
-                    } else {
-                        alert('通知が拒否されました。iPhoneの設定から許可してください。');
                     }
                 });
             }
@@ -132,11 +126,9 @@
         function showMainContent() {
             document.getElementById("loginArea").style.display = "none";
             document.getElementById("contentArea").style.display = "block";
-            
             const welcome = document.getElementById("welcomeArea");
             welcome.innerText = `固定表示中：${currentStudent} の保護者様`;
             welcome.style.display = "block";
-
             startListening();
         }
 
@@ -144,7 +136,7 @@
             if (confirm("ログイン状態を解除して、選び直しますか？")) {
                 localStorage.removeItem("juku_parent_student");
                 if (unsubscribeSnapshot) unsubscribeSnapshot();
-                if ('clearAppBadge' in navigator) { navigator.clearAppBadge(); }
+                if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(() => {}); }
                 document.getElementById("loginArea").style.display = "block";
                 document.getElementById("contentArea").style.display = "none";
                 document.getElementById("welcomeArea").style.display = "none";
@@ -184,9 +176,20 @@
                         }
                     });
 
-                    // 🌟 バッジの更新（アプリが開いている間は、新着があってもバッジを0で上書き消去する）
-                    if ('clearAppBadge' in navigator) {
-                        navigator.clearAppBadge().catch(() => {});
+                    // 🌟 【賢いバッジの制御】
+                    if ('setAppBadge' in navigator) {
+                        if (isAppVisible) {
+                            // アプリを開いている真っ最中なら、バッジは常に消す
+                            navigator.clearAppBadge().catch(() => {});
+                        } else {
+                            // アプリを閉じている裏側でデータが増えたら、バッジを表示する
+                            const totalNotifications = urgentCount + normalCount;
+                            if (totalNotifications > 0) {
+                                navigator.setAppBadge(totalNotifications).catch(() => {});
+                            } else {
+                                navigator.clearAppBadge().catch(() => {});
+                            }
+                        }
                     }
 
                     if (urgentCount === 0) urgentListEl.innerHTML = '<div class="no-data">現在、緊急連絡はありません。</div>';
