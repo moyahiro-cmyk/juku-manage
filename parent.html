@@ -27,8 +27,14 @@
         .saturday { color: #3498db; }
         .calendar-day { padding: 6px 0; border-radius: 4px; cursor: pointer; position: relative; min-height: 28px; box-sizing: border-box; }
         .calendar-day:hover { background-color: #f0f0f0; }
-        .calendar-day.has-event { font-weight: bold; color: #e67e22; }
-        .calendar-day.has-event::after { content: '●'; font-size: 8px; position: absolute; bottom: 1px; left: 0; right: 0; color: #e67e22; text-align: center; }
+        /* 予定がある日は文字を太字に */
+.calendar-day.has-event { font-weight: bold; }
+
+/* 通常の予定（青いポチ） */
+.calendar-day.has-event-normal::after { content: '●'; font-size: 8px; position: absolute; bottom: 1px; left: 0; right: 0; color: #3498db; text-align: center; }
+
+/* 緊急連絡（赤いポチ） */
+.calendar-day.has-event-urgent::after { content: '●'; font-size: 8px; position: absolute; bottom: 1px; left: 0; right: 0; color: #e74c3c; text-align: center; }
         .calendar-day.selected { background-color: #ffeaa7; border: 1px solid #ff9f43; }
         .calendar-day.empty { cursor: default; }
         .calendar-day.empty:hover { background: none; }
@@ -227,11 +233,20 @@
 
                 const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 
-                const hasEvent = myChildSchedules.some(item => {
-                    return item.date.replace(/–/g, '-') === dateStr;
-                });
+                // その日の予定をすべて抽出
+const dayEvents = myChildSchedules.filter(item => item.date.replace(/–/g, '-') === dateStr);
 
-                if (hasEvent) div.classList.add('has-event');
+if (dayEvents.length > 0) {
+    div.classList.add('has-event'); // 太字にする用
+    
+    // 1つでも緊急連絡（urgent）が含まれていたら赤ポチ、それ以外は青ポチ
+    const hasUrgent = dayEvents.some(item => item.type === 'urgent');
+    if (hasUrgent) {
+        div.classList.add('has-event-urgent');
+    } else {
+        div.classList.add('has-event-normal');
+    }
+}
 
                 div.onclick = () => {
                     document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
