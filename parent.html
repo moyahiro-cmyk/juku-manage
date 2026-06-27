@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>塾の予定確認（保護者画面）</title>
     
-    <!-- 🌟 アプリ化（PWA）のための設定ファイルを紐付け -->
     <link rel="manifest" href="./manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -19,6 +18,9 @@
         label { font-size: 0.9em; font-weight: bold; color: #2c3e50; display: block; margin-bottom: 5px; }
         select { padding: 10px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 1em; box-sizing: border-box; background: #fff; }
         
+        /* 🌟 通知許可ボタンのスタイル */
+        .badge-btn { display: none; width: 100%; background: #e67e22; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 0.95em; cursor: pointer; margin-bottom: 15px; text-align: center; box-sizing: border-box; }
+        
         .section-title { font-size: 1.1em; font-weight: bold; margin: 15px 0 8px 0; display: flex; align-items: center; gap: 5px; }
         .list-container { display: flex; flex-direction: column; gap: 10px; }
         
@@ -31,8 +33,6 @@
         
         .no-data { text-align: center; color: #95a5a6; padding: 20px; font-size: 0.9em; }
         .welcome-msg { font-size: 0.9em; color: #2980b9; text-align: center; margin-top: -10px; margin-bottom: 15px; font-weight: bold; }
-        
-        /* サインアウト（選び直し）ボタン */
         .signout-btn { background: none; border: none; color: #7f8c8d; font-size: 0.8em; text-decoration: underline; cursor: pointer; display: block; margin: 10px auto 0 auto; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -42,6 +42,9 @@
 
     <h1>📅 塾・指導予定 確認コプロ</h1>
     <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
+
+    <!-- 🌟 通知許可を促すボタン（iPhoneでバッジを出すための必須機能） -->
+    <button id="enableBadgeBtn" class="badge-btn" onclick="requestNotificationPermission()">📱 タップして通知・バッジを有効にする</button>
 
     <!-- 初回ログイン（生徒選択）エリア -->
     <div id="loginArea" class="box">
@@ -56,7 +59,7 @@
         </select>
     </div>
 
-    <!-- 予定表示エリア（選択後のみ表示） -->
+    <!-- 予定表示エリア -->
     <div id="contentArea" style="display: none;">
         <div class="section-title">🚨 緊急連絡</div>
         <div id="urgentList" class="list-container"></div>
@@ -79,26 +82,21 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        // 🌟 ここから追加：画面が開いたときに通知の許可を求める
-        if ('Notification' in window) {
-            Notification.requestPermission().then(permission => {
-                console.log('通知許可ステータス:', permission);
-            });
-        }
-        // 🌟 ここまで追加
 
         let currentStudent = "";
         let unsubscribeSnapshot = null;
 
-        // 🌟 iPhone用のサービスワーカー（お世話係）の登録処理
+        // サービスワーカーの登録
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-            .then(() => console.log('Service Worker 登録完了！'))
-            .catch(err => console.log('Service Worker 登録失敗:', err));
+            navigator.serviceWorker.register('./sw.js').then(() => console.log('SW Registered'));
         }
 
-        // ページが読み込まれたときの処理
         window.onload = function() {
+            // 🌟 通知の許可状態をチェックして、未許可ならボタンを表示
+            if ('Notification' in window && Notification.permission !== 'granted') {
+                document.getElementById("enableBadgeBtn").style.display = "block";
+            }
+
             const savedStudent = localStorage.getItem("juku_parent_student");
             if (savedStudent) {
                 currentStudent = savedStudent;
@@ -106,17 +104,28 @@
             }
         };
 
-        // 生徒を選択したとき（ログイン）
+        // 🌟 ボタンをタップしたときに、iPhoneにポップアップを強制する関数
+        function requestNotificationPermission() {
+            if ('Notification' in window) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        alert('通知とバッジが有効になりました！');
+                        document.getElementById("enableBadgeBtn").style.display = "none";
+                    } else {
+                        alert('通知が拒否されました。iPhoneの設定から許可してください。');
+                    }
+                });
+            }
+        }
+
         function loginAsStudent() {
             const select = document.getElementById("studentSelect");
             if (!select.value) return;
-            
             currentStudent = select.value;
             localStorage.setItem("juku_parent_student", currentStudent);
             showMainContent();
         }
 
-        // メイン画面の表示とリアルタイム同期の開始
         function showMainContent() {
             document.getElementById("loginArea").style.display = "none";
             document.getElementById("contentArea").style.display = "block";
@@ -128,14 +137,11 @@
             startListening();
         }
 
-        // サインアウト（選び直し）
         function signout() {
             if (confirm("ログイン状態を解除して、選び直しますか？")) {
                 localStorage.removeItem("juku_parent_student");
                 if (unsubscribeSnapshot) unsubscribeSnapshot();
-                
                 if ('clearAppBadge' in navigator) { navigator.clearAppBadge(); }
-
                 document.getElementById("loginArea").style.display = "block";
                 document.getElementById("contentArea").style.display = "none";
                 document.getElementById("welcomeArea").style.display = "none";
@@ -143,17 +149,14 @@
             }
         }
 
-        // Firebaseからリアルタイムにデータを取得する処理
         function startListening() {
             if (unsubscribeSnapshot) unsubscribeSnapshot();
 
             unsubscribeSnapshot = db.collection("schedules")
                 .orderBy("createdAt", "desc")
                 .onSnapshot((snapshot) => {
-                    
                     const urgentListEl = document.getElementById("urgentList");
                     const normalListEl = document.getElementById("normalList");
-                    
                     urgentListEl.innerHTML = "";
                     normalListEl.innerHTML = "";
 
@@ -162,9 +165,7 @@
 
                     snapshot.forEach((doc) => {
                         const item = doc.data();
-                        
                         if (item.student === currentStudent || item.student === "全員") {
-                            
                             let dateDisplay = item.date;
                             if (item.date && item.date.includes("-")) {
                                 const parts = item.date.split("-");
@@ -173,22 +174,14 @@
 
                             const card = document.createElement("div");
                             card.className = `card ${item.type === 'urgent' ? 'card-urgent' : 'card-normal'}`;
-                            card.innerHTML = `
-                                <div class="card-date">${dateDisplay}</div>
-                                <div class="card-text">${item.text}</div>
-                            `;
+                            card.innerHTML = `<div class="card-date">${dateDisplay}</div><div class="card-text">${item.text}</div>`;
 
-                            if (item.type === "urgent") {
-                                urgentListEl.appendChild(card);
-                                urgentCount++;
-                            } else {
-                                normalListEl.appendChild(card);
-                                normalCount++;
-                            }
+                            if (item.type === "urgent") { urgentListEl.appendChild(card); urgentCount++; }
+                            else { normalListEl.appendChild(card); normalCount++; }
                         }
                     });
 
-                    // 🌟 通知バッジ（数字）の制御機能
+                    // 🌟 バッジの更新
                     const totalNotifications = urgentCount + normalCount;
                     if ('setAppBadge' in navigator) {
                         if (totalNotifications > 0) {
@@ -198,12 +191,8 @@
                         }
                     }
 
-                    if (urgentCount === 0) {
-                        urgentListEl.innerHTML = '<div class="no-data">現在、緊急連絡はありません。</div>';
-                    }
-                    if (normalCount === 0) {
-                        normalListEl.innerHTML = '<div class="no-data">登録された指導予定はありません。</div>';
-                    }
+                    if (urgentCount === 0) urgentListEl.innerHTML = '<div class="no-data">現在、緊急連絡はありません。</div>';
+                    if (normalCount === 0) normalListEl.innerHTML = '<div class="no-data">登録された指導予定はありません。</div>';
                 });
         }
     </script>
