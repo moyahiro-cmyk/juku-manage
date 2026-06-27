@@ -79,6 +79,13 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        // 🌟 ここから追加：画面が開いたときに通知の許可を求める
+        if ('Notification' in window) {
+            Notification.requestPermission().then(permission => {
+                console.log('通知許可ステータス:', permission);
+            });
+        }
+        // 🌟 ここまで追加
 
         let currentStudent = "";
         let unsubscribeSnapshot = null;
