@@ -14,7 +14,7 @@
         .notify-btn { background-color: #3498db; }
         .urgent-btn { background-color: #e74c3c; }
         .urgent-btn:hover { background-color: #c0392b; }
-        .clear-btn { background-color: #7f8c8d; margin-top: 30px; font-size: 0.9em; }
+        .clear-btn { background-color: #e74c3c; margin-top: 30px; font-size: 0.9em; }
         label { font-size: 0.9em; color: #2c3e50; font-weight: bold; display: block; margin-top: 12px; }
         .inline-selects { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
         .inline-selects select { margin: 0; flex: 1; }
@@ -36,9 +36,8 @@
         .calendar-day.empty { cursor: default; background: none !important; }
         .day-detail-box { background: #f8f9fa; padding: 10px; margin-top: 10px; border-radius: 6px; border: 1px dashed #3498db; min-height: 50px; font-size: 0.9em; }
     </style>
-    <!-- Firebase の基本機能と Firestore（データベース）の読み込み -->
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -71,17 +70,12 @@
         </select>
         <label>日付を指定:</label>
         <div class="inline-selects">
-            <!-- 年のセレクトボックス（もし id="yearSelect" があれば、このように onchange を足します） -->
-<select id="yearSelect" onchange="updateDayDropdown()">
-    <option value="2026">2026年</option>
-    <option value="2027">2027年</option>
-    <option value="2028">2028年</option> <!-- 2028年はうるう年！ -->
-</select>
-
-<!-- 月のセレクトボックス -->
-<select id="monthSelect" onchange="updateDayDropdown()">
-    <!-- 中身はJavaScriptで自動生成されるのでそのままでOKです -->
-</select>
+            <select id="yearSelect" onchange="updateDayDropdown()">
+                <option value="2026">2026年</option>
+                <option value="2027">2027年</option>
+                <option value="2028">2028年</option>
+            </select>
+            <select id="monthSelect" onchange="updateDayDropdown()"></select>
             <select id="daySelect"></select><span>日</span>
         </div>
         <label>開始時刻を指定:</label>
@@ -135,28 +129,38 @@
     </div>
 
     <div style="max-width:550px; text-align:right;">
-        <button class="clear-btn" onclick="clearAllData()">⚠ データを完全リセット</button>
+        <button class="clear-btn" onclick="clearAllData()">⚠ クラウドのデータを完全リセット</button>
     </div>
 
     <script>
-// 塾長専用の Firebase 設定情報（暗証番号）
-const firebaseConfig = {
-  apiKey: "AIzaSyCvsoHNZ_XcrSMB1ZQp0MZEjaQ9_4twiZK",
-  authDomain: "juku-manage-dba.firebaseapp.com",
-  projectId: "juku-manage-dba",
-  storageBucket: "juku-manage-dba.firebasestorage.app",
-  messagingSenderId: "28426983865",
-  appId: "1:28426983865:web:252cd63d7f1b1cc3eb7e68"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyCvsoHNZ_XcrSMB1ZQp0MZEjaQ9_4twiZK",
+            authDomain: "juku-manage-dba.firebaseapp.com",
+            projectId: "juku-manage-dba",
+            storageBucket: "juku-manage-dba.firebasestorage.app",
+            messagingSenderId: "28426983865",
+            appId: "1:28426983865:web:252cd63d7f1b1cc3eb7e68"
+        };
 
-// Firebase と データベース（db）の起動
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-        // 🌟 合言葉を「juku_shared_database」に完全統一
-        const DB_KEY = 'juku_shared_database';
-        let schedules = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        // 🌟 クラウドからリアルタイムにデータを同期する配列
+        let schedules = [];
         let currentYear = 2026;
         let currentMonth = 5;
+
+        // 🌟 Firebaseのデータを自動で監視して、カレンダーにリアルタイム反映する仕組みを導入
+        db.collection("schedules").onSnapshot((snapshot) => {
+            schedules = [];
+            snapshot.forEach((doc) => {
+                schedules.push(doc.data());
+            });
+            // 画面をカレンダータブにしている場合は自動で再描画
+            if (document.getElementById('page3').style.display === 'block') {
+                renderCalendar();
+            }
+        });
 
         function switchTab(pageNum) {
             document.getElementById('page1').style.display = pageNum === 1 ? 'block' : 'none';
@@ -168,34 +172,24 @@ const db = firebase.firestore();
             if (pageNum === 3) { renderCalendar(); }
         }
 
-        // 🌟 年月をもとに、その月の日数を正しく計算してドロップダウンを更新する関数（うるう年対応）
         function updateDayDropdown() {
             const yearSel = document.getElementById('yearSelect');
             const monthSel = document.getElementById('monthSelect');
             const daySel = document.getElementById('daySelect');
-            
             if (!yearSel || !monthSel || !daySel) return;
 
             const selectedYear = parseInt(yearSel.value);
             const selectedMonth = parseInt(monthSel.value);
-            const currentSelectedDay = daySel.value; // 現在選ばれている日を覚えておく
+            const currentSelectedDay = daySel.value;
 
-            // 💡 翌月の0日目を指定することで、今月が何日まであるか（28, 29, 30, 31）を自動計算！
             const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
-
-            // 一旦「日」の選択肢を全部クリア
             daySel.innerHTML = '';
 
-            // 計算した最終日まで選択肢をループで作る
             for (let i = 1; i <= lastDay; i++) {
                 let opt = document.createElement('option');
                 opt.value = String(i).padStart(2, '0');
                 opt.innerText = i;
-                
-                // 元々選ばれていた日が新しい上限以内なら、それをそのまま選択状態にする
-                if (String(i).padStart(2, '0') === currentSelectedDay) {
-                    opt.selected = true;
-                }
+                if (String(i).padStart(2, '0') === currentSelectedDay) { opt.selected = true; }
                 daySel.appendChild(opt);
             }
         }
@@ -206,7 +200,6 @@ const db = firebase.firestore();
             const minuteSel = document.getElementById('minuteSelect');
             const today = new Date();
 
-            // 月の生成
             for (let i = 1; i <= 12; i++) {
                 let opt = document.createElement('option');
                 opt.value = String(i).padStart(2, '0'); opt.innerText = i;
@@ -214,23 +207,16 @@ const db = firebase.firestore();
                 monthSel.appendChild(opt);
             }
             
-            // 🌟 最初に1回、現在の年月に合わせた「日」を正しく生成する
             updateDayDropdown();
-            
-            // 初期状態の「日」を今日の日に合わせる
             const daySel = document.getElementById('daySelect');
-            if (daySel) {
-                daySel.value = String(today.getDate()).padStart(2, '0');
-            }
+            if (daySel) { daySel.value = String(today.getDate()).padStart(2, '0'); }
 
-            // 時間の生成
             for (let i = 0; i <= 23; i++) {
                 let opt = document.createElement('option');
                 opt.value = String(i).padStart(2, '0'); opt.innerText = i;
                 if (i === 18) opt.selected = true;
                 hourSel.appendChild(opt);
             }
-            // 分の生成
             for (let i = 0; i < 60; i += 10) {
                 let opt = document.createElement('option');
                 opt.value = String(i).padStart(2, '0'); opt.innerText = String(i).padStart(2, '0');
@@ -242,66 +228,62 @@ const db = firebase.firestore();
         generateDropdowns();
 
         function sendSchedule() {
-    const student = document.getElementById('studentSelect').value;
-    const subject = document.getElementById('subjectSelect').value;
-    const year = document.getElementById('yearSelect').value;
-    const month = document.getElementById('monthSelect').value;
-    const day = document.getElementById('daySelect').value;
-    const hour = document.getElementById('hourSelect').value;
-    const minute = document.getElementById('minuteSelect').value;
-    const extraText = document.getElementById('scheduleText').value.trim();
+            const student = document.getElementById('studentSelect').value;
+            const subject = document.getElementById('subjectSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            const day = document.getElementById('daySelect').value;
+            const hour = document.getElementById('hourSelect').value;
+            const minute = document.getElementById('minuteSelect').value;
+            const extraText = document.getElementById('scheduleText').value.trim();
 
-    const dateStr = `${year}-${month}-${day}`;
-    let finalMessage = `【${subject}】 ${hour}:${minute}〜 開始`;
-    if (extraText) finalMessage += ` ｜ 連絡: ${extraText}`;
+            const dateStr = `${year}-${month}-${day}`;
+            let finalMessage = `【${subject}】 ${hour}:${minute}〜 開始`;
+            if (extraText) finalMessage += ` ｜ 連絡: ${extraText}`;
 
-    // 🌟 LocalStorageの代わりに、Firebaseの「schedules」という箱（コレクション）に保存！
-    db.collection("schedules").add({
-        student: student,
-        date: dateStr,
-        text: finalMessage,
-        type: 'normal',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp() // 登録日時も一緒に保存
-    })
-    .then(() => {
-        document.getElementById('scheduleText').value = '';
-        alert(`${student} くん/さんの予定をクラウドに保存しました！`);
-    })
-    .catch((error) => {
-        console.error("エラーが発生しました: ", error);
-        alert("保存に失敗しました。コンソールを確認してください。");
-    });
-}
+            db.collection("schedules").add({
+                student: student,
+                date: dateStr,
+                text: finalMessage,
+                type: 'normal',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                document.getElementById('scheduleText').value = '';
+                alert(`${student} くん/さんの予定をクラウドに保存しました！`);
+            })
+            .catch((error) => {
+                alert("保存に失敗しました。");
+            });
+        }
 
         function sendUrgentBroadcast() {
-    const target = document.getElementById('broadcastTarget').value;
-    const title = document.getElementById('urgentTitle').value.trim();
-    const body = document.getElementById('urgentBody').value.trim();
+            const target = document.getElementById('broadcastTarget').value;
+            const title = document.getElementById('urgentTitle').value.trim();
+            const body = document.getElementById('urgentBody').value.trim();
 
-    if (!title || !body) { return alert('件名と本文を入力してください！'); }
+            if (!title || !body) { return alert('件名と本文を入力してください！'); }
 
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-    const fullUrgentMessage = `🚨【緊急連絡】${title}：${body}`;
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+            const fullUrgentMessage = `🚨【緊急連絡】${title}：${body}`;
 
-    // 🌟 緊急連絡も Firebase の「schedules」に保存！
-    db.collection("schedules").add({
-        student: target,
-        date: dateStr,
-        text: fullUrgentMessage,
-        type: 'urgent',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    })
-    .then(() => {
-        document.getElementById('urgentTitle').value = '';
-        document.getElementById('urgentBody').value = '';
-        alert(`緊急連絡をクラウドに登録しました！`);
-    })
-    .catch((error) => {
-        console.error("緊急連絡のエラー: ", error);
-        alert("保存に失敗しました。");
-    });
-}
+            db.collection("schedules").add({
+                student: target,
+                date: dateStr,
+                text: fullUrgentMessage,
+                type: 'urgent',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                document.getElementById('urgentTitle').value = '';
+                document.getElementById('urgentBody').value = '';
+                alert(`緊急連絡をクラウドに登録しました！`);
+            })
+            .catch((error) => {
+                alert("保存に失敗しました。");
+            });
+        }
 
         function renderCalendar() {
             const grid = document.getElementById('calendarGrid');
@@ -332,12 +314,10 @@ const db = firebase.firestore();
                 if (dayOfWeek === 0) div.classList.add('sunday');
                 if (dayOfWeek === 6) div.classList.add('saturday');
 
-                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}–${String(day).padStart(2, '0')}`.replace(/–/g, '-');
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 
                 let targetEvents = schedules.filter(item => {
-                    const cleanItemDate = item.date.replace(/–/g, '-');
-                    if (filter === 'すべて') return cleanItemDate === dateStr;
-                    return cleanItemDate === dateStr && (item.student === filter || item.student === '全員');
+                    return item.date === dateStr && (filter === 'すべて' || item.student === filter || item.student === '全員');
                 });
 
                 if (targetEvents.length > 0) div.classList.add('has-event');
@@ -354,9 +334,7 @@ const db = firebase.firestore();
         function showDayDetail(dateStr, dayNum, filter) {
             const detailBox = document.getElementById('dayDetailBox');
             let targetEvents = schedules.filter(item => {
-                const cleanItemDate = item.date.replace(/–/g, '-');
-                if (filter === 'すべて') return cleanItemDate === dateStr;
-                return cleanItemDate === dateStr && (item.student === filter || item.student === '全員');
+                return item.date === dateStr && (filter === 'すべて' || item.student === filter || item.student === '全員');
             });
 
             if (targetEvents.length === 0) {
@@ -380,12 +358,22 @@ const db = firebase.firestore();
             renderCalendar();
         }
 
+        // 🌟 リセットボタンを押したときに Firebase のクラウドデータを全削除する命令に修正
         function clearAllData() {
-            if (confirm('すべての登録データを完全に削除しますか？')) {
-                localStorage.removeItem(DB_KEY);
-                schedules = [];
-                renderCalendar();
-                alert('リセットしました。');
+            if (confirm('【重要】クラウド(Firebase)上のすべての登録データを完全に削除しますか？\nこの操作を行うと保護者側の画面もすべて初期化されます。')) {
+                db.collection("schedules").get().then((querySnapshot) => {
+                    const batch = db.batch();
+                    querySnapshot.forEach((doc) => {
+                        batch.delete(doc.ref);
+                    });
+                    return batch.commit();
+                }).then(() => {
+                    alert('クラウド上のすべてのデータを完全にリセットしました！');
+                    schedules = [];
+                    renderCalendar();
+                }).catch((error) => {
+                    alert('削除に失敗しました。');
+                });
             }
         }
     </script>

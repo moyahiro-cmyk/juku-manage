@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <!-- Firebase の基本機能と Firestore の読み込み -->
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
     <meta charset="UTF-8">
     <title>塾の予定管理システム（保護者画面）</title>
     <style>
@@ -83,66 +82,58 @@
     </div>
 
     <script>
-// 共通 of Firebase 設定情報
-const firebaseConfig = {
-  apiKey: "AIzaSyCvsoHNZ_XcrSMB1ZQp0MZEjaQ9_4twiZK",
-  authDomain: "juku-manage-dba.firebaseapp.com",
-  projectId: "juku-manage-dba",
-  storageBucket: "juku-manage-dba.firebasestorage.app",
-  messagingSenderId: "28426983865",
-  appId: "1:28426983865:web:252cd63d7f1b1cc3eb7e68"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyCvsoHNZ_XcrSMB1ZQp0MZEjaQ9_4twiZK",
+            authDomain: "juku-manage-dba.firebaseapp.com",
+            projectId: "juku-manage-dba",
+            storageBucket: "juku-manage-dba.firebasestorage.app",
+            messagingSenderId: "28426983865",
+            appId: "1:28426983865:web:252cd63d7f1b1cc3eb7e68"
+        };
 
-// Firebase と データベース（db）の起動
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
-// ログインユーザー用の設定（重複を解消して1つにまとめました）
-const DB_KEY = 'juku_shared_database';
-let loggedInUser = null;
-let schedules = [];
-let currentView = 'calendar';
-let currentYear = 2026;
-let currentMonth = 5;
+        let loggedInUser = null;
+        let schedules = [];
+        let currentView = 'calendar';
+        let currentYear = 2026;
+        let currentMonth = 5;
 
-const userDatabase = {
-    "sato123": { student: "佐藤 拓海", parent: "佐藤 美穂 さん" },
-    "suzuki123": { student: "鈴木 結衣", parent: "鈴木 一郎 さん" },
-    "takahashi123": { student: "高橋 蓮", parent: "高橋 恵子 さん" },
-    "tanaka123": { student: "田中 葵", parent: "田中 健一 さん" },
-    "watanabe123": { student: "渡辺 翔太", parent: "渡辺 真由美 さん" }
-};
+        const userDatabase = {
+            "sato123": { student: "佐藤 拓海", parent: "佐藤 美穂 さん" },
+            "suzuki123": { student: "鈴木 結衣", parent: "鈴木 一郎 さん" },
+            "takahashi123": { student: "高橋 蓮", parent: "高橋 恵子 さん" },
+            "tanaka123": { student: "田中 葵", parent: "田中 健一 さん" },
+            "watanabe123": { student: "渡辺 翔太", parent: "渡辺 真由美 さん" }
+        };
 
-// 🌟 Firebaseからリアルタイムに予定データを取得する（完全版）
-db.collection("schedules")
-    .orderBy("createdAt", "desc")
-    .onSnapshot((snapshot) => {
-        schedules = [];
-        
-        snapshot.forEach((doc) => {
-            let data = doc.data();
-            // 💡 原因①の対策：日付に含まれる特殊なダッシュを通常のハイフンに統一する
-            if (data.date) {
-                data.date = data.date.replace(/–/g, '-');
-            }
-            schedules.push(data);
-        });
+        // 🌟 クラウドのデータ監視を完全自動＆リアルタイム連動に強化
+        db.collection("schedules")
+            .orderBy("createdAt", "desc")
+            .onSnapshot((snapshot) => {
+                schedules = [];
+                snapshot.forEach((doc) => {
+                    let data = doc.data();
+                    if (data.date) { data.date = data.date.replace(/–/g, '-'); }
+                    schedules.push(data);
+                });
 
-        console.log("最新データをクラウドから受信しました！", schedules);
-        
-        // 💡 原因②・③の対策：データが届いたら、ログイン状態に合わせて画面を完全に更新する
-        if (loggedInUser) {
-            // 受信したデータをもとに、保護者専用のリストとカレンダーを再描画
-            displayParentSchedules(); 
-            if (typeof renderCalendar === 'function') {
-                renderCalendar();
-            }
-        }
-    }, (error) => {
-        console.error("データ受信エラー:", error);
-    });
-
-// 💡 古い loadData() は完全に不要になったので削除しました
+                // 💡 塾長がリセットを押したり、予定を追加した瞬間に、ログイン中の画面を即座に100%書き換える
+                if (loggedInUser) {
+                    displayParentSchedules(); 
+                    renderCalendar();
+                    // 詳細表示エリアもリフレッシュする（空っぽになったら「予定なし」にするため）
+                    const selectedDayEl = document.querySelector('.calendar-day.selected');
+                    if (selectedDayEl) {
+                        const dayNum = selectedDayEl.innerText;
+                        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+                        showDayDetail(dateStr, dayNum);
+                    }
+                }
+            }, (error) => {
+                console.error("データ受信エラー:", error);
+            });
 
         function checkLogin() {
             const selectedStudent = document.getElementById('studentSelect').value;
@@ -166,11 +157,9 @@ db.collection("schedules")
             currentYear = d.getFullYear();
             currentMonth = d.getMonth();
             
-            // 💡 loadData() の代わりに、手動で一度だけ画面を初期描画する
-            if (loggedInUser && schedules.length > 0) {
-                displayParentSchedules();
-                renderCalendar();
-            }
+            // 💡 ログインした瞬間、データが何件であっても必ず画面を一旦正しく描画させる
+            displayParentSchedules();
+            renderCalendar();
         }
 
         function switchView(view) {
@@ -182,6 +171,7 @@ db.collection("schedules")
         }
 
         function displayParentSchedules() {
+            if (!loggedInUser) return;
             const list = document.getElementById('parentScheduleList');
             document.getElementById('parentHeaderTitle').innerText = `${loggedInUser.parent} 専用`;
             
