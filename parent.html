@@ -33,7 +33,7 @@
 </head>
 <body>
 
-    <h1>📅 えんごかい・うぇぶ</h1>
+    <h1>📅 えんごかい　伝書鳩</h1>
     <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
 
     <button id="enableBadgeBtn" class="badge-btn" onclick="requestNotificationPermission()">📱 タップして通知・バッジを有効にする</button>
@@ -75,19 +75,16 @@
 
         let currentStudent = "";
         let unsubscribeSnapshot = null;
-        let isAppVisible = true; // 🌟 アプリが画面に映っているかどうかのフラグ
+        let isBadgeClearedForThisSession = false; // 🌟 1回の起動中に何度もポップアップが出るのを防ぐフラグ
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then(() => console.log('SW Registered'));
         }
 
-        // 🌟 アプリが開かれたり閉じられたりしたのを検知する仕組み
+        // アプリがバックグラウンドから復帰した時もポップアップ判定を行う
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
-                isAppVisible = true;
-                if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(() => {}); }
-            } else {
-                isAppVisible = false; // 閉じられた
+                isBadgeClearedForThisSession = false; // 復帰時は再度ポップアップを許可
             }
         });
 
@@ -95,7 +92,6 @@
             if ('Notification' in window && Notification.permission !== 'granted') {
                 document.getElementById("enableBadgeBtn").style.display = "block";
             }
-            if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(() => {}); }
 
             const savedStudent = localStorage.getItem("juku_parent_student");
             if (savedStudent) {
@@ -103,6 +99,18 @@
                 showMainContent();
             }
         };
+
+        // 🌟 塾長先生のアイデア：ポップアップでバッジを消す関数
+        function askToClearBadge() {
+            if ('clearAppBadge' in navigator && !isBadgeClearedForThisSession) {
+                isBadgeClearedForThisSession = true; // 連打防止
+                setTimeout(() => {
+                    if (confirm("新着連絡を確認しましたか？\n（OKを押すとアイコンのバッジが消えます）")) {
+                        navigator.clearAppBadge().catch(() => {});
+                    }
+                }, 1200); // 画面が描画されてから1.2秒後にポップアップ
+            }
+        }
 
         function requestNotificationPermission() {
             if ('Notification' in window) {
@@ -141,6 +149,7 @@
                 document.getElementById("contentArea").style.display = "none";
                 document.getElementById("welcomeArea").style.display = "none";
                 document.getElementById("studentSelect").value = "";
+                isBadgeClearedForThisSession = false;
             }
         }
 
@@ -176,19 +185,18 @@
                         }
                     });
 
-                    // 🌟 【賢いバッジの制御】
+                    const totalNotifications = urgentCount + normalCount;
+
+                    // 🌟 【シンプルで確実な制御】
                     if ('setAppBadge' in navigator) {
-                        if (isAppVisible) {
-                            // アプリを開いている真っ最中なら、バッジは常に消す
+                        if (totalNotifications > 0 && !isBadgeClearedForThisSession) {
+                            // 閉じている時にデータが増えたら、素直にバッジを反映させる（これでバッジが復活します！）
+                            navigator.setAppBadge(totalNotifications).catch(() => {});
+                            
+                            // 画面が開いている状態なら、データ受信後にポップアップをトリガー
+                            askToClearBadge();
+                        } else if (totalNotifications === 0) {
                             navigator.clearAppBadge().catch(() => {});
-                        } else {
-                            // アプリを閉じている裏側でデータが増えたら、バッジを表示する
-                            const totalNotifications = urgentCount + normalCount;
-                            if (totalNotifications > 0) {
-                                navigator.setAppBadge(totalNotifications).catch(() => {});
-                            } else {
-                                navigator.clearAppBadge().catch(() => {});
-                            }
                         }
                     }
 
