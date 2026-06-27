@@ -51,6 +51,23 @@
         .calendar-day.selected { background-color: #ffeaa7; border: 1px solid #f1c40f; }
         .calendar-day.empty { cursor: default; background: none !important; }
         .day-detail-box { background: #f8f9fa; padding: 10px; margin-top: 10px; border-radius: 6px; border: 1px dashed #3498db; min-height: 50px; font-size: 0.9em; }
+        /* 横幅が768px以下（スマホなど）になった時の設定 */
+@media (max-width: 768px) {
+    .main-container {
+        flex-direction: column; /* 横並びから縦並びに変更 */
+    }
+    .left-col, .right-col {
+        max-width: 100%; /* 横幅いっぱいに広げる */
+        width: 100%;
+    }
+    .tab-container {
+        flex-wrap: wrap; /* タブがはみ出さないように折り返す */
+    }
+    .tab-btn {
+        font-size: 0.85em; /* 文字を少しだけ小さく */
+        padding: 8px 4px;
+    }
+}
     </style>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
