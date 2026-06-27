@@ -40,7 +40,7 @@
 </head>
 <body>
 
-    <h1>📅 塾・指導予定 確認コプロ</h1>
+    <h1>📅 えんごかい　ＷＥＢ</h1>
     <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
 
     <!-- 🌟 通知許可を促すボタン（iPhoneでバッジを出すための必須機能） -->
@@ -96,6 +96,9 @@
             if ('Notification' in window && Notification.permission !== 'granted') {
                 document.getElementById("enableBadgeBtn").style.display = "block";
             }
+
+// 🌟 👇ここを追加！ 画面を開いた瞬間にアプリアイコンのバッジを消す
+            if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(() => {}); }
 
             const savedStudent = localStorage.getItem("juku_parent_student");
             if (savedStudent) {
