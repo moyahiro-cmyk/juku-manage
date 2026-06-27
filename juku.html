@@ -30,8 +30,8 @@
         .clear-btn { background-color: #e74c3c; margin-top: 20px; font-size: 0.9em; width: auto; padding: 8px 15px; }
         label { font-size: 0.9em; color: #2c3e50; font-weight: bold; display: block; margin-top: 12px; }
         
-        .inline-selects { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
-        .inline-selects select { margin: 0; flex: 1; }
+        .inline-selects { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+        .inline-selects select { margin: 0; flex: 1; min-width: 60px; }
         .inline-selects span { font-size: 0.9em; color: #555; font-weight: bold; }
         
         .tab-container { display: flex; gap: 8px; margin-bottom: 0; }
@@ -98,11 +98,16 @@
                     <select id="monthSelect" onchange="updateDayDropdown()"></select>
                     <select id="daySelect"></select><span>日</span>
                 </div>
-                <label>開始時刻を指定:</label>
+                
+                <!-- 🌟 時間の範囲指定に変更 -->
+                <label>時間帯を指定:</label>
                 <div class="inline-selects">
-                    <select id="hourSelect"></select><span>時</span>
-                    <select id="minuteSelect"></select><span>分 〜</span>
+                    <select id="startHourSelect"></select><span>時</span>
+                    <select id="startMinuteSelect"></select><span>分 〜</span>
+                    <select id="endHourSelect"></select><span>時</span>
+                    <select id="endMinuteSelect"></select><span>分</span>
                 </div>
+
                 <label>追加の連絡事項:</label>
                 <input type="text" id="scheduleText" placeholder="例：本日は単語テストから始めます">
                 <button class="notify-btn" onclick="sendSchedule()">予定を登録する</button>
@@ -189,14 +194,16 @@
         let currentYear = 2026;
         let currentMonth = 5;
 
-        // 🌟 ドロップダウンを生成する関数（最初に行う）
+        // ドロップダウンを生成する関数
         function generateDropdowns() {
             const monthSel = document.getElementById('monthSelect');
-            const hourSel = document.getElementById('hourSelect');
-            const minuteSel = document.getElementById('minuteSelect');
+            const startHourSel = document.getElementById('startHourSelect');
+            const startMinuteSel = document.getElementById('startMinuteSelect');
+            const endHourSel = document.getElementById('endHourSelect');
+            const endMinuteSel = document.getElementById('endMinuteSelect');
             const today = new Date();
 
-            if (!monthSel || !hourSel || !minuteSel) return;
+            if (!monthSel || !startHourSel || !startMinuteSel || !endHourSel || !endMinuteSel) return;
 
             monthSel.innerHTML = '';
             for (let i = 1; i <= 12; i++) {
@@ -210,19 +217,26 @@
             const daySel = document.getElementById('daySelect');
             if (daySel) { daySel.value = String(today.getDate()).padStart(2, '0'); }
 
-            hourSel.innerHTML = '';
+            // 開始時・終了時
+            startHourSel.innerHTML = '';
+            endHourSel.innerHTML = '';
             for (let i = 0; i <= 23; i++) {
-                let opt = document.createElement('option');
-                opt.value = String(i).padStart(2, '0'); opt.innerText = i;
-                if (i === 18) opt.selected = true;
-                hourSel.appendChild(opt);
+                let opt1 = document.createElement('option'); opt1.value = String(i).padStart(2, '0'); opt1.innerText = i;
+                let opt2 = document.createElement('option'); opt2.value = String(i).padStart(2, '0'); opt2.innerText = i;
+                if (i === 18) opt1.selected = true;
+                if (i === 19) opt2.selected = true;
+                startHourSel.appendChild(opt1);
+                endHourSel.appendChild(opt2);
             }
             
-            minuteSel.innerHTML = '';
+            // 開始分・終了分
+            startMinuteSel.innerHTML = '';
+            endMinuteSel.innerHTML = '';
             for (let i = 0; i < 60; i += 10) {
-                let opt = document.createElement('option');
-                opt.value = String(i).padStart(2, '0'); opt.innerText = String(i).padStart(2, '0');
-                minuteSel.appendChild(opt);
+                let opt1 = document.createElement('option'); opt1.value = String(i).padStart(2, '0'); opt1.innerText = String(i).padStart(2, '0');
+                let opt2 = document.createElement('option'); opt2.value = String(i).padStart(2, '0'); opt2.innerText = String(i).padStart(2, '0');
+                startMinuteSel.appendChild(opt1);
+                endMinuteSel.appendChild(opt2);
             }
             currentYear = today.getFullYear();
             currentMonth = today.getMonth();
@@ -250,7 +264,6 @@
             }
         }
 
-        // 🌟 履歴リストを更新する関数
         function updateRightPanelLists() {
             const urgentListEl = document.getElementById('urgentHistoryList');
             const normalListEl = document.getElementById('normalHistoryList');
@@ -260,7 +273,6 @@
             urgentListEl.innerHTML = '';
             normalListEl.innerHTML = '';
 
-            // 1. 緊急連絡の抽出（上が最新）
             const urgentEvents = schedules.filter(item => item.type === 'urgent');
             if (urgentEvents.length === 0) {
                 urgentListEl.innerHTML = '<li style="color:#999; border-left-color:#ccc;">送信済みの緊急連絡はありません。</li>';
@@ -273,7 +285,6 @@
                 });
             }
 
-            // 2. 授業予定の抽出（上が最新）
             const normalEvents = schedules.filter(item => item.type === 'normal');
             if (normalEvents.length === 0) {
                 normalListEl.innerHTML = '<li style="color:#999; border-left-color:#ccc;">登録済みの授業予定はありません。</li>';
@@ -288,11 +299,12 @@
             }
         }
 
-        // Firebaseデータのリアルタイム監視
         db.collection("schedules").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
             schedules = [];
             snapshot.forEach((doc) => {
-                schedules.push(doc.data());
+                let data = doc.data();
+                data.id = doc.id; // 重複削除の判定に使うためIDを保持
+                schedules.push(data);
             });
 
             updateRightPanelLists();
@@ -312,18 +324,74 @@
             if (pageNum === 3) { renderCalendar(); }
         }
 
-        function sendSchedule() {
+        // 🌟 スケジュール登録＆規則チェック処理
+        async function sendSchedule() {
             const student = document.getElementById('studentSelect').value;
             const subject = document.getElementById('subjectSelect').value;
             const year = document.getElementById('yearSelect').value;
             const month = document.getElementById('monthSelect').value;
             const day = document.getElementById('daySelect').value;
-            const hour = document.getElementById('hourSelect').value;
-            const minute = document.getElementById('minuteSelect').value;
+            
+            const startHour = document.getElementById('startHourSelect').value;
+            const startMinute = document.getElementById('startMinuteSelect').value;
+            const endHour = document.getElementById('endHourSelect').value;
+            const endMinute = document.getElementById('endMinuteSelect').value;
+            
             const extraText = document.getElementById('scheduleText').value.trim();
 
             const dateStr = `${year}-${month}-${day}`;
-            let finalMessage = `【${subject}】 ${hour}:${minute}〜 開始`;
+            
+            // 計算用に数値を分換算にする (例: 18:30 -> 1110分)
+            const newStart = parseInt(startHour) * 60 + parseInt(startMinute);
+            const newEnd = parseInt(endHour) * 60 + parseInt(endMinute);
+
+            if (newStart >= newEnd) {
+                alert("⚠ 終了時間は開始時間より後の時刻を指定してください。");
+                return;
+            }
+
+            // 同日の同じ生徒（または全員）の「通常予定」を抽出
+            const sameDayEvents = schedules.filter(item => {
+                return item.date === dateStr && item.type === 'normal' && (item.student === student || item.student === '全員');
+            });
+
+            let overlapIds = [];
+            let hasAnyOldEvent = sameDayEvents.length > 0;
+
+            // 既存の予定と時間が重なっているかチェック
+            sameDayEvents.forEach(oldEvent => {
+                // 文字列から時間をパースしてみる (例: "【英語】 18:30〜19:30 開始 ...")
+                const timeMatch = oldEvent.text.match(/(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
+                if (timeMatch) {
+                    const oldStart = parseInt(timeMatch[1]) * 60 + parseInt(timeMatch[2]);
+                    const oldEnd = parseInt(timeMatch[3]) * 60 + parseInt(timeMatch[4]);
+
+                    // 時間の重なり判定公式
+                    if (newStart < oldEnd && oldStart < newEnd) {
+                        overlapIds.push(oldEvent.id);
+                    }
+                }
+            });
+
+            // 規則の分岐処理
+            if (overlapIds.length > 0) {
+                // １）時間が重なっている場合
+                alert("古い予定を消去します");
+                
+                // 重なっている古い予定をクラウドから削除
+                const batch = db.batch();
+                overlapIds.forEach(id => {
+                    batch.delete(db.collection("schedules").doc(id));
+                });
+                await batch.commit();
+
+            } else if (hasAnyOldEvent) {
+                // ２）古い予定はあるが、時間は重なっていない場合
+                alert("同じ日に別の予定があるので注意してください。");
+            }
+
+            // 新しい予定の登録
+            let finalMessage = `【${subject}】 ${startHour}:${startMinute}〜${endHour}:${endMinute} 開始`;
             if (extraText) finalMessage += ` ｜ 連絡: ${extraText}`;
 
             db.collection("schedules").add({
@@ -378,7 +446,6 @@
             monthTitle.innerText = `${currentYear}年${String(currentMonth + 1).padStart(2, '0')}月`;
             grid.innerHTML = '';
 
-            const weekdays = ['日', '月', '火', ' Eagle ', '木', '金', '土'];
             const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
             weekdaysJa.forEach((w, idx) => {
                 const div = document.createElement('div');
@@ -462,7 +529,6 @@
             }
         }
 
-        // 🌟 画面が立ち上がった瞬間にドロップダウンを生成する
         window.onload = function() {
             generateDropdowns();
         };
