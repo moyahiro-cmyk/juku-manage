@@ -1,0 +1,21 @@
+{
+  "short_name": "塾予定",
+  "name": "塾・生徒予定管理システム",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/fluent/192/000000/calendar.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://img.icons8.com/fluent/512/000000/calendar.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "./parent.html",
+  "background_color": "#f0f4f8",
+  "theme_color": "#3498db",
+  "display": "standalone",
+  "orientation": "portrait"
+}
