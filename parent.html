@@ -1,90 +1,70 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>塾の予定確認（保護者画面）</title>
+    
+    <!-- 🌟 アプリ化（PWA）のための設定ファイルを紐付け -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="塾予定">
+
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 15px; background-color: #f5f6fa; color: #2f3640; }
+        h1 { font-size: 1.3em; color: #2c3e50; text-align: center; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 8px; }
+        
+        .box { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 15px; box-sizing: border-box; }
+        label { font-size: 0.9em; font-weight: bold; color: #2c3e50; display: block; margin-bottom: 5px; }
+        select { padding: 10px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 1em; box-sizing: border-box; background: #fff; }
+        
+        .section-title { font-size: 1.1em; font-weight: bold; margin: 15px 0 8px 0; display: flex; align-items: center; gap: 5px; }
+        .list-container { display: flex; flex-direction: column; gap: 10px; }
+        
+        .card { padding: 12px; border-radius: 6px; border-left: 5px solid #ccc; position: relative; }
+        .card-urgent { background: #ffeae6; border-left-color: #e74c3c; }
+        .card-normal { background: #e8f4fd; border-left-color: #3498db; }
+        
+        .card-date { font-size: 0.8em; color: #7f8c8d; margin-bottom: 4px; font-weight: bold; }
+        .card-text { font-size: 0.95em; line-height: 1.4; }
+        
+        .no-data { text-align: center; color: #95a5a6; padding: 20px; font-size: 0.9em; }
+        .welcome-msg { font-size: 0.9em; color: #2980b9; text-align: center; margin-top: -10px; margin-bottom: 15px; font-weight: bold; }
+        
+        /* サインアウト（選び直し）ボタン */
+        .signout-btn { background: none; border: none; color: #7f8c8d; font-size: 0.8em; text-decoration: underline; cursor: pointer; display: block; margin: 10px auto 0 auto; }
+    </style>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-    <meta charset="UTF-8">
-    <title>塾の予定管理システム（保護者画面）</title>
-    <style>
-        body { font-family: sans-serif; margin: 10px; background-color: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 90vh; }
-        ul { list-style-type: none; padding: 0; }
-        li { background: #ecf0f1; margin: 8px 0; padding: 12px; border-radius: 4px; border-left: 5px solid #3498db; font-size: 0.9em; }
-        select, input, button { padding: 10px; margin: 8px 0; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; }
-        button { background-color: #3498db; color: white; border: none; cursor: pointer; font-weight: bold; }
-        button:hover { background-color: #2980b9; }
-        label { font-size: 0.9em; color: #2c3e50; font-weight: bold; display: block; margin-top: 10px; }
-        .parent-screen { background-color: #fffaf0; border: 4px solid #333; border-radius: 20px; padding: 20px; width: 100%; max-width: 360px; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.2); position: relative; overflow: hidden; min-height: 540px; box-sizing: border-box; display: flex; flex-direction: column; }
-        .parent-header { background-color: #ff9f43; color: white; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; margin-bottom: 15px; }
-        .logout-btn { background-color: #7f8c8d; font-size: 0.8em; padding: 5px; margin-top: auto; width: 100%; }
-        .tab-container { display: flex; gap: 5px; margin-bottom: 10px; }
-        .tab-btn { flex: 1; padding: 6px; font-size: 0.85em; background-color: #ddd; color: #333; border-radius: 4px; border: none; cursor: pointer; }
-        .tab-btn.active { background-color: #3498db; color: white; }
-        .calendar-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-bottom: 5px; font-size: 0.95em; color: #2c3e50; }
-        .calendar-nav-btn { width: auto; padding: 2px 10px; margin: 0; background: #e0e0e0; color: #333; font-size: 0.8em; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 0.8em; background: white; padding: 8px; border-radius: 8px; border: 1px solid #ddd; }
-        .weekday { font-weight: bold; color: #7f8c8d; padding-bottom: 4px; }
-        .sunday { color: #e74c3c; }
-        .saturday { color: #3498db; }
-        .calendar-day { padding: 6px 0; border-radius: 4px; cursor: pointer; position: relative; min-height: 28px; box-sizing: border-box; }
-        .calendar-day:hover { background-color: #f0f0f0; }
-        /* 予定がある日は文字を太字に */
-.calendar-day.has-event { font-weight: bold; }
-
-/* 通常の予定（青いポチ） */
-.calendar-day.has-event-normal::after { content: '●'; font-size: 8px; position: absolute; bottom: 1px; left: 0; right: 0; color: #3498db; text-align: center; }
-
-/* 緊急連絡（赤いポチ） */
-.calendar-day.has-event-urgent::after { content: '●'; font-size: 8px; position: absolute; bottom: 1px; left: 0; right: 0; color: #e74c3c; text-align: center; }
-        .calendar-day.selected { background-color: #ffeaa7; border: 1px solid #ff9f43; }
-        .calendar-day.empty { cursor: default; }
-        .calendar-day.empty:hover { background: none; }
-        .day-detail-box { background: #fff; padding: 8px; margin-top: 8px; border-radius: 6px; border: 1px dashed #ff9f43; min-height: 50px; font-size: 0.85em; }
-    </style>
 </head>
 <body>
 
-    <div class="parent-screen">
-        <div id="loginForm">
-            <div class="parent-header">塾アプリ ログイン</div>
-            <label for="studentSelect">お子様のお名前:</label>
-            <select id="studentSelect">
-                <option value="佐藤 拓海">佐藤 拓海 くん</option>
-                <option value="鈴木 結衣">鈴木 結衣 さん</option>
-                <option value="高橋 蓮">高橋 蓮 くん</option>
-                <option value="田中 葵">田中 葵 さん</option>
-                <option value="渡辺 翔太">渡辺 翔太 くん</option>
-            </select>
-            <label for="parentPassword">パスワード:</label>
-            <input type="password" id="parentPassword" placeholder="パスワードを入力">
-            <button onclick="checkLogin()" style="margin-top: 15px;">ログイン</button>
-        </div>
+    <h1>📅 塾・指導予定 確認コプロ</h1>
+    <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
 
-        <div id="parentDashboard" style="display: none; flex-direction: column; flex-grow: 1;">
-            <div class="parent-header" id="parentHeaderTitle">〇〇様のマイページ</div>
-            <div class="tab-container">
-                <button id="tabCal" class="tab-btn active" onclick="switchView('calendar')">📅 カレンダー表示</button>
-                <button id="tabList" class="tab-btn" onclick="switchView('list')">📋 一覧リスト表示</button>
-            </div>
+    <!-- 初回ログイン（生徒選択）エリア -->
+    <div id="loginArea" class="box">
+        <label>お子様のお名前を選択してください：</label>
+        <select id="studentSelect" onchange="loginAsStudent()">
+            <option value="">-- 選択してください --</option>
+            <option value="佐藤 拓海">佐藤 拓海 くん</option>
+            <option value="鈴木 結衣">鈴木 結衣 さん</option>
+            <option value="高橋 蓮">高橋 蓮 くん</option>
+            <option value="田中 葵">田中 葵 さん</option>
+            <option value="渡辺 翔太">渡辺 翔太 くん</option>
+        </select>
+    </div>
 
-            <div id="calendarView">
-                <div class="calendar-header">
-                    <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀</button>
-                    <span id="calendarMonthTitle">2026年06月</span>
-                    <button class="calendar-nav-btn" onclick="changeMonth(1)">▶</button>
-                </div>
-                <div class="calendar-grid" id="calendarGrid"></div>
-                <div class="day-detail-box" id="dayDetailBox">
-                    <p style="color:#777; margin:5px 0;">日付をタップすると、その日の指導予定が表示されます。</p>
-                </div>
-            </div>
+    <!-- 予定表示エリア（選択後のみ表示） -->
+    <div id="contentArea" style="display: none;">
+        <div class="section-title">🚨 緊急連絡</div>
+        <div id="urgentList" class="list-container"></div>
 
-            <div id="listView" style="display: none;">
-                <p style="font-weight:bold; color:#2c3e50; margin: 5px 0;">📅 全ての予定一覧</p>
-                <ul id="parentScheduleList" style="max-height: 260px; overflow-y: auto;"></ul>
-            </div>
-
-            <button class="logout-btn" onclick="logout()">ログアウト</button>
-        </div>
+        <div class="section-title">📅 指導予定（直近の予定）</div>
+        <div id="normalList" class="list-container"></div>
+        
+        <button class="signout-btn" onclick="signout()">別の生徒を選び直す</button>
     </div>
 
     <script>
@@ -100,203 +80,128 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        let loggedInUser = null;
-        let schedules = [];
-        let currentView = 'calendar';
-        let currentYear = 2026;
-        let currentMonth = 5;
+        let currentStudent = "";
+        let unsubscribeSnapshot = null;
 
-        const userDatabase = {
-            "sato123": { student: "佐藤 拓海", parent: "佐藤 美穂 さん" },
-            "suzuki123": { student: "鈴木 結衣", parent: "鈴木 一郎 さん" },
-            "takahashi123": { student: "高橋 蓮", parent: "高橋 恵子 さん" },
-            "tanaka123": { student: "田中 葵", parent: "田中 健一 さん" },
-            "watanabe123": { student: "渡辺 翔太", parent: "渡辺 真由美 さん" }
-        };
-
-        // 🌟 クラウドのデータ監視を完全自動＆リアルタイム連動に強化
-        db.collection("schedules")
-            .orderBy("createdAt", "desc")
-            .onSnapshot((snapshot) => {
-                schedules = [];
-                snapshot.forEach((doc) => {
-                    let data = doc.data();
-                    if (data.date) { data.date = data.date.replace(/–/g, '-'); }
-                    schedules.push(data);
-                });
-
-                // 💡 塾長がリセットを押したり、予定を追加した瞬間に、ログイン中の画面を即座に100%書き換える
-                if (loggedInUser) {
-                    displayParentSchedules(); 
-                    renderCalendar();
-                    // 詳細表示エリアもリフレッシュする（空っぽになったら「予定なし」にするため）
-                    const selectedDayEl = document.querySelector('.calendar-day.selected');
-                    if (selectedDayEl) {
-                        const dayNum = selectedDayEl.innerText;
-                        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-                        showDayDetail(dateStr, dayNum);
-                    }
-                }
-            }, (error) => {
-                console.error("データ受信エラー:", error);
-            });
-
-        function checkLogin() {
-            const selectedStudent = document.getElementById('studentSelect').value;
-            const inputPass = document.getElementById('parentPassword').value;
-            const userData = userDatabase[inputPass];
-            
-            if (userData && userData.student === selectedStudent) {
-                loggedInUser = userData;
-                sessionStorage.setItem('juku_logged_in_user', JSON.stringify(userData));
-                initDashboard();
-            } else {
-                alert('お子様のお名前、またはパスワードが正しくありません。');
-            }
-            document.getElementById('parentPassword').value = '';
-        }
-
-        function initDashboard() {
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('parentDashboard').style.display = 'flex';
-            const d = new Date();
-            currentYear = d.getFullYear();
-            currentMonth = d.getMonth();
-            
-            // 💡 ログインした瞬間、データが何件であっても必ず画面を一旦正しく描画させる
-            displayParentSchedules();
-            renderCalendar();
-        }
-
-        function switchView(view) {
-            currentView = view;
-            document.getElementById('calendarView').style.display = view === 'calendar' ? 'block' : 'none';
-            document.getElementById('listView').style.display = view === 'list' ? 'block' : 'none';
-            document.getElementById('tabCal').classList.toggle('active', view === 'calendar');
-            document.getElementById('tabList').classList.toggle('active', view === 'list');
-        }
-
-        function displayParentSchedules() {
-            if (!loggedInUser) return;
-            const list = document.getElementById('parentScheduleList');
-            document.getElementById('parentHeaderTitle').innerText = `${loggedInUser.parent} 専用`;
-            
-            let myChildSchedules = schedules.filter(item => item.student === loggedInUser.student || item.student === '全員');
-            
-            myChildSchedules.sort((a, b) => {
-                return new Date(a.date.replace(/–/g, '-')) - new Date(b.date.replace(/–/g, '-'));
-            });
-
-            list.innerHTML = '';
-            if (myChildSchedules.length === 0) {
-                list.innerHTML = '<li>現在、登録されている予定はありません。</li>';
-            } else {
-                myChildSchedules.forEach(item => {
-                    const li = document.createElement('li');
-                    if(item.type === 'urgent') {
-                        li.style.background = '#ffeae6';
-                        li.style.borderLeft = '5px solid #e74c3c';
-                    }
-                    li.innerHTML = `<strong>📅 ${item.date.replace(/–/g, '-')}</strong><br>${item.text}`;
-                    list.appendChild(li);
-                });
-            }
-        }
-
-        function renderCalendar() {
-            if (!loggedInUser) return;
-            const grid = document.getElementById('calendarGrid');
-            const monthTitle = document.getElementById('calendarMonthTitle');
-            monthTitle.innerText = `${currentYear}年${String(currentMonth + 1).padStart(2, '0')}月`;
-            grid.innerHTML = '';
-
-            const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
-            weekdays.forEach((w, idx) => {
-                const div = document.createElement('div');
-                div.className = `weekday ${idx===0?'sunday':''} ${idx===6?'saturday':''}`;
-                div.innerText = w; grid.appendChild(div);
-            });
-
-            const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
-            const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
-            let myChildSchedules = schedules.filter(item => item.student === loggedInUser.student || item.student === '全員');
-
-            for (let i = 0; i < firstDayIndex; i++) {
-                const div = document.createElement('div'); div.className = 'calendar-day empty'; grid.appendChild(div);
-            }
-
-            for (let day = 1; day <= totalDays; day++) {
-                const div = document.createElement('div'); div.className = 'calendar-day'; div.innerText = day;
-                const currentDayOfWeek = new Date(currentYear, currentMonth, day).getDay();
-                if (currentDayOfWeek === 0) div.classList.add('sunday');
-                if (currentDayOfWeek === 6) div.classList.add('saturday');
-
-                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                
-                // その日の予定をすべて抽出
-const dayEvents = myChildSchedules.filter(item => item.date.replace(/–/g, '-') === dateStr);
-
-if (dayEvents.length > 0) {
-    div.classList.add('has-event'); // 太字にする用
-    
-    // 1つでも緊急連絡（urgent）が含まれていたら赤ポチ、それ以外は青ポチ
-    const hasUrgent = dayEvents.some(item => item.type === 'urgent');
-    if (hasUrgent) {
-        div.classList.add('has-event-urgent');
-    } else {
-        div.classList.add('has-event-normal');
-    }
-}
-
-                div.onclick = () => {
-                    document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
-                    div.classList.add('selected');
-                    showDayDetail(dateStr, day);
-                };
-                grid.appendChild(div);
-            }
-        }
-
-        function showDayDetail(dateStr, dayNum) {
-            const detailBox = document.getElementById('dayDetailBox');
-            let myChildSchedules = schedules.filter(item => {
-                return (item.student === loggedInUser.student || item.student === '全員') && item.date.replace(/–/g, '-') === dateStr;
-            });
-
-            if (myChildSchedules.length === 0) {
-                detailBox.innerHTML = `<strong>📅 ${currentMonth + 1}月${dayNum}日</strong><br><p style="color:#999; margin:5px 0;">予定はありません。</p>`;
-            } else {
-                let html = `<strong>📅 ${currentMonth + 1}月${dayNum}日の予定</strong><ul style="margin:5px 0 0 0; padding-left:0;">`;
-                myChildSchedules.forEach(item => {
-                    const isUrgent = item.type === 'urgent';
-                    html += `<li style="background:${isUrgent?'#ffeae6':'#fff3e0'}; border-left:5px solid ${isUrgent?'#e74c3c':'#ff9f43'}; margin:4px 0; padding:8px; list-style:none;">${item.text}</li>`;
-                });
-                html += '</ul>';
-                detailBox.innerHTML = html;
-            }
-        }
-
-        function changeMonth(direction) {
-            currentMonth += direction;
-            if (currentMonth > 11) { currentMonth = 0; currentYear += 1; } 
-            else if (currentMonth < 0) { currentMonth = 11; currentYear -= 1; }
-            renderCalendar();
-        }
-
-        function logout() {
-            loggedInUser = null;
-            sessionStorage.removeItem('juku_logged_in_user');
-            document.getElementById('loginForm').style.display = 'block';
-            document.getElementById('parentDashboard').style.display = 'none';
-        }
-
+        // ページが読み込まれたときの処理
         window.onload = function() {
-            const savedUser = sessionStorage.getItem('juku_logged_in_user');
-            if (savedUser) {
-                loggedInUser = JSON.parse(savedUser);
-                initDashboard();
+            // 🌟 記憶された生徒名があるか確認（常時サインイン機能）
+            const savedStudent = localStorage.getItem("juku_parent_student");
+            if (savedStudent) {
+                currentStudent = savedStudent;
+                showMainContent();
             }
         };
+
+        // 生徒を選択したとき（ログイン）
+        function loginAsStudent() {
+            const select = document.getElementById("studentSelect");
+            if (!select.value) return;
+            
+            currentStudent = select.value;
+            // 🌟 スマホに生徒名を保存する
+            localStorage.setItem("juku_parent_student", currentStudent);
+            showMainContent();
+        }
+
+        // メイン画面の表示とリアルタイム同期の開始
+        function showMainContent() {
+            document.getElementById("loginArea").style.display = "none";
+            document.getElementById("contentArea").style.display = "block";
+            
+            const welcome = document.getElementById("welcomeArea");
+            welcome.innerText = `固定表示中：${currentStudent} の保護者様`;
+            welcome.style.display = "block";
+
+            // リアルタイムデータの監視を開始
+            startListening();
+        }
+
+        // サインアウト（選び直し）
+        function signout() {
+            if (confirm("ログイン状態を解除して、選び直しますか？")) {
+                localStorage.removeItem("juku_parent_student");
+                if (unsubscribeSnapshot) unsubscribeSnapshot();
+                
+                // アプリバッジをクリア
+                if ('clearAppBadge' in navigator) { navigator.clearAppBadge(); }
+
+                document.getElementById("loginArea").style.display = "block";
+                document.getElementById("contentArea").style.display = "none";
+                document.getElementById("welcomeArea").style.display = "none";
+                document.getElementById("studentSelect").value = "";
+            }
+        }
+
+        // Firebaseからリアルタイムにデータを取得する処理
+        function startListening() {
+            if (unsubscribeSnapshot) unsubscribeSnapshot();
+
+            // データの並び順を createdAt の降順（最新が上）にする
+            unsubscribeSnapshot = db.collection("schedules")
+                .orderBy("createdAt", "desc")
+                .onSnapshot((snapshot) => {
+                    
+                    const urgentListEl = document.getElementById("urgentList");
+                    const normalListEl = document.getElementById("normalList");
+                    
+                    urgentListEl.innerHTML = "";
+                    normalListEl.innerHTML = "";
+
+                    let urgentCount = 0;
+                    let normalCount = 0;
+
+                    snapshot.forEach((doc) => {
+                        const item = doc.data();
+                        
+                        // 自分に関係あるデータか判定（本人宛、または全員宛）
+                        if (item.student === currentStudent || item.student === "全員") {
+                            
+                            // 日付の表示調整 (YYYY-MM-DD -> MM月DD日)
+                            let dateDisplay = item.date;
+                            if (item.date && item.date.includes("-")) {
+                                const parts = item.date.split("-");
+                                dateDisplay = `${parseInt(parts[1])}月${parseInt(parts[2])}日`;
+                            }
+
+                            // カード型のHTMLを作成
+                            const card = document.createElement("div");
+                            card.className = `card ${item.type === 'urgent' ? 'card-urgent' : 'card-normal'}`;
+                            card.innerHTML = `
+                                <div class="card-date">${dateDisplay}</div>
+                                <div class="card-text">${item.text}</div>
+                            `;
+
+                            if (item.type === "urgent") {
+                                urgentListEl.appendChild(card);
+                                urgentCount++;
+                            } else {
+                                normalListEl.appendChild(card);
+                                normalCount++;
+                            }
+                        }
+                    });
+
+                    // 🌟 通知バッジ（数字）の制御機能
+                    // 今回は「自分に関係のある連絡の合計数」を仮にバッジとして表示します
+                    const totalNotifications = urgentCount + normalCount;
+                    if ('setAppBadge' in navigator) {
+                        if (totalNotifications > 0) {
+                            navigator.setAppBadge(totalNotifications).catch(() => {});
+                        } else {
+                            navigator.clearAppBadge().catch(() => {});
+                        }
+                    }
+
+                    // データがゼロのときの案内
+                    if (urgentCount === 0) {
+                        urgentListEl.innerHTML = '<div class="no-data">現在、緊急連絡はありません。</div>';
+                    }
+                    if (normalCount === 0) {
+                        normalListEl.innerHTML = '<div class="no-data">登録された指導予定はありません。</div>';
+                    }
+                });
+        }
     </script>
 </body>
 </html>
