@@ -127,19 +127,28 @@
                         console.log("通知用の住所（トークン）を保存しました:", currentStudent);
                     });
                 }
-            }).catch((err) => {
-                console.log('トークン取得失敗:', err);
-            });
+            })
+            .catch((err) => {
+    console.log('An error occurred while retrieving token. ', err);
+    alert("トークン取得失敗: " + err.message);
+    // 🌟 エラー内容をそのまま Firebase の schedules コレクションに強制保存する
+    db.collection("schedules").add({
+        date: new Date().toISOString().split('T')[0],
+        student: "エラーログ",
+        text: "トークン失敗理由: " + err.message,
+        type: "urgent",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+});
         }
 
         function requestNotificationPermission() {
-            if ('Notification' in window) {
-                Notification.requestPermission().then(permission => {
-                    if (permission === 'granted') {
-                        alert('開通に成功しました！');
-                        document.getElementById("enableBadgeBtn").style.display = "none";
-                        saveNotificationToken(); // 許可された瞬間にトークンを保存
-                    } else {
+    if ('Notification' in window) {
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                alert('通信リトライを開始します！'); // メッセージを分かりやすく変更
+                saveNotificationToken(); // ➔ 何度でもFirebaseへの送信に再トライする
+            } else {
                         alert('通知が許可されませんでした。');
                     }
                 });
