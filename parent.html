@@ -16,7 +16,6 @@
         .box { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 15px; box-sizing: border-box; }
         label { font-size: 0.9em; font-weight: bold; color: #2c3e50; display: block; margin-bottom: 5px; }
         select { padding: 10px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 1em; box-sizing: border-box; background: #fff; }
-        .badge-btn { display: block; width: 100%; background: #e67e22; color: white; border: none; padding: 16px; border-radius: 8px; font-weight: bold; font-size: 1.1em; cursor: pointer; margin-bottom: 20px; text-align: center; box-sizing: border-box; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .section-title { font-size: 1.1em; font-weight: bold; margin: 15px 0 8px 0; display: flex; align-items: center; gap: 5px; }
         .list-container { display: flex; flex-direction: column; gap: 10px; }
         .card { padding: 12px; border-radius: 6px; border-left: 5px solid #ccc; position: relative; }
@@ -28,17 +27,14 @@
         .welcome-msg { font-size: 0.9em; color: #2980b9; text-align: center; margin-top: -10px; margin-bottom: 15px; font-weight: bold; }
         .signout-btn { background: none; border: none; color: #7f8c8d; font-size: 0.8em; text-decoration: underline; cursor: pointer; display: block; margin: 10px auto 0 auto; }
     </style>
-    <!-- Firebase SDKの読み込み -->
+    <!-- Firebase SDKの読み込み（不要なMessagingは削除しました） -->
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging-compat.js"></script>
 </head>
 <body>
 
     <h1>📅 えんごばと</h1>
     <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
-
-    <button id="enableBadgeBtn" class="badge-btn" onclick="requestNotificationPermission()">📱 通信リトライを開始します！</button>
 
     <div id="loginArea" class="box">
         <label>お子様のお名前を選択してください：</label>
@@ -75,21 +71,9 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         
-        let messaging = null;
-        if (firebase.messaging.isSupported()) {
-            messaging = firebase.messaging();
-            
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('./sw.js').then((registration) => {
-                    messaging.useServiceWorker(registration);
-                }).catch((err) => {
-                    console.log('SW Register Error:', err);
-                });
-            }
-        }
-
         let currentStudent = "";
         let unsubscribeSnapshot = null;
+        let isFirstLoad = true; // 初回起動判定用
 
         window.onload = function() {
             const savedStudent = localStorage.getItem("juku_parent_student");
@@ -99,58 +83,17 @@
             }
         };
 
-        // 🌟【最速化】許可ボタンを押した指のパワーのまま、時間差ゼロでトークンを直接もぎ取ります！
-        function requestNotificationPermission() {
-            if (!currentStudent) {
-                alert("先にお子様のお名前を選択してください！");
-                return;
-            }
-
-            if (!messaging) {
-                alert("通知機能の準備ができていません。");
-                return;
-            }
-
-            if ('Notification' in window) {
-                // ➔ 許可を求めると同時に、間髪入れずに「getToken」を同一ラインで即実行させます
-                Notification.requestPermission().then(permission => {
-                    if (permission === 'granted') {
-                        
-                        messaging.getToken({ vapidKey: "BP-fER-2SY9LLaHXnxo6M87qsdlhnyB3Oj2-xJT0VLeXQZoVQKv2Kd9klwhk_yFbF4Ih0W8spkA1pWWY1IXinU4" })
-                        .then((currentToken) => {
-                            if (currentToken) {
-                                db.collection("tokens").doc(currentStudent).set({
-                                    token: currentToken,
-                                    student: currentStudent,
-                                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                                }).then(() => {
-                                    alert("Firebaseとの通信・開通に成功しました！");
-                                });
-                            }
-                        })
-                        .catch((err) => {
-                            alert("トークン取得失敗: " + err.message);
-                            db.collection("schedules").add({
-                                date: new Date().toISOString().split('T')[0],
-                                student: "エラーログ",
-                                text: "トークン失敗理由: " + err.message,
-                                type: "urgent",
-                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                            });
-                        });
-
-                    } else {
-                        alert('通知が許可されませんでした。');
-                    }
-                });
-            }
-        }
-
         function loginAsStudent() {
             const select = document.getElementById("studentSelect");
             if (!select.value) return;
             currentStudent = select.value;
             localStorage.setItem("juku_parent_student", currentStudent);
+            
+            // 初めて名前を選んだ時は、その瞬間を「既読」の基準点にする
+            if (!localStorage.getItem(`last_view_time_${currentStudent}`)) {
+                localStorage.setItem(`last_view_time_${currentStudent}`, Date.now());
+            }
+            
             showMainContent();
         }
 
@@ -172,11 +115,15 @@
                 document.getElementById("welcomeArea").style.display = "none";
                 document.getElementById("studentSelect").value = "";
                 currentStudent = "";
+                isFirstLoad = true;
             }
         }
 
         function startListening() {
             if (unsubscribeSnapshot) unsubscribeSnapshot();
+
+            // 前回の閲覧時間を取得（なければ今の日時を入れる）
+            const lastViewTime = parseInt(localStorage.getItem(`last_view_time_${currentStudent}`) || Date.now());
 
             unsubscribeSnapshot = db.collection("schedules")
                 .orderBy("createdAt", "desc")
@@ -188,10 +135,20 @@
 
                     let urgentCount = 0;
                     let normalCount = 0;
+                    let newItemsCount = 0; // 新着カウント
 
                     snapshot.forEach((doc) => {
                         const item = doc.data();
                         if (item.student === currentStudent || item.student === "全員") {
+                            
+                            // 🌟新着チェック：アイテムの作成時間が、前回の閲覧時間より新しければカウント
+                            if (item.createdAt && item.createdAt.toDate) {
+                                const itemTime = item.createdAt.toDate().getTime();
+                                if (itemTime > lastViewTime) {
+                                    newItemsCount++;
+                                }
+                            }
+
                             let dateDisplay = item.date;
                             if (item.date && item.date.includes("-")) {
                                 const parts = item.date.split("-");
@@ -209,6 +166,15 @@
 
                     if (urgentCount === 0) urgentListEl.innerHTML = '<div class="no-data">現在、緊急連絡はありません。</div>';
                     if (normalCount === 0) normalListEl.innerHTML = '<div class="no-data">登録された指導予定はありません。</div>';
+
+                    // 🌟 起動した瞬間に新着があればポップアップを表示
+                    if (isFirstLoad && newItemsCount > 0) {
+                        alert(`🔔 新着情報が ${newItemsCount} 件あります！`);
+                    }
+                    isFirstLoad = false; // 2回目以降のリアルタイム更新ではポップアップさせない
+
+                    // 今回開いたので、閲覧時間を「今」に更新して記憶する
+                    localStorage.setItem(`last_view_time_${currentStudent}`, Date.now());
                 });
         }
     </script>
