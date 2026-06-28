@@ -84,8 +84,8 @@
         let currentStudent = "";
         let unsubscribeSnapshot = null;
 
-        if ('serviceWorker' in navigator) {
-    // 🌟 { type: 'module' } という魔法のオプションを追加して、SafariのCORSブロックを無効化します
+       if ('serviceWorker' in navigator) {
+    // 🌟 { type: 'module' } というオプションを追加して、SafariのCORSブロックを無効化します！
     navigator.serviceWorker.register('./firebase-messaging-sw.js', { type: 'module' }).then((registration) => {
         console.log('SW Registered');
         if (messaging) {
