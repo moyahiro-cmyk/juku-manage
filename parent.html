@@ -28,7 +28,7 @@
         .welcome-msg { font-size: 0.9em; color: #2980b9; text-align: center; margin-top: -10px; margin-bottom: 15px; font-weight: bold; }
         .signout-btn { background: none; border: none; color: #7f8c8d; font-size: 0.8em; text-decoration: underline; cursor: pointer; display: block; margin: 10px auto 0 auto; }
     </style>
-    <!-- Firebase SDKの読み込み（FirestoreとMessaging） -->
+    <!-- Firebase SDKの読み込み -->
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging-compat.js"></script>
@@ -38,7 +38,7 @@
     <h1>📅 えんごばと</h1>
     <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
 
-    <button id="enableBadgeBtn" class="badge-btn" onclick="requestNotificationPermission()">📱 まずココをタップして通知・バッジを開通する</button>
+    <button id="enableBadgeBtn" class="badge-btn" onclick="requestNotificationPermission()">📱 通信リトライを開始します！</button>
 
     <div id="loginArea" class="box">
         <label>お子様のお名前を選択してください：</label>
@@ -75,87 +75,78 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         
-        // 🌟 プッシュ通知（Messaging）の初期化
-let messaging = null;
-if (firebase.messaging.isSupported()) {
-    messaging = firebase.messaging();
-    
-    // 🔥【重要】SafariのCORSエラーを完全に回避するため、元の「sw.js」を強制的に使用する設定を追加します！
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').then((registration) => {
-            messaging.useServiceWorker(registration);
-        }).catch(err => console.log("SW Register Error:", err));
-    }
-}
+        // 🌟 プッシュ通知（Messaging）の初期化とSafari CORS対策の完全結合
+        let messaging = null;
+        if (firebase.messaging.isSupported()) {
+            messaging = firebase.messaging();
+            
+            // Firebase公式が探す特殊ファイルではなく、自分たちの「sw.js」を最優先で安全に登録する
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js').then((registration) => {
+                    console.log('SW Registered Successfully');
+                    messaging.useServiceWorker(registration);
+                }).catch((err) => {
+                    console.log('SW Register Error:', err);
+                });
+            }
+        }
 
         let currentStudent = "";
         let unsubscribeSnapshot = null;
 
-       if ('serviceWorker' in navigator) {
-    // 🌟 { type: 'module' } というオプションを追加して、SafariのCORSブロックを無効化します！
-    navigator.serviceWorker.register('./firebase-messaging-sw.js', { type: 'module' }).then((registration) => {
-        console.log('SW Registered');
-        if (messaging) {
-            messaging.useServiceWorker(registration);
-        }
-    });
-}
-
         window.onload = function() {
-    const savedStudent = localStorage.getItem("juku_parent_student");
-    if (savedStudent) {
-        currentStudent = savedStudent;
-        showMainContent();
-    }
+            const savedStudent = localStorage.getItem("juku_parent_student");
+            if (savedStudent) {
+                currentStudent = savedStudent;
+                showMainContent();
+            }
 
-    if ('Notification' in window && Notification.permission === 'granted') {
-        document.getElementById("enableBadgeBtn").style.display = "none";
-        // 🌟 起動した瞬間に、現在の生徒名で確実に住所をFirebaseに送りつける
-        setTimeout(() => {
-            saveNotificationToken();
-        }, 1000); // 起動1秒後に安全に実行
-    }
-};
+            if ('Notification' in window && Notification.permission === 'granted') {
+                setTimeout(() => {
+                    saveNotificationToken();
+                }, 1000); // 起動1秒後に安全に住所送信をトライ
+            }
+        };
 
         // 🌟 住所（トークン）を生成してFirebaseの「tokens」コレクションに保存する関数
         function saveNotificationToken() {
             if (!messaging || !currentStudent) return;
 
-            // 塾長先生のFirebaseプロジェクト固有のWebプッシュ鍵（KeyPair）
-            messaging.getToken({ vapidKey: "BP-fER-2SY9LLaHXnxo6M87qsdlhnyB3Oj2-xJT0VLeXQZoVQKv2Kd9klwhk_yFbF4Ih0W8spkA1pWWY1IXinU4" }) // 後ほど公式鍵に差し替えるダミーです
+            messaging.getToken({ vapidKey: "BP-fER-2SY9LLaHXnxo6M87qsdlhnyB3Oj2-xJT0VLeXQZoVQKv2Kd9klwhk_yFbF4Ih0W8spkA1pWWY1IXinU4" })
             .then((currentToken) => {
                 if (currentToken) {
-                    // スマホの住所をデータベースに保存・更新する
                     db.collection("tokens").doc(currentStudent).set({
                         token: currentToken,
                         student: currentStudent,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     }).then(() => {
                         console.log("通知用の住所（トークン）を保存しました:", currentStudent);
+                        alert("Firebaseとの通信・開通に成功しました！");
                     });
                 }
             })
             .catch((err) => {
-    console.log('An error occurred while retrieving token. ', err);
-    alert("トークン取得失敗: " + err.message);
-    // 🌟 エラー内容をそのまま Firebase の schedules コレクションに強制保存する
-    db.collection("schedules").add({
-        date: new Date().toISOString().split('T')[0],
-        student: "エラーログ",
-        text: "トークン失敗理由: " + err.message,
-        type: "urgent",
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-});
+                console.log('An error occurred while retrieving token. ', err);
+                alert("トークン取得失敗: " + err.message);
+                
+                // エラー内容をそのまま Firebase の schedules コレクションに強制保存する
+                db.collection("schedules").add({
+                    date: new Date().toISOString().split('T')[0],
+                    student: "エラーログ",
+                    text: "トークン失敗理由: " + err.message,
+                    type: "urgent",
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            });
         }
 
         function requestNotificationPermission() {
-    if ('Notification' in window) {
-        Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-                alert('通信リトライを開始します！'); // メッセージを分かりやすく変更
-                saveNotificationToken(); // ➔ 何度でもFirebaseへの送信に再トライする
-            } else {
+            if ('Notification' in window) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        alert('通信リトライを開始します！');
+                        saveNotificationToken(); 
+                    } else {
                         alert('通知が許可されませんでした。');
                     }
                 });
@@ -168,7 +159,7 @@ if (firebase.messaging.isSupported()) {
             currentStudent = select.value;
             localStorage.setItem("juku_parent_student", currentStudent);
             showMainContent();
-            saveNotificationToken(); // ログインしたときにも住所を結びつける
+            saveNotificationToken(); 
         }
 
         function showMainContent() {
@@ -182,7 +173,6 @@ if (firebase.messaging.isSupported()) {
 
         function signout() {
             if (confirm("ログイン状態を解除して、選び直しますか？")) {
-                // サインアウト時はトークン削除（任意ですが、今回はシンプルにクリアのみ）
                 localStorage.removeItem("juku_parent_student");
                 if (unsubscribeSnapshot) unsubscribeSnapshot();
                 if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(() => {}); }
@@ -193,7 +183,6 @@ if (firebase.messaging.isSupported()) {
             }
         }
 
-        // 🌟 ポップアップ等を除去した、一番クリーンなデータ表示のみの受信部
         function startListening() {
             if (unsubscribeSnapshot) unsubscribeSnapshot();
 
