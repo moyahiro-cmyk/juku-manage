@@ -38,7 +38,6 @@
     <h1>📅 えんごばと</h1>
     <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
 
-    <!-- オレンジボタンを押した時だけ通信が動くようにします -->
     <button id="enableBadgeBtn" class="badge-btn" onclick="requestNotificationPermission()">📱 通信リトライを開始します！</button>
 
     <div id="loginArea" class="box">
@@ -92,7 +91,6 @@
         let currentStudent = "";
         let unsubscribeSnapshot = null;
 
-        // 🌟 【お掃除】起動時の自動通信をすべて削除しました
         window.onload = function() {
             const savedStudent = localStorage.getItem("juku_parent_student");
             if (savedStudent) {
@@ -101,49 +99,46 @@
             }
         };
 
-        // 住所（トークン）を生成して保存する関数
-        function saveNotificationToken() {
-            if (!messaging || !currentStudent) {
-                alert("生徒が選択されていないか、初期化が完了していません。");
-                return;
-            }
-
-            messaging.getToken({ vapidKey: "BP-fER-2SY9LLaHXnxo6M87qsdlhnyB3Oj2-xJT0VLeXQZoVQKv2Kd9klwhk_yFbF4Ih0W8spkA1pWWY1IXinU4" })
-            .then((currentToken) => {
-                if (currentToken) {
-                    db.collection("tokens").doc(currentStudent).set({
-                        token: currentToken,
-                        student: currentStudent,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }).then(() => {
-                        alert("Firebaseとの通信・開通に成功しました！");
-                    });
-                }
-            })
-            .catch((err) => {
-                alert("トークン取得失敗: " + err.message);
-                
-                db.collection("schedules").add({
-                    date: new Date().toISOString().split('T')[0],
-                    student: "エラーログ",
-                    text: "トークン失敗理由: " + err.message,
-                    type: "urgent",
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            });
-        }
-
-        // オレンジボタンが押された時の処理
+        // 🌟【最速化】許可ボタンを押した指のパワーのまま、時間差ゼロでトークンを直接もぎ取ります！
         function requestNotificationPermission() {
             if (!currentStudent) {
                 alert("先にお子様のお名前を選択してください！");
                 return;
             }
 
+            if (!messaging) {
+                alert("通知機能の準備ができていません。");
+                return;
+            }
+
             if ('Notification' in window) {
+                // ➔ 許可を求めると同時に、間髪入れずに「getToken」を同一ラインで即実行させます
                 Notification.requestPermission().then(permission => {
                     if (permission === 'granted') {
-                        saveNotificationToken(); 
+                        
+                        messaging.getToken({ vapidKey: "BP-fER-2SY9LLaHXnxo6M87qsdlhnyB3Oj2-xJT0VLeXQZoVQKv2Kd9klwhk_yFbF4Ih0W8spkA1pWWY1IXinU4" })
+                        .then((currentToken) => {
+                            if (currentToken) {
+                                db.collection("tokens").doc(currentStudent).set({
+                                    token: currentToken,
+                                    student: currentStudent,
+                                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                }).then(() => {
+                                    alert("Firebaseとの通信・開通に成功しました！");
+                                });
+                            }
+                        })
+                        .catch((err) => {
+                            alert("トークン取得失敗: " + err.message);
+                            db.collection("schedules").add({
+                                date: new Date().toISOString().split('T')[0],
+                                student: "エラーログ",
+                                text: "トークン失敗理由: " + err.message,
+                                type: "urgent",
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        });
+
                     } else {
                         alert('通知が許可されませんでした。');
                     }
@@ -151,7 +146,6 @@
             }
         }
 
-        // 🌟 【お掃除】名前を選んだ直後の自動通信を削除し、純粋に画面切り替えだけにしました
         function loginAsStudent() {
             const select = document.getElementById("studentSelect");
             if (!select.value) return;
