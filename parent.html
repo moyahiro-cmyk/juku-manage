@@ -38,6 +38,7 @@
     <h1>📅 えんごばと</h1>
     <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
 
+    <!-- オレンジボタンを押した時だけ通信が動くようにします -->
     <button id="enableBadgeBtn" class="badge-btn" onclick="requestNotificationPermission()">📱 通信リトライを開始します！</button>
 
     <div id="loginArea" class="box">
@@ -75,15 +76,12 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         
-        // 🌟 プッシュ通知（Messaging）の初期化とSafari CORS対策の完全結合
         let messaging = null;
         if (firebase.messaging.isSupported()) {
             messaging = firebase.messaging();
             
-            // Firebase公式が探す特殊ファイルではなく、自分たちの「sw.js」を最優先で安全に登録する
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js').then((registration) => {
-                    console.log('SW Registered Successfully');
                     messaging.useServiceWorker(registration);
                 }).catch((err) => {
                     console.log('SW Register Error:', err);
@@ -94,23 +92,21 @@
         let currentStudent = "";
         let unsubscribeSnapshot = null;
 
+        // 🌟 【お掃除】起動時の自動通信をすべて削除しました
         window.onload = function() {
             const savedStudent = localStorage.getItem("juku_parent_student");
             if (savedStudent) {
                 currentStudent = savedStudent;
                 showMainContent();
             }
-
-            if ('Notification' in window && Notification.permission === 'granted') {
-                setTimeout(() => {
-                    saveNotificationToken();
-                }, 1000); // 起動1秒後に安全に住所送信をトライ
-            }
         };
 
-        // 🌟 住所（トークン）を生成してFirebaseの「tokens」コレクションに保存する関数
+        // 住所（トークン）を生成して保存する関数
         function saveNotificationToken() {
-            if (!messaging || !currentStudent) return;
+            if (!messaging || !currentStudent) {
+                alert("生徒が選択されていないか、初期化が完了していません。");
+                return;
+            }
 
             messaging.getToken({ vapidKey: "BP-fER-2SY9LLaHXnxo6M87qsdlhnyB3Oj2-xJT0VLeXQZoVQKv2Kd9klwhk_yFbF4Ih0W8spkA1pWWY1IXinU4" })
             .then((currentToken) => {
@@ -120,16 +116,13 @@
                         student: currentStudent,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     }).then(() => {
-                        console.log("通知用の住所（トークン）を保存しました:", currentStudent);
                         alert("Firebaseとの通信・開通に成功しました！");
                     });
                 }
             })
             .catch((err) => {
-                console.log('An error occurred while retrieving token. ', err);
                 alert("トークン取得失敗: " + err.message);
                 
-                // エラー内容をそのまま Firebase の schedules コレクションに強制保存する
                 db.collection("schedules").add({
                     date: new Date().toISOString().split('T')[0],
                     student: "エラーログ",
@@ -140,11 +133,16 @@
             });
         }
 
+        // オレンジボタンが押された時の処理
         function requestNotificationPermission() {
+            if (!currentStudent) {
+                alert("先にお子様のお名前を選択してください！");
+                return;
+            }
+
             if ('Notification' in window) {
                 Notification.requestPermission().then(permission => {
                     if (permission === 'granted') {
-                        alert('通信リトライを開始します！');
                         saveNotificationToken(); 
                     } else {
                         alert('通知が許可されませんでした。');
@@ -153,13 +151,13 @@
             }
         }
 
+        // 🌟 【お掃除】名前を選んだ直後の自動通信を削除し、純粋に画面切り替えだけにしました
         function loginAsStudent() {
             const select = document.getElementById("studentSelect");
             if (!select.value) return;
             currentStudent = select.value;
             localStorage.setItem("juku_parent_student", currentStudent);
             showMainContent();
-            saveNotificationToken(); 
         }
 
         function showMainContent() {
@@ -175,11 +173,11 @@
             if (confirm("ログイン状態を解除して、選び直しますか？")) {
                 localStorage.removeItem("juku_parent_student");
                 if (unsubscribeSnapshot) unsubscribeSnapshot();
-                if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(() => {}); }
                 document.getElementById("loginArea").style.display = "block";
                 document.getElementById("contentArea").style.display = "none";
                 document.getElementById("welcomeArea").style.display = "none";
                 document.getElementById("studentSelect").value = "";
+                currentStudent = "";
             }
         }
 
