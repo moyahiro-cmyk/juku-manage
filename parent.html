@@ -95,18 +95,20 @@
         }
 
         window.onload = function() {
-            if ('Notification' in window && Notification.permission === 'granted') {
-                document.getElementById("enableBadgeBtn").style.display = "none";
-                // 既に許可されている場合は住所（トークン）の更新を試みる
-                saveNotificationToken();
-            }
+    const savedStudent = localStorage.getItem("juku_parent_student");
+    if (savedStudent) {
+        currentStudent = savedStudent;
+        showMainContent();
+    }
 
-            const savedStudent = localStorage.getItem("juku_parent_student");
-            if (savedStudent) {
-                currentStudent = savedStudent;
-                showMainContent();
-            }
-        };
+    if ('Notification' in window && Notification.permission === 'granted') {
+        document.getElementById("enableBadgeBtn").style.display = "none";
+        // 🌟 起動した瞬間に、現在の生徒名で確実に住所をFirebaseに送りつける
+        setTimeout(() => {
+            saveNotificationToken();
+        }, 1000); // 起動1秒後に安全に実行
+    }
+};
 
         // 🌟 住所（トークン）を生成してFirebaseの「tokens」コレクションに保存する関数
         function saveNotificationToken() {
