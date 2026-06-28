@@ -31,16 +31,23 @@
         .clear-btn { background-color: #e74c3c; margin-top: 20px; font-size: 0.9em; width: auto; padding: 8px 15px; }
         label { font-size: 0.9em; color: #2c3e50; font-weight: bold; display: block; margin-top: 12px; }
         
-        .inline-selects { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
-        .inline-selects select { margin: 0; flex: 1; min-width: 60px; }
+        /* 🌟 授業予定用の日付・曜日が自然に並ぶよう調整 */
+        .inline-selects { display: flex; gap: 6px; align-items: center; margin: 8px 0; flex-wrap: wrap; justify-content: flex-start; }
+        .inline-selects select { margin: 0; flex: 0 1 auto; width: auto; min-width: 70px; }
         .inline-selects span { font-size: 0.9em; color: #555; font-weight: bold; }
         
-        /* 緊急連絡用の日付横並び調整 */
-        .urgent-date-container { display: flex; gap: 10px; align-items: center; margin: 8px 0; }
-        .urgent-date-container input[type="date"] { margin: 0; flex: 1; }
-        .urgent-day-display { font-size: 1.1em; font-weight: bold; color: #2c3e50; min-width: 45px; }
-        .urgent-day-display.sun { color: #e74c3c; }
-        .urgent-day-display.sat { color: #3498db; }
+        /* 🌟 曜日表示用の共通カラー（授業予定・緊急連絡で共通利用） */
+        .day-display { font-size: 1.1em; font-weight: bold; color: #2c3e50; margin-left: 4px; }
+        .day-display.sun { color: #e74c3c; }
+        .day-display.sat { color: #3498db; }
+
+        /* 緊急連絡用の日付コンテナ */
+        .urgent-date-container { display: flex; gap: 8px; align-items: center; margin: 8px 0; justify-content: flex-start; }
+        .urgent-date-container input[type="date"] { margin: 0; width: auto; flex: 0 1 auto; }
+
+        /* 詳細ボックス用の曜日カラー */
+        .detail-day-span.sun { color: #e74c3c; font-weight: bold; }
+        .detail-day-span.sat { color: #3498db; font-weight: bold; }
 
         .tab-container { display: flex; gap: 8px; margin-bottom: 0; }
         .tab-btn { flex: 1; padding: 10px; background-color: #dcdde1; color: #2f3640; border-radius: 6px 6px 0 0; margin: 0; font-size: 0.9em; cursor: pointer; border: none; }
@@ -84,6 +91,7 @@
                 <button id="tab3" class="tab-btn" onclick="switchTab(3)">👁 3. カレンダー確認</button>
             </div>
 
+            <!-- 📅 授業予定の入力画面 -->
             <div id="page1" class="box">
                 <h2>【個別】授業予定の登録</h2>
                 <label>対象の生徒を指定:</label>
@@ -103,15 +111,14 @@
                     <option value="社会">社会</option>
                     <option value="その他">その他（面談・イベント等）</option>
                 </select>
+                
                 <label>日付を指定:</label>
+                <!-- 🌟 日付ドロップダウンの直後に曜日がぴったりくっつく形に変更 -->
                 <div class="inline-selects">
-                    <select id="yearSelect" onchange="updateDayDropdown()">
-                        <option value="2026">2026年</option>
-                        <option value="2027">2027年</option>
-                        <option value="2028">2028年</option>
-                    </select>
-                    <select id="monthSelect" onchange="updateDayDropdown()"></select>
-                    <select id="daySelect"></select><span>日</span>
+                    <select id="yearSelect" onchange="handleNormalDateUpdate()"></select><span>年</span>
+                    <select id="monthSelect" onchange="handleNormalDateUpdate()"></select><span>月</span>
+                    <select id="daySelect" onchange="handleNormalDateUpdate()"></select><span>日</span>
+                    <span id="normalDayDisplay" class="day-display"></span>
                 </div>
                 
                 <label>時間帯を指定:</label>
@@ -127,7 +134,7 @@
                 <button class="notify-btn" onclick="sendSchedule()">予定を登録する</button>
             </div>
 
-            <!-- 🚨 緊急連絡の入力画面（アップデート版） -->
+            <!-- 🚨 緊急連絡の入力画面 -->
             <div id="page2" class="box" style="display: none;">
                 <h2 style="color: #e74c3c;">【一斉/個別】緊急連絡の送信登録</h2>
                 <label>通知を送る対象:</label>
@@ -140,11 +147,10 @@
                     <option value="渡辺 翔太">渡辺 翔太 くんの保護者のみ</option>
                 </select>
 
-                <!-- 🌟 日付指定オプショナル機能を追加 -->
                 <label>対象となる日付を指定（任意）:</label>
                 <div class="urgent-date-container">
                     <input type="date" id="urgentDate" oninput="handleUrgentDateChange()">
-                    <span id="urgentDayDisplay" class="urgent-day-display"></span>
+                    <span id="urgentDayDisplay" class="day-display"></span>
                 </div>
                 <small style="color: #7f8c8d; display: block; margin-bottom: 10px;">※入力しない場合は、自動的に「送信日の当日」として処理されます。</small>
 
@@ -192,7 +198,7 @@
             </div>
 
             <div class="box history-box normal-history">
-                <h3>📅 指導予定の登録履歴（上が最新）</h3>
+                <h3>📅 指導予定 of 登録履歴（上が最新）</h3>
                 <ul id="normalHistoryList" class="history-list">
                     <li style="color:#aaa; border-left-color:#ccc;">履歴を読み込み中...</li>
                 </ul>
@@ -218,7 +224,31 @@
         let currentYear = 2026;
         let currentMonth = 5;
 
-        // 🌟 緊急連絡用の日付変更時に曜日を判定して表示する関数
+        // 🌟 授業予定側の日付変更・曜日更新イベント
+        function handleNormalDateUpdate() {
+            updateDayDropdown();
+            updateNormalDayDisplay();
+        }
+
+        function updateNormalDayDisplay() {
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            const day = document.getElementById('daySelect').value;
+            const displayEl = document.getElementById('normalDayDisplay');
+
+            if (!year || !month || !day) return;
+
+            const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
+            const dateObj = new Date(`${year}-${month}-${day}`);
+            const dayIdx = dateObj.getDay();
+
+            displayEl.innerText = `（${weekdaysJa[dayIdx]}）`;
+            displayEl.className = 'day-display';
+            if (dayIdx === 0) displayEl.classList.add('sun');
+            if (dayIdx === 6) displayEl.classList.add('sat');
+        }
+
+        // 🚨 緊急連絡側の日付変更イベント
         function handleUrgentDateChange() {
             const dateInput = document.getElementById('urgentDate').value;
             const displayEl = document.getElementById('urgentDayDisplay');
@@ -233,14 +263,13 @@
             const dayIdx = dateObj.getDay();
             
             displayEl.innerText = `（${weekdaysJa[dayIdx]}）`;
-            
-            // 土日の場合に色を分けるためのクラス付け替え
-            displayEl.className = 'urgent-day-display';
+            displayEl.className = 'day-display';
             if (dayIdx === 0) displayEl.classList.add('sun');
             if (dayIdx === 6) displayEl.classList.add('sat');
         }
 
         function generateDropdowns() {
+            const yearSel = document.getElementById('yearSelect');
             const monthSel = document.getElementById('monthSelect');
             const startHourSel = document.getElementById('startHourSelect');
             const startMinuteSel = document.getElementById('startMinuteSelect');
@@ -248,7 +277,16 @@
             const endMinuteSel = document.getElementById('endMinuteSelect');
             const today = new Date();
 
-            if (!monthSel || !startHourSel || !startMinuteSel || !endHourSel || !endMinuteSel) return;
+            if (!yearSel || !monthSel || !startHourSel || !startMinuteSel || !endHourSel || !endMinuteSel) return;
+
+            // 年の生成
+            yearSel.innerHTML = '';
+            for (let y = 2026; y <= 2028; y++) {
+                let opt = document.createElement('option');
+                opt.value = String(y); opt.innerText = y;
+                if (y === today.getFullYear()) opt.selected = true;
+                yearSel.appendChild(opt);
+            }
 
             monthSel.innerHTML = '';
             for (let i = 1; i <= 12; i++) {
@@ -283,6 +321,9 @@
             }
             currentYear = today.getFullYear();
             currentMonth = today.getMonth();
+
+            // 初期表示用の曜日を適用
+            updateNormalDayDisplay();
         }
 
         function updateDayDropdown() {
@@ -442,18 +483,16 @@
             });
         }
 
-        // 🌟 緊急連絡の登録処理（アップデート版）
         function sendUrgentBroadcast() {
             const target = document.getElementById('broadcastTarget').value;
             const title = document.getElementById('urgentTitle').value.trim();
             const body = document.getElementById('urgentBody').value.trim();
-            const inputDate = document.getElementById('urgentDate').value; // 日付指定を取得
+            const inputDate = document.getElementById('urgentDate').value;
 
             if (!title || !body) { return alert('件名と本文を入力してください！'); }
 
             let dateStr = inputDate;
 
-            // 🌟 日付が指定されていない場合は、これまで通り「今日の日付」を設定
             if (!dateStr) {
                 const today = new Date();
                 dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
@@ -463,17 +502,16 @@
 
             db.collection("schedules").add({
                 student: target,
-                date: dateStr, // 決定された日付をセット
+                date: dateStr,
                 text: fullUrgentMessage,
                 type: 'urgent',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             })
             .then(() => {
-                // フォームの初期化
                 document.getElementById('urgentTitle').value = '';
                 document.getElementById('urgentBody').value = '';
-                document.getElementById('urgentDate').value = ''; // 日付欄もクリア
-                document.getElementById('urgentDayDisplay').innerText = ''; // 曜日表示もクリア
+                document.getElementById('urgentDate').value = '';
+                document.getElementById('urgentDayDisplay').innerText = '';
                 alert(`緊急連絡を登録しました！`);
             })
             .catch((error) => {
@@ -510,7 +548,6 @@
                 if (dayOfWeek === 0) div.classList.add('sunday');
                 if (dayOfWeek === 6) div.classList.add('saturday');
 
-                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}--${String(day).padStart(2, '0')}`; // ※バグ防止のため以下で再構築
                 const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 
                 let targetEvents = schedules.filter(item => {
@@ -534,10 +571,19 @@
                 return item.date === dateStr && (filter === 'すべて' || item.student === filter || item.student === '全員');
             });
 
+            const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
+            const dateObj = new Date(dateStr);
+            const dayIdx = dateObj.getDay();
+            let dayColorClass = '';
+            if (dayIdx === 0) dayColorClass = 'sun';
+            if (dayIdx === 6) dayColorClass = 'sat';
+
+            const dateWithDayHtml = `${currentMonth + 1}月${dayNum}日<span class="detail-day-span ${dayColorClass}">（${weekdaysJa[dayIdx]}）</span>`;
+
             if (targetEvents.length === 0) {
-                detailBox.innerHTML = `<strong>📅 ${currentMonth + 1}月${dayNum}日</strong><br><p style="color:#999; margin:5px 0;">この日の予定はありません。</p>`;
+                detailBox.innerHTML = `<strong>📅 ${dateWithDayHtml}</strong><br><p style="color:#999; margin:5px 0;">この日の予定はありません。</p>`;
             } else {
-                let html = `<strong>📅 ${currentMonth + 1}月${dayNum}日の予定リスト</strong><ul style="margin:5px 0 0 0; padding-left:0;">`;
+                let html = `<strong>📅 ${dateWithDayHtml}の予定リスト</strong><ul style="margin:5px 0 0 0; padding-left:0;">`;
                 targetEvents.forEach(item => {
                     const isUrgent = item.type === 'urgent';
                     const nameTag = item.student === '全員' ? '【全員一斉】' : `【${item.student}】`;
