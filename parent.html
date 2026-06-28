@@ -16,7 +16,10 @@
         .box { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 15px; box-sizing: border-box; }
         label { font-size: 0.9em; font-weight: bold; color: #2c3e50; display: block; margin-bottom: 5px; }
         select { padding: 10px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 1em; box-sizing: border-box; background: #fff; }
-        .badge-btn { display: none; width: 100%; background: #e67e22; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 0.95em; cursor: pointer; margin-bottom: 15px; text-align: center; box-sizing: border-box; }
+        
+        /* 🌟 開通ボタンを最優先でデカデカと表示するスタイル */
+        .badge-btn { display: block; width: 100%; background: #e67e22; color: white; border: none; padding: 16px; border-radius: 8px; font-weight: bold; font-size: 1.1em; cursor: pointer; margin-bottom: 20px; text-align: center; box-sizing: border-box; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
         .section-title { font-size: 1.1em; font-weight: bold; margin: 15px 0 8px 0; display: flex; align-items: center; gap: 5px; }
         .list-container { display: flex; flex-direction: column; gap: 10px; }
         .card { padding: 12px; border-radius: 6px; border-left: 5px solid #ccc; position: relative; }
@@ -36,7 +39,8 @@
     <h1>📅 えんごばと</h1>
     <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
 
-    <button id="enableBadgeBtn" class="badge-btn" onclick="requestNotificationPermission()">📱 タップして通知・バッジを有効にする</button>
+    <!-- 🌟 iPhoneの登録をこじ開けるための強制開通ボタン（許可されると自動で消えます） -->
+    <button id="enableBadgeBtn" class="badge-btn" onclick="requestNotificationPermission()">📱 まずココをタップして通知・バッジを開通する</button>
 
     <div id="loginArea" class="box">
         <label>お子様のお名前を選択してください：</label>
@@ -75,22 +79,16 @@
 
         let currentStudent = "";
         let unsubscribeSnapshot = null;
-        let hasCheckedNewArrival = false; // ポップアップ連打防止フラグ
+        let isInitialLoad = true; // 初回読み込み（過去データ）をスルーするためのフラグ
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then(() => console.log('SW Registered'));
         }
 
-        // アプリが前面に表示された時の処理
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                hasCheckedNewArrival = false; // 画面に戻ってきたらポップアップ可能にする
-            }
-        });
-
         window.onload = function() {
-            if ('Notification' in window && Notification.permission !== 'granted') {
-                document.getElementById("enableBadgeBtn").style.display = "block";
+            // すでに通知が許可されているクリーンな状態ならボタンを隠す
+            if ('Notification' in window && Notification.permission === 'granted') {
+                document.getElementById("enableBadgeBtn").style.display = "none";
             }
 
             const savedStudent = localStorage.getItem("juku_parent_student");
@@ -100,26 +98,30 @@
             }
         };
 
-        // 🌟 塾長先生のベストロジック：確認ポップアップを出し、OKならバッジを完全に消す
+        // 🌟 塾長先生のベストタイミング：確認ボタンでバッジを「0」にクリア
         function askToClearBadge() {
-            if ('clearAppBadge' in navigator && !hasCheckedNewArrival) {
-                hasCheckedNewArrival = true; 
+            if ('clearAppBadge' in navigator) {
                 setTimeout(() => {
-                    if (confirm("新しい通知が有るから確認してね")) {
+                    if (confirm("新しい通知が有るから確認ね")) {
                         navigator.clearAppBadge().catch(() => {});
                     }
-                }, 1000); 
+                }, 800); 
             }
         }
 
+        // 🌟 iPhoneのガードをこじ開ける関数
         function requestNotificationPermission() {
             if ('Notification' in window) {
                 Notification.requestPermission().then(permission => {
                     if (permission === 'granted') {
-                        alert('通知とバッジが有効になりました！');
+                        alert('開通に成功しました！これでバッジが灯るようになります。');
                         document.getElementById("enableBadgeBtn").style.display = "none";
+                    } else {
+                        alert('通知が許可されませんでした。iPhoneの設定から許可をONにしてください。');
                     }
                 });
+            } else {
+                alert('このブラウザは通知に対応していません。');
             }
         }
 
@@ -137,6 +139,8 @@
             const welcome = document.getElementById("welcomeArea");
             welcome.innerText = `固定表示中：${currentStudent} の保護者様`;
             welcome.style.display = "block";
+            
+            isInitialLoad = true; // 生徒選択時に一度初期化
             startListening();
         }
 
@@ -149,7 +153,7 @@
                 document.getElementById("contentArea").style.display = "none";
                 document.getElementById("welcomeArea").style.display = "none";
                 document.getElementById("studentSelect").value = "";
-                hasCheckedNewArrival = false;
+                isInitialLoad = true;
             }
         }
 
@@ -185,12 +189,17 @@
                         }
                     });
 
-                    const totalCount = urgentCount + normalCount;
-
-                    // 🌟 画面が開いている時に新しいデータが届き、それが1件以上あればポップアップを誘発
-                    if (totalCount > 0 && document.visibilityState === 'visible') {
-                        askToClearBadge();
+                    // 🌟 【クリーン監視ロジック】
+                    // アプリを開いた「初回（過去データ読み込み）」の時はポップアップを絶対に出さない！
+                    // 初回ロードが終わり、アプリが開いている状態で「新しくデータが降ってきた瞬間」だけポップアップを出す
+                    if (!isInitialLoad) {
+                        if (snapshot.docChanges().some(change => change.type === "added")) {
+                            askToClearBadge();
+                        }
                     }
+
+                    // 1回目のデータ描画が終わったら、初回フラグをオフにする
+                    isInitialLoad = false;
 
                     if (urgentCount === 0) urgentListEl.innerHTML = '<div class="no-data">現在、緊急連絡はありません。</div>';
                     if (normalCount === 0) normalListEl.innerHTML = '<div class="no-data">登録された指導予定はありません。</div>';
