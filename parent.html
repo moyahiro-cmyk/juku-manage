@@ -85,14 +85,14 @@
         let unsubscribeSnapshot = null;
 
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js').then((registration) => {
-                console.log('SW Registered');
-                // 🌟 サービスワーカーが登録されたら、FCMにそれを伝える
-                if (messaging) {
-                    messaging.useServiceWorker(registration);
-                }
-            });
+    // 🌟 { type: 'module' } という魔法のオプションを追加して、SafariのCORSブロックを無効化します
+    navigator.serviceWorker.register('./firebase-messaging-sw.js', { type: 'module' }).then((registration) => {
+        console.log('SW Registered');
+        if (messaging) {
+            messaging.useServiceWorker(registration);
         }
+    });
+}
 
         window.onload = function() {
     const savedStudent = localStorage.getItem("juku_parent_student");
