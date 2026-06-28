@@ -113,7 +113,7 @@
             if (!messaging || !currentStudent) return;
 
             // 塾長先生のFirebaseプロジェクト固有のWebプッシュ鍵（KeyPair）
-            messaging.getToken({ vapidKey: "BElw8I0uA30P0X1OqKzF_Lh0C9w9j3W4XJm6T_6D_T7bE8kZ9N5M" }) // 後ほど公式鍵に差し替えるダミーです
+            messaging.getToken({ vapidKey: "BP-fER-2SY9LLaHXnxo6M87qsdlhnyB3Oj2-xJT0VLeXQZoVQKv2Kd9klwhk_yFbF4Ih0W8spkA1pWWY1IXinU4" }) // 後ほど公式鍵に差し替えるダミーです
             .then((currentToken) => {
                 if (currentToken) {
                     // スマホの住所をデータベースに保存・更新する
