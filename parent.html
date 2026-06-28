@@ -16,10 +16,7 @@
         .box { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 15px; box-sizing: border-box; }
         label { font-size: 0.9em; font-weight: bold; color: #2c3e50; display: block; margin-bottom: 5px; }
         select { padding: 10px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 1em; box-sizing: border-box; background: #fff; }
-        
-        /* 🌟 開通ボタンを最優先でデカデカと表示するスタイル */
         .badge-btn { display: block; width: 100%; background: #e67e22; color: white; border: none; padding: 16px; border-radius: 8px; font-weight: bold; font-size: 1.1em; cursor: pointer; margin-bottom: 20px; text-align: center; box-sizing: border-box; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        
         .section-title { font-size: 1.1em; font-weight: bold; margin: 15px 0 8px 0; display: flex; align-items: center; gap: 5px; }
         .list-container { display: flex; flex-direction: column; gap: 10px; }
         .card { padding: 12px; border-radius: 6px; border-left: 5px solid #ccc; position: relative; }
@@ -31,15 +28,16 @@
         .welcome-msg { font-size: 0.9em; color: #2980b9; text-align: center; margin-top: -10px; margin-bottom: 15px; font-weight: bold; }
         .signout-btn { background: none; border: none; color: #7f8c8d; font-size: 0.8em; text-decoration: underline; cursor: pointer; display: block; margin: 10px auto 0 auto; }
     </style>
+    <!-- Firebase SDKの読み込み（FirestoreとMessaging） -->
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging-compat.js"></script>
 </head>
 <body>
 
     <h1>📅 えんごばと</h1>
     <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
 
-    <!-- 🌟 iPhoneの登録をこじ開けるための強制開通ボタン（許可されると自動で消えます） -->
     <button id="enableBadgeBtn" class="badge-btn" onclick="requestNotificationPermission()">📱 まずココをタップして通知・バッジを開通する</button>
 
     <div id="loginArea" class="box">
@@ -76,19 +74,31 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        
+        // 🌟 プッシュ通知（Messaging）の初期化
+        let messaging = null;
+        if (firebase.messaging.isSupported()) {
+            messaging = firebase.messaging();
+        }
 
         let currentStudent = "";
         let unsubscribeSnapshot = null;
-        let isInitialLoad = true; // 初回読み込み（過去データ）をスルーするためのフラグ
 
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js').then(() => console.log('SW Registered'));
+            navigator.serviceWorker.register('./sw.js').then((registration) => {
+                console.log('SW Registered');
+                // 🌟 サービスワーカーが登録されたら、FCMにそれを伝える
+                if (messaging) {
+                    messaging.useServiceWorker(registration);
+                }
+            });
         }
 
         window.onload = function() {
-            // すでに通知が許可されているクリーンな状態ならボタンを隠す
             if ('Notification' in window && Notification.permission === 'granted') {
                 document.getElementById("enableBadgeBtn").style.display = "none";
+                // 既に許可されている場合は住所（トークン）の更新を試みる
+                saveNotificationToken();
             }
 
             const savedStudent = localStorage.getItem("juku_parent_student");
@@ -98,30 +108,39 @@
             }
         };
 
-        // 🌟 塾長先生のベストタイミング：確認ボタンでバッジを「0」にクリア
-        function askToClearBadge() {
-            if ('clearAppBadge' in navigator) {
-                setTimeout(() => {
-                    if (confirm("新しい通知が有るから確認ね")) {
-                        navigator.clearAppBadge().catch(() => {});
-                    }
-                }, 800); 
-            }
+        // 🌟 住所（トークン）を生成してFirebaseの「tokens」コレクションに保存する関数
+        function saveNotificationToken() {
+            if (!messaging || !currentStudent) return;
+
+            // 塾長先生のFirebaseプロジェクト固有のWebプッシュ鍵（KeyPair）
+            messaging.getToken({ vapidKey: "BElw8I0uA30P0X1OqKzF_Lh0C9w9j3W4XJm6T_6D_T7bE8kZ9N5M" }) // 後ほど公式鍵に差し替えるダミーです
+            .then((currentToken) => {
+                if (currentToken) {
+                    // スマホの住所をデータベースに保存・更新する
+                    db.collection("tokens").doc(currentStudent).set({
+                        token: currentToken,
+                        student: currentStudent,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }).then(() => {
+                        console.log("通知用の住所（トークン）を保存しました:", currentStudent);
+                    });
+                }
+            }).catch((err) => {
+                console.log('トークン取得失敗:', err);
+            });
         }
 
-        // 🌟 iPhoneのガードをこじ開ける関数
         function requestNotificationPermission() {
             if ('Notification' in window) {
                 Notification.requestPermission().then(permission => {
                     if (permission === 'granted') {
-                        alert('開通に成功しました！これでバッジが灯るようになります。');
+                        alert('開通に成功しました！');
                         document.getElementById("enableBadgeBtn").style.display = "none";
+                        saveNotificationToken(); // 許可された瞬間にトークンを保存
                     } else {
-                        alert('通知が許可されませんでした。iPhoneの設定から許可をONにしてください。');
+                        alert('通知が許可されませんでした。');
                     }
                 });
-            } else {
-                alert('このブラウザは通知に対応していません。');
             }
         }
 
@@ -131,6 +150,7 @@
             currentStudent = select.value;
             localStorage.setItem("juku_parent_student", currentStudent);
             showMainContent();
+            saveNotificationToken(); // ログインしたときにも住所を結びつける
         }
 
         function showMainContent() {
@@ -139,13 +159,12 @@
             const welcome = document.getElementById("welcomeArea");
             welcome.innerText = `固定表示中：${currentStudent} の保護者様`;
             welcome.style.display = "block";
-            
-            isInitialLoad = true; // 生徒選択時に一度初期化
             startListening();
         }
 
         function signout() {
             if (confirm("ログイン状態を解除して、選び直しますか？")) {
+                // サインアウト時はトークン削除（任意ですが、今回はシンプルにクリアのみ）
                 localStorage.removeItem("juku_parent_student");
                 if (unsubscribeSnapshot) unsubscribeSnapshot();
                 if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(() => {}); }
@@ -153,10 +172,10 @@
                 document.getElementById("contentArea").style.display = "none";
                 document.getElementById("welcomeArea").style.display = "none";
                 document.getElementById("studentSelect").value = "";
-                isInitialLoad = true;
             }
         }
 
+        // 🌟 ポップアップ等を除去した、一番クリーンなデータ表示のみの受信部
         function startListening() {
             if (unsubscribeSnapshot) unsubscribeSnapshot();
 
@@ -188,18 +207,6 @@
                             else { normalListEl.appendChild(card); normalCount++; }
                         }
                     });
-
-                    // 🌟 【クリーン監視ロジック】
-                    // アプリを開いた「初回（過去データ読み込み）」の時はポップアップを絶対に出さない！
-                    // 初回ロードが終わり、アプリが開いている状態で「新しくデータが降ってきた瞬間」だけポップアップを出す
-                    if (!isInitialLoad) {
-                        if (snapshot.docChanges().some(change => change.type === "added")) {
-                            askToClearBadge();
-                        }
-                    }
-
-                    // 1回目のデータ描画が終わったら、初回フラグをオフにする
-                    isInitialLoad = false;
 
                     if (urgentCount === 0) urgentListEl.innerHTML = '<div class="no-data">現在、緊急連絡はありません。</div>';
                     if (normalCount === 0) normalListEl.innerHTML = '<div class="no-data">登録された指導予定はありません。</div>';
