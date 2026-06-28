@@ -75,30 +75,37 @@
 
         let currentStudent = "";
         let unsubscribeSnapshot = null;
-        let isPopUpShownThisSession = false; 
-        let latestTotalCount = 0; // 最新の件数を常に記憶しておく変数
+        let hasCheckedNewArrival = false; // ポップアップ連打防止フラグ
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then(() => console.log('SW Registered'));
         }
 
-        // 🌟 アプリが開いた瞬間（または裏から戻ったとき）のトリガー
+        // アプリが前面に表示された時の処理
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
-                isPopUpShownThisSession = false; 
-                // 画面が開いたときに、新着があれば1回だけポップアップを出す
-                if (latestTotalCount > 0) {
-                    askToClearBadge();
-                }
+                hasCheckedNewArrival = false; // 画面に戻ってきたらポップアップ可能にする
             }
         });
 
-        // 🌟 ポップアップとお伺い（バッジ操作とは分離）
+        window.onload = function() {
+            if ('Notification' in window && Notification.permission !== 'granted') {
+                document.getElementById("enableBadgeBtn").style.display = "block";
+            }
+
+            const savedStudent = localStorage.getItem("juku_parent_student");
+            if (savedStudent) {
+                currentStudent = savedStudent;
+                showMainContent();
+            }
+        };
+
+        // 🌟 塾長先生のベストロジック：確認ポップアップを出し、OKならバッジを完全に消す
         function askToClearBadge() {
-            if ('clearAppBadge' in navigator && !isPopUpShownThisSession) {
-                isPopUpShownThisSession = true; 
+            if ('clearAppBadge' in navigator && !hasCheckedNewArrival) {
+                hasCheckedNewArrival = true; 
                 setTimeout(() => {
-                    if (confirm("新着連絡を確認しましたか？\n（OKを押すとアイコンのバッジが消えます）")) {
+                    if (confirm("新しい通知が有るから確認してね")) {
                         navigator.clearAppBadge().catch(() => {});
                     }
                 }, 1000); 
@@ -142,8 +149,7 @@
                 document.getElementById("contentArea").style.display = "none";
                 document.getElementById("welcomeArea").style.display = "none";
                 document.getElementById("studentSelect").value = "";
-                isPopUpShownThisSession = false;
-                latestTotalCount = 0;
+                hasCheckedNewArrival = false;
             }
         }
 
@@ -179,22 +185,11 @@
                         }
                     });
 
-                    // 最新の合計件数を更新
-                    latestTotalCount = urgentCount + normalCount;
+                    const totalCount = urgentCount + normalCount;
 
-                    // 🌟 【最終シンプルなバッジ制御】
-                    // 届いたら四の五の言わずにバッジを反映する（これでスリープ前や受信時に確実にバッジがつきます）
-                    if ('setAppBadge' in navigator) {
-                        if (latestTotalCount > 0) {
-                            navigator.setAppBadge(latestTotalCount).catch(() => {});
-                            
-                            // 初回起動時（すでに画面が開いている状態でデータが降ってきた場合）のポップアップ誘発
-                            if (document.visibilityState === 'visible') {
-                                askToClearBadge();
-                            }
-                        } else {
-                            navigator.clearAppBadge().catch(() => {});
-                        }
+                    // 🌟 画面が開いている時に新しいデータが届き、それが1件以上あればポップアップを誘発
+                    if (totalCount > 0 && document.visibilityState === 'visible') {
+                        askToClearBadge();
                     }
 
                     if (urgentCount === 0) urgentListEl.innerHTML = '<div class="no-data">現在、緊急連絡はありません。</div>';
