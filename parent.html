@@ -76,10 +76,17 @@
         const db = firebase.firestore();
         
         // 🌟 プッシュ通知（Messaging）の初期化
-        let messaging = null;
-        if (firebase.messaging.isSupported()) {
-            messaging = firebase.messaging();
-        }
+let messaging = null;
+if (firebase.messaging.isSupported()) {
+    messaging = firebase.messaging();
+    
+    // 🔥【重要】SafariのCORSエラーを完全に回避するため、元の「sw.js」を強制的に使用する設定を追加します！
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').then((registration) => {
+            messaging.useServiceWorker(registration);
+        }).catch(err => console.log("SW Register Error:", err));
+    }
+}
 
         let currentStudent = "";
         let unsubscribeSnapshot = null;
