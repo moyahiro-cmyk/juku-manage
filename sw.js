@@ -1,6 +1,6 @@
-// サービスワーカー：Firebase直連動・バッジ強制点灯版
+// サービスワーカー：FCMプッシュ信号・バッジ専用版
 importScripts('https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging-compat.js');
 
 const firebaseConfig = {
     apiKey: "AIzaSyCvsoHNZ_XcrSMB1ZQp0MZEjaQ9_4twiZK",
@@ -12,7 +12,23 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+
+let messaging = null;
+if (firebase.messaging.isSupported()) {
+    messaging = firebase.messaging();
+}
+
+// 🌟 背景でプッシュ信号（FCM）を受け取った瞬間の処理
+if (messaging) {
+    messaging.onBackgroundMessage((payload) => {
+        console.log('裏方でプッシュ信号をキャッチしました:', payload);
+        
+        // 🌟 信号が届いたら、iPhoneのアイコンに「1」を強制点灯させる
+        if ('setAppBadge' in self.navigator) {
+            return self.navigator.setAppBadge(1);
+        }
+    });
+}
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
@@ -20,38 +36,4 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
     event.waitUntil(self.clients.claim());
-});
-
-// 🌟 画面が閉じていても、裏方自身がFirebaseを直接見張るルート
-let isFirstLoad = true;
-db.collection("schedules")
-    .orderBy("createdAt", "desc")
-    .onSnapshot((snapshot) => {
-        
-        // 初回の過去データ読み込み時はバッジを動かさない
-        if (isFirstLoad) {
-            isFirstLoad = false;
-            return;
-        }
-
-        // 塾長画面から「新しくデータが追加された（added）」という変化を検知した場合
-        const hasNewAddition = snapshot.docChanges().some(change => change.type === "added");
-        
-        if (hasNewAddition) {
-            console.log("裏方で新着を検知しました。バッジを強制点灯します。");
-            
-            // 🌟 プッシュ信号に頼らず、裏方からiPhoneへ直接「数字の1」を叩き込む
-            if ('setAppBadge' in self.navigator) {
-                self.navigator.setAppBadge(1)
-                    .then(() => console.log('バッジを1に強制設定しました'))
-                    .catch((err) => console.error('バッジ設定失敗:', err));
-            }
-        }
-    });
-
-// （予備用）もしプッシュ信号が飛んできた場合もバッジを出す
-self.addEventListener('push', (event) => {
-    if ('setAppBadge' in self.navigator) {
-        event.waitUntil(self.navigator.setAppBadge(1));
-    }
 });
