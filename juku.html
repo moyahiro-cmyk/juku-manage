@@ -35,6 +35,13 @@
         .inline-selects select { margin: 0; flex: 1; min-width: 60px; }
         .inline-selects span { font-size: 0.9em; color: #555; font-weight: bold; }
         
+        /* 緊急連絡用の日付横並び調整 */
+        .urgent-date-container { display: flex; gap: 10px; align-items: center; margin: 8px 0; }
+        .urgent-date-container input[type="date"] { margin: 0; flex: 1; }
+        .urgent-day-display { font-size: 1.1em; font-weight: bold; color: #2c3e50; min-width: 45px; }
+        .urgent-day-display.sun { color: #e74c3c; }
+        .urgent-day-display.sat { color: #3498db; }
+
         .tab-container { display: flex; gap: 8px; margin-bottom: 0; }
         .tab-btn { flex: 1; padding: 10px; background-color: #dcdde1; color: #2f3640; border-radius: 6px 6px 0 0; margin: 0; font-size: 0.9em; cursor: pointer; border: none; }
         .tab-btn.active { background-color: #3498db; color: white; }
@@ -52,23 +59,13 @@
         .calendar-day.selected { background-color: #ffeaa7; border: 1px solid #f1c40f; }
         .calendar-day.empty { cursor: default; background: none !important; }
         .day-detail-box { background: #f8f9fa; padding: 10px; margin-top: 10px; border-radius: 6px; border: 1px dashed #3498db; min-height: 50px; font-size: 0.9em; }
-        /* 横幅が768px以下（スマホなど）になった時の設定 */
-@media (max-width: 768px) {
-    .main-container {
-        flex-direction: column; /* 横並びから縦並びに変更 */
-    }
-    .left-col, .right-col {
-        max-width: 100%; /* 横幅いっぱいに広げる */
-        width: 100%;
-    }
-    .tab-container {
-        flex-wrap: wrap; /* タブがはみ出さないように折り返す */
-    }
-    .tab-btn {
-        font-size: 0.85em; /* 文字を少しだけ小さく */
-        padding: 8px 4px;
-    }
-}
+
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; }
+            .left-col, .right-col { max-width: 100%; width: 100%; }
+            .tab-container { flex-wrap: wrap; }
+            .tab-btn { font-size: 0.85em; padding: 8px 4px; }
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
@@ -117,7 +114,6 @@
                     <select id="daySelect"></select><span>日</span>
                 </div>
                 
-                <!-- 🌟 時間の範囲指定に変更 -->
                 <label>時間帯を指定:</label>
                 <div class="inline-selects">
                     <select id="startHourSelect"></select><span>時</span>
@@ -131,6 +127,7 @@
                 <button class="notify-btn" onclick="sendSchedule()">予定を登録する</button>
             </div>
 
+            <!-- 🚨 緊急連絡の入力画面（アップデート版） -->
             <div id="page2" class="box" style="display: none;">
                 <h2 style="color: #e74c3c;">【一斉/個別】緊急連絡の送信登録</h2>
                 <label>通知を送る対象:</label>
@@ -142,6 +139,15 @@
                     <option value="田中 葵">田中 葵 さんの保護者のみ</option>
                     <option value="渡辺 翔太">渡辺 翔太 くんの保護者のみ</option>
                 </select>
+
+                <!-- 🌟 日付指定オプショナル機能を追加 -->
+                <label>対象となる日付を指定（任意）:</label>
+                <div class="urgent-date-container">
+                    <input type="date" id="urgentDate" oninput="handleUrgentDateChange()">
+                    <span id="urgentDayDisplay" class="urgent-day-display"></span>
+                </div>
+                <small style="color: #7f8c8d; display: block; margin-bottom: 10px;">※入力しない場合は、自動的に「送信日の当日」として処理されます。</small>
+
                 <label>緊急連絡の件名:</label>
                 <input type="text" id="urgentTitle" placeholder="例：【重要】大雨にともなう休校のご案内">
                 <label>連絡内容（本文）:</label>
@@ -212,7 +218,28 @@
         let currentYear = 2026;
         let currentMonth = 5;
 
-        // ドロップダウンを生成する関数
+        // 🌟 緊急連絡用の日付変更時に曜日を判定して表示する関数
+        function handleUrgentDateChange() {
+            const dateInput = document.getElementById('urgentDate').value;
+            const displayEl = document.getElementById('urgentDayDisplay');
+            
+            if (!dateInput) {
+                displayEl.innerText = '';
+                return;
+            }
+
+            const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
+            const dateObj = new Date(dateInput);
+            const dayIdx = dateObj.getDay();
+            
+            displayEl.innerText = `（${weekdaysJa[dayIdx]}）`;
+            
+            // 土日の場合に色を分けるためのクラス付け替え
+            displayEl.className = 'urgent-day-display';
+            if (dayIdx === 0) displayEl.classList.add('sun');
+            if (dayIdx === 6) displayEl.classList.add('sat');
+        }
+
         function generateDropdowns() {
             const monthSel = document.getElementById('monthSelect');
             const startHourSel = document.getElementById('startHourSelect');
@@ -235,7 +262,6 @@
             const daySel = document.getElementById('daySelect');
             if (daySel) { daySel.value = String(today.getDate()).padStart(2, '0'); }
 
-            // 開始時・終了時
             startHourSel.innerHTML = '';
             endHourSel.innerHTML = '';
             for (let i = 0; i <= 23; i++) {
@@ -247,7 +273,6 @@
                 endHourSel.appendChild(opt2);
             }
             
-            // 開始分・終了分
             startMinuteSel.innerHTML = '';
             endMinuteSel.innerHTML = '';
             for (let i = 0; i < 60; i += 10) {
@@ -298,7 +323,8 @@
                 urgentEvents.forEach(item => {
                     const li = document.createElement('li');
                     li.className = 'item-urgent';
-                    li.innerHTML = `<strong>${item.student}</strong> ： ${item.text}`;
+                    const shortDate = item.date ? item.date.substring(5) + ' ' : '';
+                    li.innerHTML = `<strong>${item.student}</strong> ： ${shortDate}${item.text}`;
                     urgentListEl.appendChild(li);
                 });
             }
@@ -321,7 +347,7 @@
             schedules = [];
             snapshot.forEach((doc) => {
                 let data = doc.data();
-                data.id = doc.id; // 重複削除の判定に使うためIDを保持
+                data.id = doc.id;
                 schedules.push(data);
             });
 
@@ -342,7 +368,6 @@
             if (pageNum === 3) { renderCalendar(); }
         }
 
-        // 🌟 スケジュール登録＆規則チェック処理
         async function sendSchedule() {
             const student = document.getElementById('studentSelect').value;
             const subject = document.getElementById('subjectSelect').value;
@@ -359,7 +384,6 @@
 
             const dateStr = `${year}-${month}-${day}`;
             
-            // 計算用に数値を分換算にする (例: 18:30 -> 1110分)
             const newStart = parseInt(startHour) * 60 + parseInt(startMinute);
             const newEnd = parseInt(endHour) * 60 + parseInt(endMinute);
 
@@ -368,7 +392,6 @@
                 return;
             }
 
-            // 同日の同じ生徒（または全員）の「通常予定」を抽出
             const sameDayEvents = schedules.filter(item => {
                 return item.date === dateStr && item.type === 'normal' && (item.student === student || item.student === '全員');
             });
@@ -376,27 +399,20 @@
             let overlapIds = [];
             let hasAnyOldEvent = sameDayEvents.length > 0;
 
-            // 既存の予定と時間が重なっているかチェック
             sameDayEvents.forEach(oldEvent => {
-                // 文字列から時間をパースしてみる (例: "【英語】 18:30〜19:30 開始 ...")
                 const timeMatch = oldEvent.text.match(/(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
                 if (timeMatch) {
                     const oldStart = parseInt(timeMatch[1]) * 60 + parseInt(timeMatch[2]);
                     const oldEnd = parseInt(timeMatch[3]) * 60 + parseInt(timeMatch[4]);
 
-                    // 時間の重なり判定公式
                     if (newStart < oldEnd && oldStart < newEnd) {
                         overlapIds.push(oldEvent.id);
                     }
                 }
             });
 
-            // 規則の分岐処理
             if (overlapIds.length > 0) {
-                // １）時間が重なっている場合
                 alert("古い予定を消去します");
-                
-                // 重なっている古い予定をクラウドから削除
                 const batch = db.batch();
                 overlapIds.forEach(id => {
                     batch.delete(db.collection("schedules").doc(id));
@@ -404,11 +420,9 @@
                 await batch.commit();
 
             } else if (hasAnyOldEvent) {
-                // ２）古い予定はあるが、時間は重なっていない場合
                 alert("同じ日に別の予定があるので注意してください。");
             }
 
-            // 新しい予定の登録
             let finalMessage = `【${subject}】 ${startHour}:${startMinute}〜${endHour}:${endMinute} 開始`;
             if (extraText) finalMessage += ` ｜ 連絡: ${extraText}`;
 
@@ -428,27 +442,38 @@
             });
         }
 
+        // 🌟 緊急連絡の登録処理（アップデート版）
         function sendUrgentBroadcast() {
             const target = document.getElementById('broadcastTarget').value;
             const title = document.getElementById('urgentTitle').value.trim();
             const body = document.getElementById('urgentBody').value.trim();
+            const inputDate = document.getElementById('urgentDate').value; // 日付指定を取得
 
             if (!title || !body) { return alert('件名と本文を入力してください！'); }
 
-            const today = new Date();
-            const dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+            let dateStr = inputDate;
+
+            // 🌟 日付が指定されていない場合は、これまで通り「今日の日付」を設定
+            if (!dateStr) {
+                const today = new Date();
+                dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+            }
+
             const fullUrgentMessage = `🚨【緊急連絡】${title}：${body}`;
 
             db.collection("schedules").add({
                 student: target,
-                date: dateStr,
+                date: dateStr, // 決定された日付をセット
                 text: fullUrgentMessage,
                 type: 'urgent',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             })
             .then(() => {
+                // フォームの初期化
                 document.getElementById('urgentTitle').value = '';
                 document.getElementById('urgentBody').value = '';
+                document.getElementById('urgentDate').value = ''; // 日付欄もクリア
+                document.getElementById('urgentDayDisplay').innerText = ''; // 曜日表示もクリア
                 alert(`緊急連絡を登録しました！`);
             })
             .catch((error) => {
@@ -485,10 +510,11 @@
                 if (dayOfWeek === 0) div.classList.add('sunday');
                 if (dayOfWeek === 6) div.classList.add('saturday');
 
-                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}--${String(day).padStart(2, '0')}`; // ※バグ防止のため以下で再構築
+                const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 
                 let targetEvents = schedules.filter(item => {
-                    return item.date === dateStr && (filter === 'すべて' || item.student === filter || item.student === '全員');
+                    return item.date === formattedDate && (filter === 'すべて' || item.student === filter || item.student === '全員');
                 });
 
                 if (targetEvents.length > 0) div.classList.add('has-event');
@@ -496,7 +522,7 @@
                 div.onclick = () => {
                     document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
                     div.classList.add('selected');
-                    showDayDetail(dateStr, day, filter);
+                    showDayDetail(formattedDate, day, filter);
                 };
                 grid.appendChild(div);
             }
