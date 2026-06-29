@@ -3,128 +3,208 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>塾の予定確認（保護者画面）</title>
+    <title>塾の予定管理システム（塾長画面）</title>
     
-    <link rel="manifest" href="./manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="塾予定">
+    <!-- 🍎 iPhoneホーム画面用のウェブクリップアイコン設定 -->
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
     <style>
-        body { font-family: sans-serif; margin: 0; padding: 0; background-color: #f5f6fa; color: #2f3640; padding-bottom: 60px; }
-        .header-area { padding: 15px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        h1 { font-size: 1.3em; color: #2c3e50; text-align: center; margin: 0 0 10px 0; border-bottom: 2px solid #3498db; padding-bottom: 8px; }
-        .box { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin: 15px; box-sizing: border-box; }
-        label { font-size: 0.9em; font-weight: bold; color: #2c3e50; display: block; margin-bottom: 5px; }
-        select { padding: 10px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 1em; box-sizing: border-box; background: #fff; }
-        .welcome-msg { font-size: 0.9em; color: #2980b9; text-align: center; font-weight: bold; margin-bottom: 5px; }
+        body { font-family: sans-serif; margin: 20px; background-color: #f0f4f8; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-bottom: 20px; }
         
-        /* 📜 6件スクロール枠のスタイル */
-        .scroll-container { max-height: 480px; overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 10px; }
-        .section-title { font-size: 1.1em; font-weight: bold; margin: 10px 15px 8px 15px; }
-        .card { padding: 12px; border-radius: 6px; border-left: 5px solid #ccc; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .card-urgent { background: #ffeae6; border-left-color: #e74c3c; }
-        .card-normal { background: #e8f4fd; border-left-color: #3498db; }
-        .card-date { font-size: 0.8em; color: #7f8c8d; margin-bottom: 4px; font-weight: bold; }
-        .card-text { font-size: 0.95em; line-height: 1.4; }
-        .no-data { text-align: center; color: #95a5a6; padding: 20px; font-size: 0.9em; background: #fff; border-radius: 6px; margin: 0 15px; }
+        .main-container { display: flex; gap: 25px; max-width: 1200px; align-items: flex-start; }
+        .left-col { flex: 1; max-width: 550px; }
+        .right-col { flex: 1; max-width: 550px; display: flex; flex-direction: column; gap: 20px; }
 
-        /* 🗓️ カレンダーのスタイル */
-        .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .calendar-controls button { background: #3498db; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; }
-        .calendar-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .calendar-table th, .calendar-table td { text-align: center; padding: 8px 0; position: relative; font-size: 0.9em; height: 40px; vertical-align: middle; }
-        .calendar-table th { font-weight: bold; color: #7f8c8d; }
-        .calendar-day { cursor: pointer; border-radius: 4px; }
-        .calendar-day:active { background: #eee; }
-        .calendar-day.today { background: #f1c40f; color: #fff; font-weight: bold; }
-        .calendar-day.selected { border: 2px solid #2c3e50; }
-        /* 🔵🔴 ポチのスタイル */
-        .dots-container { display: flex; justify-content: center; gap: 3px; position: absolute; bottom: 2px; width: 100%; left: 0; }
-        .dot-blue { width: 5px; height: 5px; background-color: #3498db; border-radius: 50%; }
-        .dot-red { width: 5px; height: 5px; background-color: #e74c3c; border-radius: 50%; }
-        .detail-box { margin-top: 15px; padding: 12px; border-radius: 6px; background: #f8f9fa; border: 1px solid #e2e8f0; min-height: 50px; }
+        .box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); box-sizing: border-box; }
+        .history-box { background: #fff; min-height: 250px; max-height: 350px; overflow-y: auto; border: 1px solid #ddd; }
+        .history-box h3 { margin-top: 0; color: #2c3e50; border-left: 4px solid #3498db; padding-left: 8px; font-size: 1.1em; position: sticky; top: 0; background: white; padding-bottom: 8px; margin-bottom: 10px; }
+        .history-box.urgent-history h3 { border-left-color: #e74c3c; }
 
-        /* 📱 下部タブバーのスタイル */
-        .tab-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 55px; background: #fff; border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -2px 5px rgba(0,0,0,0.05); z-index: 1000; }
-        .tab-btn { background: none; border: none; color: #7f8c8d; font-size: 0.8em; font-weight: bold; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 33%; cursor: pointer; }
-        .tab-btn.active { color: #3498db; }
-        .tab-icon { font-size: 1.4em; }
-        .page { display: none; }
-        .page.active { display: block; }
-        .signout-btn { background: none; border: none; color: #7f8c8d; font-size: 0.8em; text-decoration: underline; cursor: pointer; display: block; margin: 15px auto; }
+        .history-list { list-style: none; padding: 0; margin: 0; }
+        .history-list li { padding: 8px 10px; margin-bottom: 6px; border-radius: 4px; font-size: 0.9em; border-left: 4px solid #3498db; background: #f8f9fa; }
+        .history-list .item-urgent { border-left-color: #e74c3c; background: #ffeae6; }
+        .history-list .item-normal { border-left-color: #3498db; background: #e8f4fd; }
+
+        select, input, button, textarea { padding: 10px; margin: 8px 0; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; }
+        textarea { resize: vertical; font-family: sans-serif; }
+        button { background-color: #3498db; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #2980b9; }
+        .urgent-btn { background-color: #e74c3c; }
+        .urgent-btn:hover { background-color: #c0392b; }
+        .clear-btn { background-color: #e74c3c; margin-top: 20px; font-size: 0.9em; width: auto; padding: 8px 15px; }
+        label { font-size: 0.9em; color: #2c3e50; font-weight: bold; display: block; margin-top: 12px; }
+        
+        .inline-selects { display: flex; gap: 6px; align-items: center; margin: 8px 0; flex-wrap: wrap; justify-content: flex-start; }
+        .inline-selects select { margin: 0; flex: 0 1 auto; width: auto; min-width: 70px; }
+        .inline-selects span { font-size: 0.9em; color: #555; font-weight: bold; }
+        
+        .day-display { font-size: 1.1em; font-weight: bold; color: #2c3e50; margin-left: 4px; }
+        .day-display.sun { color: #e74c3c; }
+        .day-display.sat { color: #3498db; }
+
+        .urgent-date-container { display: flex; gap: 8px; align-items: center; margin: 8px 0; justify-content: flex-start; }
+        .urgent-date-container input[type="date"] { margin: 0; width: auto; flex: 0 1 auto; }
+
+        .detail-day-span.sun { color: #e74c3c; font-weight: bold; }
+        .detail-day-span.sat { color: #3498db; font-weight: bold; }
+
+        .tab-container { display: flex; gap: 8px; margin-bottom: 0; }
+        .tab-btn { flex: 1; padding: 10px; background-color: #dcdde1; color: #2f3640; border-radius: 6px 6px 0 0; margin: 0; font-size: 0.9em; cursor: pointer; border: none; }
+        .tab-btn.active { background-color: #3498db; color: white; }
+        .tab-btn.urgent-tab.active { background-color: #e74c3c; }
+        
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-bottom: 10px; }
+        .calendar-nav-btn { width: auto; padding: 4px 12px; margin: 0; background: #e0e0e0; color: #333; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 0.85em; background: #fafafa; padding: 8px; border-radius: 8px; border: 1px solid #ddd; }
+        .weekday { font-weight: bold; color: #7f8c8d; padding-bottom: 6px; }
+        .sunday { color: #e74c3c; }
+        .saturday { color: #3498db; }
+        .calendar-day { padding: 8px 0; border-radius: 4px; cursor: pointer; position: relative; min-height: 35px; }
+        .calendar-day:hover { background-color: #e2e2e2; }
+        .calendar-day.has-event::after { content: '●'; font-size: 9px; position: absolute; bottom: 2px; left: 0; right: 0; color: #2980b9; text-align: center; }
+        .calendar-day.selected { background-color: #ffeaa7; border: 1px solid #f1c40f; }
+        .calendar-day.empty { cursor: default; background: none !important; }
+        .day-detail-box { background: #f8f9fa; padding: 10px; margin-top: 10px; border-radius: 6px; border: 1px dashed #3498db; min-height: 50px; font-size: 0.9em; }
+
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; }
+            .left-col, .right-col { max-width: 100%; width: 100%; }
+            .tab-container { flex-wrap: wrap; }
+            .tab-btn { font-size: 0.85em; padding: 8px 4px; }
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
-    <div class="header-area">
-        <h1>📅 えんごばと</h1>
-        <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
-    </div>
+    <h1>塾・生徒予定管理システム（塾長画面）</h1>
 
-    <!-- 👤 ログインエリア -->
-    <div id="loginArea" class="box">
-        <label>お子様のお名前を選択してください：</label>
-        <select id="studentSelect" onchange="loginAsStudent()">
-            <option value="">-- 選択してください --</option>
-            <option value="佐藤 拓海">佐藤 拓海 くん</option>
-            <option value="鈴木 結衣">鈴木 結衣 さん</option>
-            <option value="高橋 蓮">高橋 蓮 くん</option>
-            <option value="田中 葵">田中 葵 さん</option>
-            <option value="渡辺 翔太">渡辺 翔太 くん</option>
-        </select>
-    </div>
-
-    <!-- 📱 メインコンテンツ（3つのページ） -->
-    <div id="contentArea" style="display: none;">
+    <div class="main-container">
         
-        <!-- 【タブ1：トップ画面】 -->
-        <div id="pageTop" class="page active">
-            <div class="section-title">📌 直近の予定一覧（最大6件）</div>
-            <div id="topScrollArea" class="scroll-container" style="margin: 0 15px;">
-                <!-- ここに最新の予定が上から順に最大6件入ります -->
+        <!-- 左側：入力＆カレンダーエリア -->
+        <div class="left-col">
+            <div class="tab-container">
+                <button id="tab1" class="tab-btn active" onclick="switchTab(1)">📅 1. 授業予定の入力</button>
+                <button id="tab2" class="tab-btn urgent-tab" onclick="switchTab(2)">🚨 2. 緊急連絡の入力</button>
+                <button id="tab3" class="tab-btn" onclick="switchTab(3)">👁 3. カレンダー確認</button>
             </div>
-        </div>
 
-        <!-- 【タブ2：カレンダー画面】 -->
-        <div id="pageCalendar" class="page">
-            <div class="box">
-                <div class="calendar-controls">
-                    <button onclick="changeMonth(-1)">◀ 前月</button>
-                    <h3 id="calendarTitle" style="margin:0; font-size:1.1em;">2026年6月</h3>
-                    <button onclick="changeMonth(1)">次月 ▶</button>
+            <!-- 📅 授業予定の入力画面 -->
+            <div id="page1" class="box">
+                <h2>【個別】授業予定の登録</h2>
+                <label>対象の生徒を指定:</label>
+                <select id="studentSelect">
+                    <option value="佐藤 拓海">佐藤 拓海 くん</option>
+                    <option value="鈴木 結衣">鈴木 結衣 さん</option>
+                    <option value="高橋 蓮">高橋 蓮 くん</option>
+                    <option value="田中 葵">田中 葵 さん</option>
+                    <option value="渡辺 翔太">渡辺 翔太 くん</option>
+                </select>
+                <label>教科を選択:</label>
+                <select id="subjectSelect">
+                    <option value="英語">英語</option>
+                    <option value="数学">数学</option>
+                    <option value="国語">国語</option>
+                    <option value="理科">理科</option>
+                    <option value="社会">社会</option>
+                    <option value="社会">社会</option>
+                    <option value="その他">その他（面談・イベント等）</option>
+                </select>
+                
+                <label>日付を指定:</label>
+                <div class="inline-selects">
+                    <select id="yearSelect" onchange="handleNormalDateUpdate()"></select><span>年</span>
+                    <select id="monthSelect" onchange="handleNormalDateUpdate()"></select><span>月</span>
+                    <select id="daySelect" onchange="handleNormalDateUpdate()"></select><span>日</span>
+                    <span id="normalDayDisplay" class="day-display"></span>
                 </div>
-                <table class="calendar-table">
-                    <thead>
-                        <tr><th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th></tr>
-                    </thead>
-                    <tbody id="calendarBody"></tbody>
-                </table>
-                <div class="detail-box">
-                    <strong style="font-size:0.9em; color:#7f8c8d;">選択した日の内容：</strong>
-                    <div id="calendarDetail" style="margin-top:5px; font-size:0.95em; line-height:1.4;">日付をタップしてください。</div>
+                
+                <label>時間帯を指定:</label>
+                <div class="inline-selects">
+                    <select id="startHourSelect"></select><span>時</span>
+                    <select id="startMinuteSelect"></select><span>分 〜</span>
+                    <select id="endHourSelect"></select><span>時</span>
+                    <select id="endMinuteSelect"></select><span>分</span>
+                </div>
+
+                <label>追加の連絡事項:</label>
+                <input type="text" id="scheduleText" placeholder="例：本日は単語テストから始めます">
+                <button class="notify-btn" onclick="sendSchedule()">予定を登録する</button>
+            </div>
+
+            <!-- 🚨 緊急連絡の入力画面 -->
+            <div id="page2" class="box" style="display: none;">
+                <h2 style="color: #e74c3c;">【一斉/個別】緊急連絡の送信登録</h2>
+                <label>通知を送る対象:</label>
+                <select id="broadcastTarget">
+                    <option value="全員">全生徒の保護者（一斉通知）</option>
+                    <option value="佐藤 拓海">佐藤 拓海 くんの保護者のみ</option>
+                    <option value="鈴木 結衣">鈴木 結衣 さんの保護者のみ</option>
+                    <option value="高橋 蓮">高橋 蓮 くんの保護者のみ</option>
+                    <option value="田中 葵">田中 葵 さんの保護者のみ</option>
+                    <option value="渡辺 翔太">渡辺 翔太 くんの保護者のみ</option>
+                </select>
+
+                <label>対象となる日付を指定（任意）:</label>
+                <div class="urgent-date-container">
+                    <input type="date" id="urgentDate" oninput="handleUrgentDateChange()">
+                    <span id="urgentDayDisplay" class="day-display"></span>
+                </div>
+                <small style="color: #7f8c8d; display: block; margin-bottom: 10px;">※入力しない場合は、自動的に「送信日の当日」として処理されます。</small>
+
+                <label>緊急連絡の件名:</label>
+                <input type="text" id="urgentTitle" placeholder="例：【重要】大雨にともなう休校のご案内">
+                <label>連絡内容（本文）:</label>
+                <textarea id="urgentBody" rows="4" placeholder="例：本日の指導はZOOM指導に切り替えます。"></textarea>
+                <button class="urgent-btn" onclick="sendUrgentBroadcast()">🚨 緊急連絡を登録する</button>
+            </div>
+
+            <div id="page3" class="box" style="display: none;">
+                <h2>生徒予定カレンダー（全体把握用）</h2>
+                <label>表示する生徒で絞り込み:</label>
+                <select id="calendarFilter" onchange="renderCalendar()">
+                    <option value="すべて">すべての生徒の予定を表示</option>
+                    <option value="佐藤 拓海">佐藤 拓海 くん</option>
+                    <option value="鈴木 結衣">鈴木 結衣 さん</option>
+                    <option value="高橋 蓮">高橋 蓮 くん</option>
+                    <option value="田中 葵">田中 葵 さん</option>
+                    <option value="渡辺 翔太">渡辺 翔太 くん</option>
+                </select>
+                <div class="calendar-header" style="margin-top:15px;">
+                    <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀</button>
+                    <span id="calendarMonthTitle">2026年06月</span>
+                    <button class="calendar-nav-btn" onclick="changeMonth(1)">▶</button>
+                </div>
+                <div class="calendar-grid" id="calendarGrid"></div>
+                <div class="day-detail-box" id="dayDetailBox">
+                    <p style="color:#777; margin:5px 0;">日付をタップすると、その日の予定リストが表示されます。</p>
                 </div>
             </div>
-        </div>
-
-        <!-- 【タブ3：通知（緊急連絡のみ）画面】 -->
-        <div id="pageUrgent" class="page">
-            <div class="section-title">🚨 緊急連絡（最大6件）</div>
-            <div id="urgentScrollArea" class="scroll-container" style="margin: 0 15px;">
-                <!-- ここに緊急連絡のみが最大6件入ります -->
+            
+            <div style="text-align:left;">
+                <button class="clear-btn" onclick="clearAllData()">⚠ クラウドデータを完全リセット</button>
             </div>
         </div>
 
-        <button class="signout-btn" onclick="signout()">別の生徒を選び直す</button>
+        <!-- 右側：リアルタイム履歴エリア -->
+        <div class="right-col">
+            <div class="box history-box urgent-history">
+                <h3>🚨 緊急連絡の送信履歴（上が最新）</h3>
+                <ul id="urgentHistoryList" class="history-list">
+                    <li style="color:#aaa; border-left-color:#ccc;">履歴を読み込み中...</li>
+                </ul>
+            </div>
 
-        <!-- 🗺️ 下部タブバー -->
-        <nav class="tab-bar">
-            <button class="tab-btn active" onclick="switchTab('Top')"><span class="tab-icon">🏠</span>トップ</button>
-            <button class="tab-btn" onclick="switchTab('Calendar')"><span class="tab-icon">🗓️</span>カレンダー</button>
-            <button class="tab-btn" onclick="switchTab('Urgent')"><span class="tab-icon">🚨</span>緊急連絡</button>
-        </nav>
+            <div class="box history-box normal-history">
+                <h3>📅 指導予定 of 登録履歴（上が最新）</h3>
+                <ul id="normalHistoryList" class="history-list">
+                    <li style="color:#aaa; border-left-color:#ccc;">履歴を読み込み中...</li>
+                </ul>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -140,252 +220,404 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         
-        let currentStudent = "";
-        let unsubscribeSnapshot = null;
-        let allSchedules = []; // 全データを保持する配列
-        let isFirstLoad = true;
+        let schedules = [];
+        let currentYear = 2026;
+        let currentMonth = 5;
 
-        // カレンダー用変数
-        let currentYear = new Date().getFullYear();
-        let currentMonth = new Date().getMonth();
-        let selectedDateStr = "";
-
-        window.onload = function() {
-            const savedStudent = localStorage.getItem("juku_parent_student");
-            if (savedStudent) {
-                currentStudent = savedStudent;
-                showMainContent();
-            }
-        };
-
-        function loginAsStudent() {
-            const select = document.getElementById("studentSelect");
-            if (!select.value) return;
-            currentStudent = select.value;
-            localStorage.setItem("juku_parent_student", currentStudent);
-            if (!localStorage.getItem(`last_view_time_${currentStudent}`)) {
-                localStorage.setItem(`last_view_time_${currentStudent}`, Date.now());
-            }
-            showMainContent();
+        function handleNormalDateUpdate() {
+            updateDayDropdown();
+            updateNormalDayDisplay();
         }
 
-        function showMainContent() {
-            document.getElementById("loginArea").style.display = "none";
-            document.getElementById("contentArea").style.display = "block";
-            document.getElementById("welcomeArea").innerText = `${currentStudent} の保護者様`;
-            document.getElementById("welcomeArea").style.display = "block";
-            startListening();
+        function updateNormalDayDisplay() {
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            const day = document.getElementById('daySelect').value;
+            const displayEl = document.getElementById('normalDayDisplay');
+
+            if (!year || !month || !day) return;
+
+            const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
+            const dateObj = new Date(`${year}-${month}-${day}`);
+            const dayIdx = dateObj.getDay();
+
+            displayEl.innerText = `（${weekdaysJa[dayIdx]}）`;
+            displayEl.className = 'day-display';
+            if (dayIdx === 0) displayEl.classList.add('sun');
+            if (dayIdx === 6) displayEl.classList.add('sat');
         }
 
-        function signout() {
-            if (confirm("ログイン状態を解除して、選び直しますか？")) {
-                localStorage.removeItem("juku_parent_student");
-                if (unsubscribeSnapshot) unsubscribeSnapshot();
-                document.getElementById("loginArea").style.display = "block";
-                document.getElementById("contentArea").style.display = "none";
-                document.getElementById("welcomeArea").style.display = "none";
-                document.getElementById("studentSelect").value = "";
-                currentStudent = "";
-                isFirstLoad = true;
-                switchTab('Top');
-            }
-        }
-
-        // 📱 タブ切り替えシステム
-        function switchTab(tabName) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        function handleUrgentDateChange() {
+            const dateInput = document.getElementById('urgentDate').value;
+            const displayEl = document.getElementById('urgentDayDisplay');
             
-            document.getElementById(`page${tabName}`).classList.add('active');
-            event.currentTarget.classList.add('active');
+            if (!dateInput) {
+                displayEl.innerText = '';
+                return;
+            }
 
-            if (tabName === 'Calendar') {
+            const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
+            const dateObj = new Date(dateInput);
+            const dayIdx = dateObj.getDay();
+            
+            displayEl.innerText = `（${weekdaysJa[dayIdx]}）`;
+            displayEl.className = 'day-display';
+            if (dayIdx === 0) displayEl.classList.add('sun');
+            if (dayIdx === 6) displayEl.classList.add('sat');
+        }
+
+        function generateDropdowns() {
+            const yearSel = document.getElementById('yearSelect');
+            const monthSel = document.getElementById('monthSelect');
+            const startHourSel = document.getElementById('startHourSelect');
+            const startMinuteSel = document.getElementById('startMinuteSelect');
+            const endHourSel = document.getElementById('endHourSelect');
+            const endMinuteSel = document.getElementById('endMinuteSelect');
+            const today = new Date();
+
+            if (!yearSel || !monthSel || !startHourSel || !startMinuteSel || !endHourSel || !endMinuteSel) return;
+
+            yearSel.innerHTML = '';
+            for (let y = 2026; y <= 2028; y++) {
+                let opt = document.createElement('option');
+                opt.value = String(y); opt.innerText = y;
+                if (y === today.getFullYear()) opt.selected = true;
+                yearSel.appendChild(opt);
+            }
+
+            monthSel.innerHTML = '';
+            for (let i = 1; i <= 12; i++) {
+                let opt = document.createElement('option');
+                opt.value = String(i).padStart(2, '0'); opt.innerText = i;
+                if (i === (today.getMonth() + 1)) opt.selected = true;
+                monthSel.appendChild(opt);
+            }
+            
+            updateDayDropdown();
+            const daySel = document.getElementById('daySelect');
+            if (daySel) { daySel.value = String(today.getDate()).padStart(2, '0'); }
+
+            startHourSel.innerHTML = '';
+            endHourSel.innerHTML = '';
+            for (let i = 0; i <= 23; i++) {
+                let opt1 = document.createElement('option'); opt1.value = String(i).padStart(2, '0'); opt1.innerText = i;
+                let opt2 = document.createElement('option'); opt2.value = String(i).padStart(2, '0'); opt2.innerText = i;
+                if (i === 18) opt1.selected = true;
+                if (i === 19) opt2.selected = true;
+                startHourSel.appendChild(opt1);
+                endHourSel.appendChild(opt2);
+            }
+            
+            startMinuteSel.innerHTML = '';
+            endMinuteSel.innerHTML = '';
+            for (let i = 0; i < 60; i += 10) {
+                let opt1 = document.createElement('option'); opt1.value = String(i).padStart(2, '0'); opt1.innerText = String(i).padStart(2, '0');
+                let opt2 = document.createElement('option'); opt2.value = String(i).padStart(2, '0'); opt2.innerText = String(i).padStart(2, '0');
+                startMinuteSel.appendChild(opt1);
+                endMinuteSel.appendChild(opt2);
+            }
+            currentYear = today.getFullYear();
+            currentMonth = today.getMonth();
+
+            updateNormalDayDisplay();
+        }
+
+        function updateDayDropdown() {
+            const yearSel = document.getElementById('yearSelect');
+            const monthSel = document.getElementById('monthSelect');
+            const daySel = document.getElementById('daySelect');
+            if (!yearSel || !monthSel || !daySel) return;
+
+            const selectedYear = parseInt(yearSel.value);
+            const selectedMonth = parseInt(monthSel.value);
+            const currentSelectedDay = daySel.value;
+
+            const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
+            daySel.innerHTML = '';
+
+            for (let i = 1; i <= lastDay; i++) {
+                let opt = document.createElement('option');
+                opt.value = String(i).padStart(2, '0');
+                opt.innerText = i;
+                if (String(i).padStart(2, '0') === currentSelectedDay) { opt.selected = true; }
+                daySel.appendChild(opt);
+            }
+        }
+
+        function updateRightPanelLists() {
+            const urgentListEl = document.getElementById('urgentHistoryList');
+            const normalListEl = document.getElementById('normalHistoryList');
+
+            if (!urgentListEl || !normalListEl) return;
+
+            urgentListEl.innerHTML = '';
+            normalListEl.innerHTML = '';
+
+            const urgentEvents = schedules.filter(item => item.type === 'urgent');
+            if (urgentEvents.length === 0) {
+                urgentListEl.innerHTML = '<li style="color:#999; border-left-color:#ccc;">送信済みの緊急連絡はありません。</li>';
+            } else {
+                urgentEvents.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'item-urgent';
+                    const shortDate = item.date ? item.date.substring(5) + ' ' : '';
+                    li.innerHTML = `<strong>${item.student}</strong> ： ${shortDate}${item.text}`;
+                    urgentListEl.appendChild(li);
+                });
+            }
+
+            const normalEvents = schedules.filter(item => item.type === 'normal');
+            if (normalEvents.length === 0) {
+                normalListEl.innerHTML = '<li style="color:#999; border-left-color:#ccc;">登録済みの授業予定はありません。</li>';
+            } else {
+                normalEvents.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'item-normal';
+                    const shortDate = item.date ? item.date.substring(5) + ' ' : '';
+                    li.innerHTML = `<strong>${item.student}</strong> ： ${shortDate}${item.text}`;
+                    normalListEl.appendChild(li);
+                });
+            }
+        }
+
+        db.collection("schedules").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
+            schedules = [];
+            snapshot.forEach((doc) => {
+                let data = doc.data();
+                data.id = doc.id;
+                schedules.push(data);
+            });
+
+            updateRightPanelLists();
+
+            if (document.getElementById('page3').style.display === 'block') {
                 renderCalendar();
             }
+        });
+
+        function switchTab(pageNum) {
+            document.getElementById('page1').style.display = pageNum === 1 ? 'block' : 'none';
+            document.getElementById('page2').style.display = pageNum === 2 ? 'block' : 'none';
+            document.getElementById('page3').style.display = pageNum === 3 ? 'block' : 'none';
+            document.getElementById('tab1').classList.toggle('active', pageNum === 1);
+            document.getElementById('tab2').classList.toggle('active', pageNum === 2);
+            document.getElementById('tab3').classList.toggle('active', pageNum === 3);
+            if (pageNum === 3) { renderCalendar(); }
         }
 
-        function startListening() {
-            if (unsubscribeSnapshot) unsubscribeSnapshot();
+        async function sendSchedule() {
+            const student = document.getElementById('studentSelect').value;
+            const subject = document.getElementById('subjectSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            const day = document.getElementById('daySelect').value;
+            
+            const startHour = document.getElementById('startHourSelect').value;
+            const startMinute = document.getElementById('startMinuteSelect').value;
+            const endHour = document.getElementById('endHourSelect').value;
+            const endMinute = document.getElementById('endMinuteSelect').value;
+            
+            const extraText = document.getElementById('scheduleText').value.trim();
 
-            const lastViewTime = parseInt(localStorage.getItem(`last_view_time_${currentStudent}`) || Date.now());
+            const dateStr = `${year}-${month}-${day}`;
+            
+            const newStart = parseInt(startHour) * 60 + parseInt(startMinute);
+            const newEnd = parseInt(endHour) * 60 + parseInt(endMinute);
 
-            // 🌟 createdAtの新しい順（降順）で取得
-            unsubscribeSnapshot = db.collection("schedules")
-                .orderBy("createdAt", "desc")
-                .onSnapshot((snapshot) => {
-                    allSchedules = [];
-                    let newItemsCount = 0;
+            if (newStart >= newEnd) {
+                alert("⚠ 終了時間は開始時間より後の時刻を指定してください。");
+                return;
+            }
 
-                    snapshot.forEach((doc) => {
-                        const item = doc.data();
-                        if (item.student === currentStudent || item.student === "全員") {
-                            allSchedules.push(item);
+            const sameDayEvents = schedules.filter(item => {
+                return item.date === dateStr && item.type === 'normal' && (item.student === student || item.student === '全員');
+            });
 
-                            // 新着カウント
-                            if (item.createdAt && item.createdAt.toDate) {
-                                const itemTime = item.createdAt.toDate().getTime();
-                                if (itemTime > lastViewTime) {
-                                    newItemsCount++;
-                                }
-                            }
-                        }
-                    });
+            let overlapIds = [];
+            let hasAnyOldEvent = sameDayEvents.length > 0;
 
-                    // 1. トップ画面（最新6件）の描画
-                    renderTopPage();
+            sameDayEvents.forEach(oldEvent => {
+                const timeMatch = oldEvent.text.match(/(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
+                if (timeMatch) {
+                    const oldStart = parseInt(timeMatch[1]) * 60 + parseInt(timeMatch[2]);
+                    const oldEnd = parseInt(timeMatch[3]) * 60 + parseInt(timeMatch[4]);
 
-                    // 2. 緊急連絡画面（最大6件）の描画
-                    renderUrgentPage();
-
-                    // 3. カレンダーの更新（開いている場合）
-                    if (document.getElementById('pageCalendar').classList.contains('active')) {
-                        renderCalendar();
+                    if (newStart < oldEnd && oldStart < newEnd) {
+                        overlapIds.push(oldEvent.id);
                     }
+                }
+            });
 
-                    // 🌟 新着ポップアップアラート
-                    if (isFirstLoad && newItemsCount > 0) {
-                        alert(`🔔 新着情報が ${newItemsCount} 件あります！`);
-                    }
-                    isFirstLoad = false;
-                    localStorage.setItem(`last_view_time_${currentStudent}`, Date.now());
+            if (overlapIds.length > 0) {
+                alert("古い予定を消去します");
+                const batch = db.batch();
+                overlapIds.forEach(id => {
+                    batch.delete(db.collection("schedules").doc(id));
                 });
-        }
+                await batch.commit();
 
-        // 🏠 タブ1: 最新6件を上から並べる
-        function renderTopPage() {
-            const container = document.getElementById("topScrollArea");
-            container.innerHTML = "";
-            
-            // 最大6件に絞り込み
-            const displayItems = allSchedules.slice(0, 6);
-
-            if (displayItems.length === 0) {
-                container.innerHTML = '<div class="no-data">登録された予定はありません。</div>';
-                return;
+            } else if (hasAnyOldEvent) {
+                alert("同じ日に別の予定があるので注意してください。");
             }
 
-            displayItems.forEach(item => {
-                const card = createCardElement(item);
-                container.appendChild(card);
+            let finalMessage = `【${subject}】 ${startHour}:${startMinute}〜${endHour}:${endMinute} 開始`;
+            if (extraText) finalMessage += ` ｜ 連絡: ${extraText}`;
+
+            db.collection("schedules").add({
+                student: student,
+                date: dateStr,
+                text: finalMessage,
+                type: 'normal',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                document.getElementById('scheduleText').value = '';
+                alert(`${student} くん/さんの予定を登録しました！`);
+            })
+            .catch((error) => {
+                alert("保存に失敗しました。");
             });
         }
 
-        // 🚨 タブ3: 緊急連絡のみ最大6件
-        function renderUrgentPage() {
-            const container = document.getElementById("urgentScrollArea");
-            container.innerHTML = "";
+        function sendUrgentBroadcast() {
+            const target = document.getElementById('broadcastTarget').value;
+            const title = document.getElementById('urgentTitle').value.trim();
+            const body = document.getElementById('urgentBody').value.trim();
+            const inputDate = document.getElementById('urgentDate').value;
 
-            const urgentItems = allSchedules.filter(item => item.type === 'urgent').slice(0, 6);
+            if (!title || !body) { return alert('件名と本文を入力してください！'); }
 
-            if (urgentItems.length === 0) {
-                container.innerHTML = '<div class="no-data">現在、緊急連絡はありません。</div>';
-                return;
+            let dateStr = inputDate;
+
+            if (!dateStr) {
+                const today = new Date();
+                dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
             }
 
-            urgentItems.forEach(item => {
-                const card = createCardElement(item);
-                container.appendChild(card);
+            const fullUrgentMessage = `🚨【緊急連絡】${title}：${body}`;
+
+            db.collection("schedules").add({
+                student: target,
+                date: dateStr,
+                text: fullUrgentMessage,
+                type: 'urgent',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                document.getElementById('urgentTitle').value = '';
+                document.getElementById('urgentBody').value = '';
+                document.getElementById('urgentDate').value = '';
+                document.getElementById('urgentDayDisplay').innerText = '';
+                alert(`緊急連絡を登録しました！`);
+            })
+            .catch((error) => {
+                alert("保存に失敗しました。");
             });
         }
 
-        function createCardElement(item) {
-            let dateDisplay = item.date;
-            if (item.date && item.date.includes("-")) {
-                const parts = item.date.split("-");
-                dateDisplay = `${parseInt(parts[1])}月${parseInt(parts[2])}日`;
-            }
-            const card = document.createElement("div");
-            card.className = `card ${item.type === 'urgent' ? 'card-urgent' : 'card-normal'}`;
-            card.innerHTML = `<div class="card-date">${dateDisplay}</div><div class="card-text">${item.text}</div>`;
-            return card;
-        }
-
-        // 🗓️ タブ2: 塾側カレンダー完全移植システム
         function renderCalendar() {
-            document.getElementById("calendarTitle").innerText = `${currentYear}年 ${currentMonth + 1}月`;
-            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-            const tbody = document.getElementById("calendarBody");
-            tbody.innerHTML = "";
-
-            let row = document.createElement("tr");
-            for (let i = 0; i < firstDay; i++) {
-                row.appendChild(document.createElement("td"));
-            }
-
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                if (row.children.length === 7) {
-                    tbody.appendChild(row);
-                    row = document.createElement("tr");
-                }
-
-                const td = document.createElement("td");
-                td.className = "calendar-day";
-                td.innerText = day;
-
-                // 日付文字列の作成 (YYYY-MM-DD)
-                const mStr = String(currentMonth + 1).padStart(2, '0');
-                const dStr = String(day).padStart(2, '0');
-                const dateStr = `${currentYear}-${mStr}-${dStr}`;
-
-                if (dateStr === todayStr) td.classList.add("today");
-                if (dateStr === selectedDateStr) td.classList.add("selected");
-
-                // 🔵🔴 ポチ（ドット）の判定
-                const daysItems = allSchedules.filter(item => item.date === dateStr);
-                if (daysItems.length > 0) {
-                    const dotsContainer = document.createElement("div");
-                    dotsContainer.className = "dots-container";
-                    
-                    const hasNormal = daysItems.some(item => item.type === 'normal');
-                    const hasUrgent = daysItems.some(item => item.type === 'urgent');
-
-                    if (hasNormal) { const b = document.createElement("div"); b.className="dot-blue"; dotsContainer.appendChild(b); }
-                    if (hasUrgent) { const r = document.createElement("div"); r.className="dot-red"; dotsContainer.appendChild(r); }
-                    td.appendChild(dotsContainer);
-                }
-
-                // タップイベント
-                td.onclick = () => selectCalendarDay(dateStr, daysItems);
-                row.appendChild(td);
-            }
+            const grid = document.getElementById('calendarGrid');
+            const monthTitle = document.getElementById('calendarMonthTitle');
+            const filter = document.getElementById('calendarFilter').value;
             
-            while (row.children.length < 7) {
-                row.appendChild(document.createElement("td"));
+            monthTitle.innerText = `${currentYear}年${String(currentMonth + 1).padStart(2, '0')}月`;
+            grid.innerHTML = '';
+
+            const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
+            weekdaysJa.forEach((w, idx) => {
+                const div = document.createElement('div');
+                div.className = `weekday ${idx===0?'sunday':''} ${idx===6?'saturday':''}`;
+                div.innerText = w; grid.appendChild(div);
+            });
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+                const div = document.createElement('div'); div.className = 'calendar-day empty'; grid.appendChild(div);
             }
-            tbody.appendChild(row);
+
+            for (let day = 1; day <= totalDays; day++) {
+                const div = document.createElement('div');
+                div.className = 'calendar-day'; div.innerText = day;
+                const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
+                if (dayOfWeek === 0) div.classList.add('sunday');
+                if (dayOfWeek === 6) div.classList.add('saturday');
+
+                const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                
+                let targetEvents = schedules.filter(item => {
+                    return item.date === formattedDate && (filter === 'すべて' || item.student === filter || item.student === '全員');
+                });
+
+                if (targetEvents.length > 0) div.classList.add('has-event');
+
+                div.onclick = () => {
+                    document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
+                    div.classList.add('selected');
+                    showDayDetail(formattedDate, day, filter);
+                };
+                grid.appendChild(div);
+            }
         }
 
-        function changeMonth(offset) {
-            currentMonth += offset;
-            if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-            if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+        function showDayDetail(dateStr, dayNum, filter) {
+            const detailBox = document.getElementById('dayDetailBox');
+            let targetEvents = schedules.filter(item => {
+                return item.date === dateStr && (filter === 'すべて' || item.student === filter || item.student === '全員');
+            });
+
+            const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
+            const dateObj = new Date(dateStr);
+            const dayIdx = dateObj.getDay();
+            let dayColorClass = '';
+            if (dayIdx === 0) dayColorClass = 'sun';
+            if (dayIdx === 6) dayColorClass = 'sat';
+
+            const dateWithDayHtml = `${currentMonth + 1}月${dayNum}日<span class="detail-day-span ${dayColorClass}">（${weekdaysJa[dayIdx]}）</span>`;
+
+            if (targetEvents.length === 0) {
+                detailBox.innerHTML = `<strong>📅 ${dateWithDayHtml}</strong><br><p style="color:#999; margin:5px 0;">この日の予定はありません。</p>`;
+            } else {
+                let html = `<strong>📅 ${dateWithDayHtml}の予定リスト</strong><ul style="margin:5px 0 0 0; padding-left:0;">`;
+                targetEvents.forEach(item => {
+                    const isUrgent = item.type === 'urgent';
+                    const nameTag = item.student === '全員' ? '【全員一斉】' : `【${item.student}】`;
+                    html += `<li style="background:${isUrgent?'#ffeae6':'#e8f4fd'}; border-left:5px solid ${isUrgent?'#e74c3c':'#3498db'}; margin:4px 0; padding:6px; list-style:none; font-size:0.9em;"><strong>${nameTag}</strong> ${item.text}</li>`;
+                });
+                html += '</ul>';
+                detailBox.innerHTML = html;
+            }
+        }
+
+        function changeMonth(dir) {
+            currentMonth += dir;
+            if (currentMonth > 11) { currentMonth = 0; currentYear += 1; }
+            else if (currentMonth < 0) { currentMonth = 11; currentYear -= 1; }
             renderCalendar();
         }
 
-        function selectCalendarDay(dateStr, items) {
-            selectedDateStr = dateStr;
-            renderCalendar(); // 選択枠(selected)をつけるため再描画
-
-            const detailBox = document.getElementById("calendarDetail");
-            if (items.length === 0) {
-                detailBox.innerHTML = "<span style='color:#95a5a6;'>この日の予定はありません。</span>";
-                return;
+        function clearAllData() {
+            if (confirm('【重要】クラウド(Firebase)上のすべての登録データを完全に削除しますか？\nこの操作を行うと保護者側の画面もすべて初期化されます。')) {
+                db.collection("schedules").get().then((querySnapshot) => {
+                    const batch = db.batch();
+                    querySnapshot.forEach((doc) => {
+                        batch.delete(doc.ref);
+                    });
+                    return batch.commit();
+                }).then(() => {
+                    alert('クラウド上のすべてのデータを完全にリセットしました！');
+                    schedules = [];
+                    updateRightPanelLists();
+                }).catch((error) => {
+                    alert('削除に失敗しました。');
+                });
             }
-
-            let html = "";
-            items.forEach(item => {
-                const color = item.type === 'urgent' ? '#e74c3c' : '#3498db';
-                const typeLabel = item.type === 'urgent' ? '【緊急】' : '【予定】';
-                html += `<div style="margin-bottom:8px; border-left:3px solid ${color}; padding-left:8px;">
-                            <strong style="color:${color};">${typeLabel}</strong> ${item.text}
-                         </div>`;
-            });
-            detailBox.innerHTML = html;
         }
+
+        window.onload = function() {
+            generateDropdowns();
+        };
     </script>
 </body>
 </html>
