@@ -8,6 +8,20 @@
         body { font-family: sans-serif; margin: 20px; background-color: #f0f4f8; }
         h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-bottom: 20px; }
         
+        /* 🔒 塾長ログイン画面のスタイル */
+        .login-container { max-width: 380px; margin: 100px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+        .login-container h2 { color: #2c3e50; margin-bottom: 20px; font-size: 1.4em; }
+        .login-input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
+        .login-btn { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 4px; font-size: 1em; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .login-btn:hover { background: #34495e; }
+        .error-msg { color: #e74c3c; font-size: 0.9em; margin-top: 10px; display: none; }
+        .logout-area { text-align: right; margin-bottom: 15px; }
+        .logout-link { color: #7f8c8d; font-size: 0.9em; text-decoration: underline; cursor: pointer; font-weight: bold; }
+        .logout-link:hover { color: #2c3e50; }
+
+        /* 🖥️ メイン管理画面のレイアウト（最初は非表示） */
+        #mainAdminArea { display: none; }
+
         .main-container { display: flex; gap: 25px; max-width: 1200px; align-items: flex-start; }
         .left-col { flex: 1; max-width: 550px; }
         .right-col { flex: 1; max-width: 550px; display: flex; flex-direction: column; gap: 20px; }
@@ -31,21 +45,17 @@
         .clear-btn { background-color: #e74c3c; margin-top: 20px; font-size: 0.9em; width: auto; padding: 8px 15px; }
         label { font-size: 0.9em; color: #2c3e50; font-weight: bold; display: block; margin-top: 12px; }
         
-        /* 🌟 授業予定用の日付・曜日が自然に並ぶよう調整 */
         .inline-selects { display: flex; gap: 6px; align-items: center; margin: 8px 0; flex-wrap: wrap; justify-content: flex-start; }
         .inline-selects select { margin: 0; flex: 0 1 auto; width: auto; min-width: 70px; }
         .inline-selects span { font-size: 0.9em; color: #555; font-weight: bold; }
         
-        /* 🌟 曜日表示用の共通カラー（授業予定・緊急連絡で共通利用） */
         .day-display { font-size: 1.1em; font-weight: bold; color: #2c3e50; margin-left: 4px; }
         .day-display.sun { color: #e74c3c; }
         .day-display.sat { color: #3498db; }
 
-        /* 緊急連絡用の日付コンテナ */
         .urgent-date-container { display: flex; gap: 8px; align-items: center; margin: 8px 0; justify-content: flex-start; }
         .urgent-date-container input[type="date"] { margin: 0; width: auto; flex: 0 1 auto; }
 
-        /* 詳細ボックス用の曜日カラー */
         .detail-day-span.sun { color: #e74c3c; font-weight: bold; }
         .detail-day-span.sat { color: #3498db; font-weight: bold; }
 
@@ -74,137 +84,155 @@
             .tab-btn { font-size: 0.85em; padding: 8px 4px; }
         }
     </style>
+    <!-- Firebase core, Firestore, and Auth libraries -->
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 </head>
 <body>
 
-    <h1>塾・生徒予定管理システム（塾長画面）</h1>
+    <!-- 🔒 1. ログイン画面エリア（最初はこれが表示される） -->
+    <div id="loginArea" class="login-container">
+        <h2>🔑 塾長用ログイン</h2>
+        <input type="email" id="loginEmail" class="login-input" placeholder="メールアドレス" required>
+        <input type="password" id="loginPassword" class="login-input" placeholder="パスワード" required>
+        <button class="login-btn" onclick="handleLogin()">ログイン</button>
+        <div id="loginError" class="error-msg">メールアドレスまたはパスワードが違います。</div>
+    </div>
 
-    <div class="main-container">
+    <!-- 🖥️ 2. メイン管理画面エリア（ログイン成功時のみJavaScriptで表示転換） -->
+    <div id="mainAdminArea">
         
-        <!-- 左側：入力＆カレンダーエリア -->
-        <div class="left-col">
-            <div class="tab-container">
-                <button id="tab1" class="tab-btn active" onclick="switchTab(1)">📅 1. 授業予定の入力</button>
-                <button id="tab2" class="tab-btn urgent-tab" onclick="switchTab(2)">🚨 2. 緊急連絡の入力</button>
-                <button id="tab3" class="tab-btn" onclick="switchTab(3)">👁 3. カレンダー確認</button>
-            </div>
+        <div class="logout-area">
+            <a class="logout-link" onclick="handleLogout()">🚪 塾長ログアウト</a>
+        </div>
 
-            <!-- 📅 授業予定の入力画面 -->
-            <div id="page1" class="box">
-                <h2>【個別】授業予定の登録</h2>
-                <label>対象の生徒を指定:</label>
-                <select id="studentSelect">
-                    <option value="佐藤 拓海">佐藤 拓海 くん</option>
-                    <option value="鈴木 結衣">鈴木 結衣 さん</option>
-                    <option value="高橋 蓮">高橋 蓮 くん</option>
-                    <option value="田中 葵">田中 葵 さん</option>
-                    <option value="渡辺 翔太">渡辺 翔太 くん</option>
-                </select>
-                <label>教科を選択:</label>
-                <select id="subjectSelect">
-                    <option value="英語">英語</option>
-                    <option value="数学">数学</option>
-                    <option value="国語">国語</option>
-                    <option value="理科">理科</option>
-                    <option value="社会">社会</option>
-                    <option value="その他">その他（面談・イベント等）</option>
-                </select>
-                
-                <label>日付を指定:</label>
-                <!-- 🌟 日付ドロップダウンの直後に曜日がぴったりくっつく形に変更 -->
-                <div class="inline-selects">
-                    <select id="yearSelect" onchange="handleNormalDateUpdate()"></select><span>年</span>
-                    <select id="monthSelect" onchange="handleNormalDateUpdate()"></select><span>月</span>
-                    <select id="daySelect" onchange="handleNormalDateUpdate()"></select><span>日</span>
-                    <span id="normalDayDisplay" class="day-display"></span>
-                </div>
-                
-                <label>時間帯を指定:</label>
-                <div class="inline-selects">
-                    <select id="startHourSelect"></select><span>時</span>
-                    <select id="startMinuteSelect"></select><span>分 〜</span>
-                    <select id="endHourSelect"></select><span>時</span>
-                    <select id="endMinuteSelect"></select><span>分</span>
-                </div>
+        <h1>塾・生徒予定管理システム（塾長画面）</h1>
 
-                <label>追加の連絡事項:</label>
-                <input type="text" id="scheduleText" placeholder="例：本日は単語テストから始めます">
-                <button class="notify-btn" onclick="sendSchedule()">予定を登録する</button>
-            </div>
-
-            <!-- 🚨 緊急連絡の入力画面 -->
-            <div id="page2" class="box" style="display: none;">
-                <h2 style="color: #e74c3c;">【一斉/個別】緊急連絡の送信登録</h2>
-                <label>通知を送る対象:</label>
-                <select id="broadcastTarget">
-                    <option value="全員">全生徒の保護者（一斉通知）</option>
-                    <option value="佐藤 拓海">佐藤 拓海 くんの保護者のみ</option>
-                    <option value="鈴木 結衣">鈴木 結衣 さんの保護者のみ</option>
-                    <option value="高橋 蓮">高橋 蓮 くんの保護者のみ</option>
-                    <option value="田中 葵">田中 葵 さんの保護者のみ</option>
-                    <option value="渡辺 翔太">渡辺 翔太 くんの保護者のみ</option>
-                </select>
-
-                <label>対象となる日付を指定（任意）:</label>
-                <div class="urgent-date-container">
-                    <input type="date" id="urgentDate" oninput="handleUrgentDateChange()">
-                    <span id="urgentDayDisplay" class="day-display"></span>
-                </div>
-                <small style="color: #7f8c8d; display: block; margin-bottom: 10px;">※入力しない場合は、自動的に「送信日の当日」として処理されます。</small>
-
-                <label>緊急連絡の件名:</label>
-                <input type="text" id="urgentTitle" placeholder="例：【重要】大雨にともなう休校のご案内">
-                <label>連絡内容（本文）:</label>
-                <textarea id="urgentBody" rows="4" placeholder="例：本日の指導はZOOM指導に切り替えます。"></textarea>
-                <button class="urgent-btn" onclick="sendUrgentBroadcast()">🚨 緊急連絡を登録する</button>
-            </div>
-
-            <div id="page3" class="box" style="display: none;">
-                <h2>生徒予定カレンダー（全体把握用）</h2>
-                <label>表示する生徒で絞り込み:</label>
-                <select id="calendarFilter" onchange="renderCalendar()">
-                    <option value="すべて">すべての生徒の予定を表示</option>
-                    <option value="佐藤 拓海">佐藤 拓海 くん</option>
-                    <option value="鈴木 結衣">鈴木 結衣 さん</option>
-                    <option value="高橋 蓮">高橋 蓮 くん</option>
-                    <option value="田中 葵">田中 葵 さん</option>
-                    <option value="渡辺 翔太">渡辺 翔太 くん</option>
-                </select>
-                <div class="calendar-header" style="margin-top:15px;">
-                    <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀</button>
-                    <span id="calendarMonthTitle">2026年06月</span>
-                    <button class="calendar-nav-btn" onclick="changeMonth(1)">▶</button>
-                </div>
-                <div class="calendar-grid" id="calendarGrid"></div>
-                <div class="day-detail-box" id="dayDetailBox">
-                    <p style="color:#777; margin:5px 0;">日付をタップすると、その日の予定リストが表示されます。</p>
-                </div>
-            </div>
+        <div class="main-container">
             
-            <div style="text-align:left;">
-                <button class="clear-btn" onclick="clearAllData()">⚠ クラウドデータを完全リセット</button>
+            <!-- 左側：入力＆カレンダーエリア -->
+            <div class="left-col">
+                <div class="tab-container">
+                    <button id="tab1" class="tab-btn active" onclick="switchTab(1)">📅 1. 授業予定の入力</button>
+                    <button id="tab2" class="tab-btn urgent-tab" onclick="switchTab(2)">🚨 2. 緊急連絡の入力</button>
+                    <button id="tab3" class="tab-btn" onclick="switchTab(3)">👁 3. カレンダー確認</button>
+                </div>
+
+                <!-- 📅 授業予定の入力画面 -->
+                <div id="page1" class="box">
+                    <h2>【個別】授業予定の登録</h2>
+                    <label>対象の生徒を指定:</label>
+                    <select id="studentSelect">
+                        <option value="佐藤 拓海">佐藤 拓海 くん</option>
+                        <option value="鈴木 結衣">鈴木 結衣 さん</option>
+                        <option value="高橋 蓮">高橋 蓮 くん</option>
+                        <option value="田中 葵">田中 葵 さん</option>
+                        <option value="渡辺 翔太">渡辺 翔太 くん</option>
+                    </select>
+                    <label>教科を選択:</label>
+                    <select id="subjectSelect">
+                        <option value="英語">英語</option>
+                        <option value="数学">数学</option>
+                        <option value="国語">国語</option>
+                        <option value="理科">理科</option>
+                        <option value="社会">社会</option>
+                        <option value="その他">その他（面談・イベント等）</option>
+                    </select>
+                    
+                    <label>日付を指定:</label>
+                    <div class="inline-selects">
+                        <select id="yearSelect" onchange="handleNormalDateUpdate()"></select><span>年</span>
+                        <select id="monthSelect" onchange="handleNormalDateUpdate()"></select><span>月</span>
+                        <select id="daySelect" onchange="handleNormalDateUpdate()"></select><span>日</span>
+                        <span id="normalDayDisplay" class="day-display"></span>
+                    </div>
+                    
+                    <label>時間帯を指定:</label>
+                    <div class="inline-selects">
+                        <select id="startHourSelect"></select><span>時</span>
+                        <select id="startMinuteSelect"></select><span>分 〜</span>
+                        <select id="endHourSelect"></select><span>時</span>
+                        <select id="endMinuteSelect"></select><span>分</span>
+                    </div>
+
+                    <label>追加の連絡事項:</label>
+                    <input type="text" id="scheduleText" placeholder="例：本日は単語テストから始めます">
+                    <button class="notify-btn" onclick="sendSchedule()">予定を登録する</button>
+                </div>
+
+                <!-- 🚨 緊急連絡の入力画面 -->
+                <div id="page2" class="box" style="display: none;">
+                    <h2 style="color: #e74c3c;">【一斉/個別】緊急連絡の送信登録</h2>
+                    <label>通知を送る対象:</label>
+                    <select id="broadcastTarget">
+                        <option value="全員">全生徒の保護者（一斉通知）</option>
+                        <option value="佐藤 拓海">佐藤 拓海 くんの保護者のみ</option>
+                        <option value="鈴木 結衣">鈴木 結衣 さんの保護者のみ</option>
+                        <option value="高橋 蓮">高橋 蓮 くんの保護者のみ</option>
+                        <option value="田中 葵">田中 葵 さんの保護者のみ</option>
+                        <option value="渡辺 翔太">渡辺 翔太 くんの保護者のみ</option>
+                    </select>
+
+                    <label>対象となる日付を指定（任意）:</label>
+                    <div class="urgent-date-container">
+                        <input type="date" id="urgentDate" oninput="handleUrgentDateChange()">
+                        <span id="urgentDayDisplay" class="day-display"></span>
+                    </div>
+                    <small style="color: #7f8c8d; display: block; margin-bottom: 10px;">※入力しない場合は、自動的に「送信日の当日」として処理されます。</small>
+
+                    <label>緊急連絡の件名:</label>
+                    <input type="text" id="urgentTitle" placeholder="例：【重要】大雨にともなう休校のご案内">
+                    <label>連絡内容（本文）:</label>
+                    <textarea id="urgentBody" rows="4" placeholder="例：本日の指導はZOOM指導に切り替えます。"></textarea>
+                    <button class="urgent-btn" onclick="sendUrgentBroadcast()">🚨 緊急連絡を登録する</button>
+                </div>
+
+                <div id="page3" class="box" style="display: none;">
+                    <h2>生徒予定カレンダー（全体把握用）</h2>
+                    <label>表示する生徒で絞り込み:</label>
+                    <select id="calendarFilter" onchange="renderCalendar()">
+                        <option value="すべて">すべての生徒の予定を表示</option>
+                        <option value="佐藤 拓海">佐藤 拓海 くん</option>
+                        <option value="鈴木 結衣">鈴木 結衣 さん</option>
+                        <option value="高橋 蓮">高橋 蓮 くん</option>
+                        <option value="田中 葵">田中 葵 さん</option>
+                        <option value="渡辺 翔太">渡辺 翔太 くん</option>
+                    </select>
+                    <div class="calendar-header" style="margin-top:15px;">
+                        <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀</button>
+                        <span id="calendarMonthTitle">2026年06月</span>
+                        <button class="calendar-nav-btn" onclick="changeMonth(1)">▶</button>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid"></div>
+                    <div class="day-detail-box" id="dayDetailBox">
+                        <p style="color:#777; margin:5px 0;">日付をタップすると、その日の予定リストが表示されます。</p>
+                    </div>
+                </div>
+                
+                <div style="text-align:left;">
+                    <button class="clear-btn" onclick="clearAllData()">⚠ クラウドデータを完全リセット</button>
+                </div>
             </div>
+
+            <!-- 右側：リアルタイム履歴エリア -->
+            <div class="right-col">
+                <div class="box history-box urgent-history">
+                    <h3>🚨 緊急連絡の送信履歴（上が最新）</h3>
+                    <ul id="urgentHistoryList" class="history-list">
+                        <li style="color:#aaa; border-left-color:#ccc;">履歴を読み込み中...</li>
+                    </ul>
+                </div>
+
+                <div class="box history-box normal-history">
+                    <h3>📅 指導予定 of 登録履歴（上が最新）</h3>
+                    <ul id="normalHistoryList" class="history-list">
+                        <li style="color:#aaa; border-left-color:#ccc;">履歴を読み込み中...</li>
+                    </ul>
+                </div>
+            </div>
+
         </div>
-
-        <!-- 右側：リアルタイム履歴エリア -->
-        <div class="right-col">
-            <div class="box history-box urgent-history">
-                <h3>🚨 緊急連絡の送信履歴（上が最新）</h3>
-                <ul id="urgentHistoryList" class="history-list">
-                    <li style="color:#aaa; border-left-color:#ccc;">履歴を読み込み中...</li>
-                </ul>
-            </div>
-
-            <div class="box history-box normal-history">
-                <h3>📅 指導予定 of 登録履歴（上が最新）</h3>
-                <ul id="normalHistoryList" class="history-list">
-                    <li style="color:#aaa; border-left-color:#ccc;">履歴を読み込み中...</li>
-                </ul>
-            </div>
-        </div>
-
     </div>
 
     <script>
@@ -219,10 +247,49 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const auth = firebase.auth(); // 🔒 認証機能の初期化
         
         let schedules = [];
         let currentYear = 2026;
         let currentMonth = 5;
+
+        // 🔒 ログイン状態のリアルタイム監視（ページ起動時にも自動実行されます）
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // ログイン成功時 ➡ ログイン画面を隠して管理画面を表示
+                document.getElementById("loginArea").style.display = "none";
+                document.getElementById("mainAdminArea").style.display = "block";
+                
+                // ログイン完了後にドロップダウンや初期データの読み込みを実行
+                generateDropdowns();
+            } else {
+                // 未ログイン・ログアウト時 ➡ 管理画面を完全に隠してログイン画面を表示
+                document.getElementById("loginArea").style.display = "block";
+                document.getElementById("mainAdminArea").style.display = "none";
+            }
+        });
+
+        // 🔑 ログイン処理
+        function handleLogin() {
+            const email = document.getElementById("loginEmail").value.trim();
+            const password = document.getElementById("loginPassword").value;
+            const errorDiv = document.getElementById("loginError");
+
+            errorDiv.style.display = "none";
+
+            auth.signInWithEmailAndPassword(email, password)
+                .catch((error) => {
+                    console.error("ログイン失敗:", error);
+                    errorDiv.style.display = "block";
+                });
+        }
+
+        // 🚪 ログアウト処理
+        function handleLogout() {
+            if (confirm("ログアウトしますか？")) {
+                auth.signOut();
+            }
+        }
 
         // 🌟 授業予定側の日付変更・曜日更新イベント
         function handleNormalDateUpdate() {
@@ -384,6 +451,7 @@
             }
         }
 
+        // Firebaseデータ監視（リアルタイム同期）
         db.collection("schedules").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
             schedules = [];
             snapshot.forEach((doc) => {
@@ -548,10 +616,12 @@
                 if (dayOfWeek === 0) div.classList.add('sunday');
                 if (dayOfWeek === 6) div.classList.add('saturday');
 
-                const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}--${String(day).padStart(2, '0')}`;
+                // ハイフンの表記揺れに対応
+                const formattedDateAlt = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 
                 let targetEvents = schedules.filter(item => {
-                    return item.date === formattedDate && (filter === 'すべて' || item.student === filter || item.student === '全員');
+                    return (item.date === formattedDate || item.date === formattedDateAlt) && (filter === 'すべて' || item.student === filter || item.student === '全員');
                 });
 
                 if (targetEvents.length > 0) div.classList.add('has-event');
@@ -559,7 +629,7 @@
                 div.onclick = () => {
                     document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
                     div.classList.add('selected');
-                    showDayDetail(formattedDate, day, filter);
+                    showDayDetail(formattedDateAlt, day, filter);
                 };
                 grid.appendChild(div);
             }
@@ -618,10 +688,6 @@
                 });
             }
         }
-
-        window.onload = function() {
-            generateDropdowns();
-        };
     </script>
 </body>
 </html>
