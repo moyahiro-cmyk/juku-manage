@@ -264,9 +264,9 @@
         let currentYear = 2026;
         let currentMonth = 5;
 
-        // 🔒 ログイン状態のリアルタイム監視
+        // 🔒 ログイン状態のリアルタイム監視（ログインできれば管理画面を表示する）
         auth.onAuthStateChanged((user) => {
-            if (user) {
+            if (user && user.email === "ken5oizumi@gmail.com") {
                 document.getElementById("loginArea").style.display = "none";
                 document.getElementById("mainAdminArea").style.display = "block";
                 generateDropdowns();
