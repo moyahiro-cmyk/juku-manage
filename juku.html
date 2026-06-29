@@ -12,6 +12,11 @@
         .login-container { max-width: 380px; margin: 100px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
         .login-container h2 { color: #2c3e50; margin-bottom: 20px; font-size: 1.4em; }
         .login-input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
+        
+        /* 👁️ パスワード確認用チェックボックスのスタイル */
+        .show-password-container { text-align: left; margin: 5px 0 15px 0; display: flex; align-items: center; gap: 6px; font-size: 0.9em; color: #555; cursor: pointer; }
+        .show-password-container input { width: auto; margin: 0; cursor: pointer; }
+
         .login-btn { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 4px; font-size: 1em; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .login-btn:hover { background: #34495e; }
         .error-msg { color: #e74c3c; font-size: 0.9em; margin-top: 10px; display: none; }
@@ -91,16 +96,22 @@
 </head>
 <body>
 
-    <!-- 🔒 1. ログイン画面エリア（最初はこれが表示される） -->
+    <!-- 🔒 1. ログイン画面エリア -->
     <div id="loginArea" class="login-container">
         <h2>🔑 塾長用ログイン</h2>
         <input type="email" id="loginEmail" class="login-input" placeholder="メールアドレス" required>
         <input type="password" id="loginPassword" class="login-input" placeholder="パスワード" required>
+        
+        <!-- 👁️ パスワードを表示するチェックボックス -->
+        <label class="show-password-container">
+            <input type="checkbox" id="togglePasswordVisibility" onchange="togglePassword()"> パスワードを表示する
+        </label>
+
         <button class="login-btn" onclick="handleLogin()">ログイン</button>
         <div id="loginError" class="error-msg">メールアドレスまたはパスワードが違います。</div>
     </div>
 
-    <!-- 🖥️ 2. メイン管理画面エリア（ログイン成功時のみJavaScriptで表示転換） -->
+    <!-- 🖥️ 2. メイン管理画面エリア -->
     <div id="mainAdminArea">
         
         <div class="logout-area">
@@ -253,17 +264,13 @@
         let currentYear = 2026;
         let currentMonth = 5;
 
-        // 🔒 ログイン状態のリアルタイム監視（ページ起動時にも自動実行されます）
+        // 🔒 ログイン状態のリアルタイム監視
         auth.onAuthStateChanged((user) => {
             if (user) {
-                // ログイン成功時 ➡ ログイン画面を隠して管理画面を表示
                 document.getElementById("loginArea").style.display = "none";
                 document.getElementById("mainAdminArea").style.display = "block";
-                
-                // ログイン完了後にドロップダウンや初期データの読み込みを実行
                 generateDropdowns();
             } else {
-                // 未ログイン・ログアウト時 ➡ 管理画面を完全に隠してログイン画面を表示
                 document.getElementById("loginArea").style.display = "block";
                 document.getElementById("mainAdminArea").style.display = "none";
             }
@@ -288,6 +295,17 @@
         function handleLogout() {
             if (confirm("ログアウトしますか？")) {
                 auth.signOut();
+            }
+        }
+
+        // 👁️ パスワードの「表示 / 非表示」を切り替える関数
+        function togglePassword() {
+            const passwordInput = document.getElementById("loginPassword");
+            const checkbox = document.getElementById("togglePasswordVisibility");
+            if (checkbox.checked) {
+                passwordInput.type = "text"; // テキストとして表示（丸見え）
+            } else {
+                passwordInput.type = "password"; // 伏字に戻す
             }
         }
 
@@ -451,7 +469,7 @@
             }
         }
 
-        // Firebaseデータ監視（リアルタイム同期）
+        // Firebaseデータ監視
         db.collection("schedules").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
             schedules = [];
             snapshot.forEach((doc) => {
@@ -617,7 +635,6 @@
                 if (dayOfWeek === 6) div.classList.add('saturday');
 
                 const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}--${String(day).padStart(2, '0')}`;
-                // ハイフンの表記揺れに対応
                 const formattedDateAlt = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 
                 let targetEvents = schedules.filter(item => {
