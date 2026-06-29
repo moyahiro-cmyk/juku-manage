@@ -256,7 +256,7 @@
             appId: "1:28426983865:web:252cd63d7f1b1cc3eb7e68"
         };
 
-        firebase.initializeApp(firebaseConfig);
+       firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth(); // 🔒 認証機能の初期化
         
@@ -264,37 +264,49 @@
         let currentYear = 2026;
         let currentMonth = 5;
 
-        // 🔒 ログイン状態のリアルタイム監視（ログインできれば管理画面を表示する）
+        // 🔒 ログイン状態のリアルタイム監視（ログイン状態に応じて画面を確実に切り替える）
         auth.onAuthStateChanged((user) => {
+            const loginArea = document.getElementById("loginArea");
+            const mainAdminArea = document.getElementById("mainAdminArea");
+            
             if (user && user.email === "ken5oizumi@gmail.com") {
-                document.getElementById("loginArea").style.display = "none";
-                document.getElementById("mainAdminArea").style.display = "block";
+                if (loginArea) loginArea.style.display = "none";
+                if (mainAdminArea) mainAdminArea.style.display = "block";
                 generateDropdowns();
             } else {
-                document.getElementById("loginArea").style.display = "block";
-                document.getElementById("mainAdminArea").style.display = "none";
+                if (loginArea) loginArea.style.display = "block";
+                if (mainAdminArea) mainAdminArea.style.display = "none";
             }
         });
 
-        // 🔑 ログイン処理
+        // 🔑 ログイン処理（バグを修正した安全版）
         function handleLogin() {
             const email = document.getElementById("loginEmail").value.trim();
             const password = document.getElementById("loginPassword").value;
             const errorDiv = document.getElementById("loginError");
 
-            errorDiv.style.display = "none";
+            if (errorDiv) errorDiv.style.display = "none";
 
+            // Firebaseに対してログインを実行
             auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // ログイン成功時：エラーを隠す（画面切り替えは上のonAuthStateChangedが自動で行います）
+                    if (errorDiv) errorDiv.style.display = "none";
+                })
                 .catch((error) => {
-                    console.error("ログイン失敗:", error);
-                    errorDiv.style.display = "block";
+                    // ログイン失敗時：原因をコンソールに出してエラーを表示
+                    console.error("ログイン失敗の本当の理由:", error.code, error.message);
+                    if (errorDiv) errorDiv.style.display = "block";
                 });
         }
 
         // 🚪 ログアウト処理
         function handleLogout() {
             if (confirm("ログアウトしますか？")) {
-                auth.signOut();
+                auth.signOut().then(() => {
+                    // ログアウト後はページをリフレッシュして安全にログイン画面に戻す
+                    window.location.reload();
+                });
             }
         }
 
