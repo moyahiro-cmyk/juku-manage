@@ -79,6 +79,8 @@
         .calendar-day { padding: 8px 0; border-radius: 4px; cursor: pointer; position: relative; min-height: 35px; }
         .calendar-day:hover { background-color: #e2e2e2; }
         .calendar-day.has-event::after { content: '●'; font-size: 9px; position: absolute; bottom: 2px; left: 0; right: 0; color: #2980b9; text-align: center; }
+        .calendar-day.has-study::after { content: '●'; font-size: 9px; position: absolute; bottom: 2px; right: 5px; color: #27ae60; 
+}
         .calendar-day.selected { background-color: #ffeaa7; border: 1px solid #f1c40f; }
         .calendar-day.empty { cursor: default; background: none !important; }
         .day-detail-box { background: #f8f9fa; padding: 10px; margin-top: 10px; border-radius: 6px; border: 1px dashed #3498db; min-height: 50px; font-size: 0.9em; }
@@ -138,6 +140,7 @@
                     <button id="tab3" class="tab-btn" onclick="switchTab(3)">👁 3. カレンダー</button>
                     <button id="tab4" class="tab-btn" onclick="switchTab(4)">👥 4. 保護者リスト</button>
                     <button id="tab5" class="tab-btn" onclick="switchTab(5)">🪪 5. 登録カード</button>
+                    <button id="tab6" class="tab-btn" onclick="switchTab(6)">📖 自習スペース</button>
                 </div>
 
                 <!-- 📅 1. 授業予定の入力画面 -->
@@ -317,6 +320,22 @@
                     </div>
                 </div>
                 
+                <div id="page6" class="box" style="display: none;">
+    <h2>📖 自習スペースの開放設定</h2>
+    <label>日付を選択:</label>
+    <div class="inline-selects">
+        <select id="selfStudyYear"></select><span>年</span>
+        <select id="selfStudyMonth"></select><span>月</span>
+        <select id="selfStudyDay"></select><span>日</span>
+    </div>
+    <label>使用可能時間帯:</label>
+    <div class="inline-selects">
+        <select id="selfStudyStartHour"></select><span>時〜</span>
+        <select id="selfStudyEndHour"></select><span>時</span>
+    </div>
+    <button style="background-color: #27ae60;" onclick="sendSelfStudy()">自習スペースを開放する</button>
+</div>
+
                 <div style="text-align:left;">
                     <button class="clear-btn" onclick="clearAllData()">⚠ クラウドデータを完全リセット</button>
                 </div>
@@ -637,7 +656,11 @@
             document.getElementById('tab3').classList.toggle('active', pageNum === 3);
             document.getElementById('tab4').classList.toggle('active', pageNum === 4);
             document.getElementById('tab5').classList.toggle('active', pageNum === 5);
-            
+
+            document.getElementById('page6').style.display = pageNum === 6 ? 'block' : 'none';
+            document.getElementById('tab6').classList.toggle('active', pageNum === 6);
+
+
             const rightCol = document.getElementById('rightColumn');
             const leftCol = document.getElementById('leftColumn');
             
@@ -722,6 +745,20 @@
             });
         }
 
+        // 2. 自習スペース登録関数
+function sendSelfStudy() {
+    const dateStr = `${document.getElementById('selfStudyYear').value}-${document.getElementById('selfStudyMonth').value}-${document.getElementById('selfStudyDay').value}`;
+    const text = `自習スペース開放：${document.getElementById('selfStudyStartHour').value}:00〜${document.getElementById('selfStudyEndHour').value}:00`;
+
+    db.collection("schedules").add({
+        student: "自習", // カレンダー絞り込み用に区別
+        date: dateStr,
+        text: text,
+        type: 'study', // 緑丸判定用
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => alert("自習スペースを登録しました！"));
+}
+
         function renderCalendar() {
             const grid = document.getElementById('calendarGrid');
             const monthTitle = document.getElementById('calendarMonthTitle');
@@ -745,23 +782,29 @@
             }
 
             for (let day = 1; day <= totalDays; day++) {
-                const div = document.createElement('div'); div.className = 'calendar-day'; div.innerText = day;
-                const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
-                if (dayOfWeek === 0) div.classList.add('sunday');
-                if (dayOfWeek === 6) div.classList.add('saturday');
+    const div = document.createElement('div'); div.className = 'calendar-day'; div.innerText = day;
+    const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
+    if (dayOfWeek === 0) div.classList.add('sunday');
+    if (dayOfWeek === 6) div.classList.add('saturday');
 
-                const formattedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}--${String(day).padStart(2, '0')}`.replace('--','-');
-                let targetEvents = schedules.filter(item => item.date === formattedDateStr && (filter === 'すべて' || item.student === filter || item.student === '全員'));
+    // 日付文字列を作成（既存のコードに合わせてください）
+    const formattedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    // 【修正点】ここで「通常の予定」と「自習スペースの予定」をそれぞれ判定します
+    const targetEvents = schedules.filter(item => item.date === formattedDateStr && (filter === 'すべて' || item.student === filter || item.student === '全員'));
+    const hasStudy = schedules.some(item => item.date === formattedDateStr && item.type === 'study');
 
-                if (targetEvents.length > 0) div.classList.add('has-event');
-                div.onclick = () => {
-                    document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
-                    div.classList.add('selected');
-                    showDayDetail(formattedDateStr, day, filter);
-                };
-                grid.appendChild(div);
-            }
-        }
+    // 【修正点】クラスを追加
+    if (targetEvents.length > 0) div.classList.add('has-event');
+    if (hasStudy) div.classList.add('has-study'); // 追加した緑丸用スタイル
+
+    div.onclick = () => {
+        document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
+        div.classList.add('selected');
+        showDayDetail(formattedDateStr, day, filter);
+    };
+    grid.appendChild(div);
+}
 
         function showDayDetail(dateStr, dayNum, filter) {
             const detailBox = document.getElementById('dayDetailBox');
