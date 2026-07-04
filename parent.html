@@ -3,136 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>塾の予定確認（保護者画面）</title>
-    
-    <link rel="manifest" href="./manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <!-- 🌟 ホーム画面追加時の名前をご指定のものに変更しました -->
-    <meta name="apple-mobile-web-app-title" content="えんごかいWEB 保護者用">
-    <!-- 🌟 iPhone用の丸いアイコンが正しく読み込まれるよう設定を追加しました -->
-    <link rel="apple-touch-icon" href="./icon-192.png">
-
+    <title>塾・生徒予定管理（保護者用スマホ画面）</title>
     <style>
-        body { font-family: sans-serif; margin: 0; padding: 0; background-color: #f5f6fa; color: #2f3640; padding-bottom: 60px; }
-        .header-area { padding: 15px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        h1 { font-size: 1.3em; color: #2c3e50; text-align: center; margin: 0 0 10px 0; border-bottom: 2px solid #3498db; padding-bottom: 8px; }
-        .box { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin: 15px; box-sizing: border-box; }
-        label { font-size: 0.9em; font-weight: bold; color: #2c3e50; display: block; margin-bottom: 5px; }
-        select { padding: 10px; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 1em; box-sizing: border-box; background: #fff; }
-        .welcome-msg { font-size: 0.9em; color: #2980b9; text-align: center; font-weight: bold; margin-bottom: 5px; }
+        body { font-family: sans-serif; margin: 0; background-color: #f5f6fa; color: #2f3640; padding: 15px; }
+        .phone-wrapper { max-width: 450px; margin: 0 auto; background: white; min-height: 90vh; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); padding: 20px; box-sizing: border-box; }
         
-        /* 📜 6件スクロール枠のスタイル */
-        .scroll-container { max-height: 480px; overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 10px; }
-        .section-title { font-size: 1.1em; font-weight: bold; margin: 10px 15px 8px 15px; }
-        .card { padding: 12px; border-radius: 6px; border-left: 5px solid #ccc; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .card-urgent { background: #ffeae6; border-left-color: #e74c3c; }
-        .card-normal { background: #e8f4fd; border-left-color: #3498db; }
-        .card-date { font-size: 0.8em; color: #7f8c8d; margin-bottom: 4px; font-weight: bold; }
-        .card-text { font-size: 0.95em; line-height: 1.4; }
-        .no-data { text-align: center; color: #95a5a6; padding: 20px; font-size: 0.9em; background: #fff; border-radius: 6px; margin: 0 15px; }
+        h1 { font-size: 1.3em; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 8px; margin-top: 0; text-align: center; }
+        h2 { font-size: 1.1em; color: #2c3e50; margin-top: 20px; border-left: 4px solid #3498db; padding-left: 8px; }
+        
+        /* 🔒 ログイン画面 */
+        .login-box { text-align: center; padding-top: 40px; }
+        input, button { width: 100%; padding: 12px; margin: 8px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 1em; }
+        button { background-color: #3498db; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:hover { background-color: #2980b9; }
+        .error-msg { color: #e74c3c; font-size: 0.9em; display: none; margin-top: 5px; }
 
-        /* 🗓️ カレンダーのスタイル */
-        .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .calendar-controls button { background: #3498db; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; }
-        .calendar-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .calendar-table th, .calendar-table td { text-align: center; padding: 8px 0; position: relative; font-size: 0.9em; height: 40px; vertical-align: middle; }
-        .calendar-table th { font-weight: bold; color: #7f8c8d; }
-        .calendar-day { cursor: pointer; border-radius: 4px; }
-        .calendar-day:active { background: #eee; }
-        .calendar-day.today { background: #f1c40f; color: #fff; font-weight: bold; }
-        .calendar-day.selected { border: 2px solid #2c3e50; }
-        /* 🔵🔴 ポチのスタイル */
-        .dots-container { display: flex; justify-content: center; gap: 3px; position: absolute; bottom: 2px; width: 100%; left: 0; }
-        .dot-blue { width: 5px; height: 5px; background-color: #3498db; border-radius: 50%; }
-        .dot-red { width: 5px; height: 5px; background-color: #e74c3c; border-radius: 50%; }
-        .detail-box { margin-top: 15px; padding: 12px; border-radius: 6px; background: #f8f9fa; border: 1px solid #e2e8f0; min-height: 50px; }
+        /* 📱 メインコンテンツ */
+        #mainContent { display: none; }
+        .welcome-msg { background: #e8f4fd; padding: 12px; border-radius: 6px; font-size: 0.9em; font-weight: bold; margin-bottom: 15px; line-height: 1.4; }
+        .logout-link { text-align: right; margin-bottom: 15px; font-size: 0.85em; }
+        .logout-link a { color: #7f8c8d; text-decoration: underline; cursor: pointer; }
 
-        /* 📱 下部タブバーのスタイル */
-        .tab-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 55px; background: #fff; border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -2px 5px rgba(0,0,0,0.05); z-index: 1000; }
-        .tab-btn { background: none; border: none; color: #7f8c8d; font-size: 0.8em; font-weight: bold; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 33%; cursor: pointer; }
-        .tab-btn.active { color: #3498db; }
-        .tab-icon { font-size: 1.4em; }
-        .page { display: none; }
-        .page.active { display: block; }
-        .signout-btn { background: none; border: none; color: #7f8c8d; font-size: 0.8em; text-decoration: underline; cursor: pointer; display: block; margin: 15px auto; }
+        /* 🚨 緊急連絡アラート */
+        .urgent-alert-area { display: none; margin-bottom: 20px; }
+        .urgent-card { background: #ffeae6; border: 2px solid #e74c3c; border-radius: 8px; padding: 12px; color: #c0392b; font-size: 0.9em; margin-bottom: 8px; }
+        .urgent-card strong { font-size: 1.05em; display: block; margin-bottom: 4px; }
+
+        /* 📅 カレンダー */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin: 10px 0; font-size: 0.95em; }
+        .calendar-nav-btn { width: auto; padding: 4px 12px; margin: 0; background: #e0e0e0; color: #333; font-size: 0.9em; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 0.8em; background: #fafafa; padding: 6px; border-radius: 8px; border: 1px solid #ddd; }
+        .weekday { font-weight: bold; color: #7f8c8d; padding-bottom: 4px; }
+        .sunday { color: #e74c3c; }
+        .saturday { color: #3498db; }
+        .calendar-day { padding: 10px 0; border-radius: 4px; cursor: pointer; position: relative; min-height: 30px; }
+        .calendar-day:hover { background-color: #e2e2e2; }
+        .calendar-day.has-event::after { content: '●'; font-size: 8px; position: absolute; bottom: 1px; left: 0; right: 0; color: #2980b9; text-align: center; }
+        .calendar-day.selected { background-color: #ffeaa7; border: 1px solid #f1c40f; }
+        .calendar-day.empty { cursor: default; background: none !important; }
+        
+        .day-detail-box { background: #f8f9fa; padding: 12px; margin-top: 10px; border-radius: 6px; border: 1px dashed #3498db; min-height: 40px; font-size: 0.9em; }
+
+        /* ⚙️ パスワード変更エリア */
+        .settings-box { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0; margin-top: 25px; }
+        .settings-box h3 { margin-top: 0; font-size: 1em; color: #2c3e50; }
+        .settings-box input { background: white; padding: 8px; font-size: 0.9em; }
+        .settings-box button { background: #2ecc71; padding: 10px; font-size: 0.9em; margin-top: 5px; }
+        .settings-box button:hover { background: #27ae60; }
     </style>
+    
+    <!-- Firebase SDK (塾長画面と同一バージョン) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 </head>
 <body>
 
-    <div class="header-area">
-        <h1>📅 えんごばと</h1>
-        <div id="welcomeArea" class="welcome-msg" style="display:none;"></div>
-    </div>
-
-    <!-- 👤 ログインエリア -->
-    <div id="loginArea" class="box">
-        <label>お子様のお名前を選択してください：</label>
-        <select id="studentSelect" onchange="loginAsStudent()">
-            <option value="">-- 選択してください --</option>
-            <option value="佐藤 拓海">佐藤 拓海 くん</option>
-            <option value="鈴木 結衣">鈴木 結衣 さん</option>
-            <option value="高橋 蓮">高橋 蓮 くん</option>
-            <option value="田中 葵">田中 葵 さん</option>
-            <option value="渡辺 翔太">渡辺 翔太 くん</option>
-        </select>
-    </div>
-
-    <!-- 📱 メインコンテンツ（3つのページ） -->
-    <div id="contentArea" style="display: none;">
-        
-        <!-- 【タブ1：トップ画面】 -->
-        <div id="pageTop" class="page active">
-            <div class="section-title">📌 直近の予定一覧（最大6件）</div>
-            <div id="topScrollArea" class="scroll-container" style="margin: 0 15px;">
-                <!-- ここに最新の予定が上から順に最大6件入ります -->
-            </div>
+    <div class="phone-wrapper">
+        <!-- 🔒 ログイン画面 -->
+        <div id="loginArea" class="login-box">
+            <h1>大泉個別指導塾<br><span style="font-size:0.7em; color:#7f8c8d; font-weight:normal;">保護者専用マイページ</span></h1>
+            <p style="font-size:0.85em; color:#555; text-align:left; margin-top:25px;">塾から配布された登録カードの情報を入力してください。</p>
+            <input type="email" id="loginEmail" placeholder="メールアドレス（ユーザーID）" required>
+            <input type="password" id="loginPassword" placeholder="パスワード" required>
+            <button onclick="handleLogin()">ログイン</button>
+            <div id="loginError" class="error-msg">サインインに失敗しました。メールアドレスとパスワードを確認してください。</div>
         </div>
 
-        <!-- 【タブ2：カレンダー画面】 -->
-        <div id="pageCalendar" class="page">
-            <div class="box">
-                <div class="calendar-controls">
-                    <button onclick="changeMonth(-1)">◀ 前月</button>
-                    <h3 id="calendarTitle" style="margin:0; font-size:1.1em;">2026年6月</h3>
-                    <button onclick="changeMonth(1)">次月 ▶</button>
-                </div>
-                <table class="calendar-table">
-                    <thead>
-                        <tr><th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th></tr>
-                    </thead>
-                    <tbody id="calendarBody"></tbody>
-                </table>
-                <div class="detail-box">
-                    <strong style="font-size:0.9em; color:#7f8c8d;">選択した日の内容：</strong>
-                    <div id="calendarDetail" style="margin-top:5px; font-size:0.95em; line-height:1.4;">日付をタップしてください。</div>
-                </div>
+        <!-- 📱 メイン画面（ログイン後に表示） -->
+        <div id="mainContent">
+            <div class="logout-link">
+                <a onclick="handleLogout()">🚪 ログアウト</a>
+            </div>
+            
+            <div class="welcome-msg" id="welcomeMessage">
+                読み込み中...
+            </div>
+
+            <!-- 🚨 【リアルタイム受信用】緊急連絡エリア -->
+            <div id="urgentAlertArea" class="urgent-alert-area">
+                <h2 style="color:#e74c3c; border-left-color:#e74c3c; margin-top:0;">🚨 塾からの緊急連絡</h2>
+                <div id="urgentCardContainer"></div>
+            </div>
+
+            <!-- 📅 スケジュールカレンダーエリア -->
+            <h2>📅 授業・面談予定スケジュール</h2>
+            <div class="calendar-header">
+                <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀</button>
+                <span id="calendarMonthTitle">2026年06月</span>
+                <button class="calendar-nav-btn" onclick="changeMonth(1)">▶</button>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+            <div class="day-detail-box" id="dayDetailBox">タップした日付の予定がここに表示されます。</div>
+
+            <!-- ⚙️ パスワード変更セキュリティエリア -->
+            <div class="settings-box">
+                <h3>🔒 セキュリティ設定</h3>
+                <p style="font-size:0.75em; color:#666; margin: 0 0 8px 0;">パスワードを変更できます。変更すると自動的に塾側の管理マスタも更新されます。</p>
+                <input type="password" id="newPassword" placeholder="新しいパスワード（6文字以上）">
+                <button onclick="updatePassword()">パスワードを更新する</button>
             </div>
         </div>
-
-        <!-- 【タブ3：通知（緊急連絡のみ）画面】 -->
-        <div id="pageUrgent" class="page">
-            <div class="section-title">🚨 緊急連絡（最大6件）</div>
-            <div id="urgentScrollArea" class="scroll-container" style="margin: 0 15px;">
-                <!-- ここに緊急連絡のみが最大6件入ります -->
-            </div>
-        </div>
-
-        <button class="signout-btn" onclick="signout()">別の生徒を選び直す</button>
-
-        <!-- 🗺️ 下部タブバー -->
-        <nav class="tab-bar">
-            <button class="tab-btn active" onclick="switchTab('Top')"><span class="tab-icon">🏠</span>トップ</button>
-            <button class="tab-btn" onclick="switchTab('Calendar')"><span class="tab-icon">🗓️</span>カレンダー</button>
-            <button class="tab-btn" onclick="switchTab('Urgent')"><span class="tab-icon">🚨</span>緊急連絡</button>
-        </nav>
     </div>
 
     <script>
+        // 塾長画面と完全に一致させるFirebase設定
         const firebaseConfig = {
-            apiKey: "AIzaSyCvsoHNZ_XcrSMB1ZQp0MZEjaQ9_4twiZK",
+            apiKey: "AIzaSyCvsoHNZ_XcRsMB1ZQp0MZEjaQ9_4twIZk", 
             authDomain: "juku-manage-dba.firebaseapp.com",
             projectId: "juku-manage-dba",
             storageBucket: "juku-manage-dba.firebasestorage.app",
@@ -142,257 +119,223 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        
-        let currentStudent = "";
-        let unsubscribeSnapshot = null;
-        let allSchedules = []; // 全データを保持する配列
-        let isFirstLoad = true;
+        const auth = firebase.auth();
 
-        // カレンダー用変数
-        let currentYear = new Date().getFullYear();
-        let currentMonth = new Date().getMonth();
-        let selectedDateStr = "";
+        let currentProfile = null;      // ログイン中世帯のデータマスタ
+        let currentStudentKey = null;   // 塾長側マスタのドキュメント名（例: "佐藤 拓海"）
+        let allSchedules = [];          // 受信した全予定
+        let currentYear = 2026;
+        let currentMonth = 5; // 6月
 
-        window.onload = function() {
-            const savedStudent = localStorage.getItem("juku_parent_student");
-            if (savedStudent) {
-                currentStudent = savedStudent;
-                showMainContent();
-            }
-        };
-
-        function loginAsStudent() {
-            const select = document.getElementById("studentSelect");
-            if (!select.value) return;
-            currentStudent = select.value;
-            localStorage.setItem("juku_parent_student", currentStudent);
-            if (!localStorage.getItem(`last_view_time_${currentStudent}`)) {
-                localStorage.setItem(`last_view_time_${currentStudent}`, Date.now());
-            }
-            showMainContent();
-        }
-
-        function showMainContent() {
-            document.getElementById("loginArea").style.display = "none";
-            document.getElementById("contentArea").style.display = "block";
-            document.getElementById("welcomeArea").innerText = `${currentStudent} の保護者様`;
-            document.getElementById("welcomeArea").style.display = "block";
-            startListening();
-        }
-
-        function signout() {
-            if (confirm("ログイン状態を解除して、選び直しますか？")) {
-                localStorage.removeItem("juku_parent_student");
-                if (unsubscribeSnapshot) unsubscribeSnapshot();
+        // 🔐 認証状態のリアルタイム監視
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // ログインしたユーザーのメールアドレスを元に、クラウドのマスタを検索
+                fetchParentProfile(user.email);
+            } else {
                 document.getElementById("loginArea").style.display = "block";
-                document.getElementById("contentArea").style.display = "none";
-                document.getElementById("welcomeArea").style.display = "none";
-                document.getElementById("studentSelect").value = "";
-                currentStudent = "";
-                isFirstLoad = true;
-                switchTab('Top');
+                document.getElementById("mainContent").style.display = "none";
             }
-        }
+        });
 
-        // 📱 タブ切り替えシステム
-        function switchTab(tabName) {
-            // イベントオブジェクトの安全な取得
-            const currentEvent = window.event || arguments.callee.caller.arguments[0];
-            
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            
-            document.getElementById(`page${tabName}`).classList.add('active');
-            if (currentEvent && currentEvent.currentTarget) {
-                currentEvent.currentTarget.classList.add('active');
-            }
+        // 👥 メールアドレスから紐づく世帯マスタを取得
+        function fetchParentProfile(email) {
+            db.collection("parents").where("email", "==", email).get().then((snapshot) => {
+                if (snapshot.empty) {
+                    alert("認証は成功しましたが、塾側の名簿データにこのアドレスが見つかりません。");
+                    auth.signOut();
+                    return;
+                }
+                
+                // ドキュメントを取得
+                const doc = snapshot.docs[0];
+                currentStudentKey = doc.id; 
+                currentProfile = doc.data();
 
-            if (tabName === 'Calendar') {
-                renderCalendar();
-            }
-        }
+                // 画面初期化
+                document.getElementById("loginArea").style.display = "none";
+                document.getElementById("mainContent").style.display = "block";
+                
+                // ウェルカムメッセージ生成
+                let studentsDisplay = currentProfile.student1;
+                if(currentProfile.student2 && currentProfile.student2 !== "—") studentsDisplay += `・${currentProfile.student2}`;
+                if(currentProfile.student3 && currentProfile.student3 !== "—") studentsDisplay += `・${currentProfile.student3}`;
+                
+                document.getElementById("welcomeMessage").innerHTML = `
+                    👤 <strong>${currentProfile.parentName} 様 マイページ</strong><br>
+                    🎓 対象生徒: ${studentsDisplay}
+                `;
 
-        function startListening() {
-            if (unsubscribeSnapshot) unsubscribeSnapshot();
-
-            const lastViewTime = parseInt(localStorage.getItem(`last_view_time_${currentStudent}`) || Date.now());
-
-            // 🌟 createdAtの新しい順（降順）で取得
-            unsubscribeSnapshot = db.collection("schedules")
-                .orderBy("createdAt", "desc")
-                .onSnapshot((snapshot) => {
-                    allSchedules = [];
-                    let newItemsCount = 0;
-
-                    snapshot.forEach((doc) => {
-                        const item = doc.data();
-                        if (item.student === currentStudent || item.student === "全員") {
-                            allSchedules.push(item);
-
-                            // 新着カウント
-                            if (item.createdAt && item.createdAt.toDate) {
-                                const itemTime = item.createdAt.toDate().getTime();
-                                if (itemTime > lastViewTime) {
-                                    newItemsCount++;
-                                }
-                            }
-                        }
+                // 連携状態が「未連携」なら自動で「連携済み」に更新（最終確認日もセット）
+                const today = new Date();
+                const todayStr = `${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+                if (currentProfile.status !== "連携済み" || currentProfile.lastCheck !== todayStr) {
+                    db.collection("parents").doc(currentStudentKey).update({
+                        status: "連携済み",
+                        lastCheck: todayStr
                     });
-
-                    // 1. トップ画面（最新6件）の描画
-                    renderTopPage();
-
-                    // 2. 緊急連絡画面（最大6件）の描画
-                    renderUrgentPage();
-
-                    // 3. カレンダーの更新（開いている場合）
-                    if (document.getElementById('pageCalendar').classList.contains('active')) {
-                        renderCalendar();
-                    }
-
-                    // 🌟 新着ポップアップアラート
-                    if (isFirstLoad && newItemsCount > 0) {
-                        alert(`🔔 新着情報が ${newItemsCount} 件あります！`);
-                    }
-                    isFirstLoad = false;
-                    localStorage.setItem(`last_view_time_${currentStudent}`, Date.now());
-                });
-        }
-
-        // 🏠 タブ1: 最新6件を上から並べる
-        function renderTopPage() {
-            const container = document.getElementById("topScrollArea");
-            container.innerHTML = "";
-            
-            // 最大6件に絞り込み
-            const displayItems = allSchedules.slice(0, 6);
-
-            if (displayItems.length === 0) {
-                container.innerHTML = '<div class="no-data">登録された予定はありません。</div>';
-                return;
-            }
-
-            displayItems.forEach(item => {
-                const card = createCardElement(item);
-                container.appendChild(card);
-            });
-        }
-
-        // 🚨 タブ3: 緊急連絡のみ最大6件
-        function renderUrgentPage() {
-            const container = document.getElementById("urgentScrollArea");
-            container.innerHTML = "";
-
-            const urgentItems = allSchedules.filter(item => item.type === 'urgent').slice(0, 6);
-
-            if (urgentItems.length === 0) {
-                container.innerHTML = '<div class="no-data">現在、緊急連絡はありません。</div>';
-                return;
-            }
-
-            urgentItems.forEach(item => {
-                const card = createCardElement(item);
-                container.appendChild(card);
-            });
-        }
-
-        function createCardElement(item) {
-            let dateDisplay = item.date;
-            if (item.date && item.date.includes("-")) {
-                const parts = item.date.split("-");
-                dateDisplay = `${parseInt(parts[1])}月${parseInt(parts[2])}日`;
-            }
-            const card = document.createElement("div");
-            card.className = `card ${item.type === 'urgent' ? 'card-urgent' : 'card-normal'}`;
-            card.innerHTML = `<div class="card-date">${dateDisplay}</div><div class="card-text">${item.text}</div>`;
-            return card;
-        }
-
-        // 🗓️ タブ2: 塾側カレンダー完全移植システム
-        function renderCalendar() {
-            document.getElementById("calendarTitle").innerText = `${currentYear}年 ${currentMonth + 1}月`;
-            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-            const tbody = document.getElementById("calendarBody");
-            tbody.innerHTML = "";
-
-            let row = document.createElement("tr");
-            for (let i = 0; i < firstDay; i++) {
-                row.appendChild(document.createElement("td"));
-            }
-
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                if (row.children.length === 7) {
-                    tbody.appendChild(row);
-                    row = document.createElement("tr");
                 }
 
-                const td = document.createElement("td");
-                td.className = "calendar-day";
-                td.innerText = day;
+                // カレンダーおよび緊急連絡のリアルタイム監視を開始
+                startWatchSchedules();
 
-                // 日付文字列の作成 (YYYY-MM-DD)
-                const mStr = String(currentMonth + 1).padStart(2, '0');
-                const dStr = String(day).padStart(2, '0');
-                const dateStr = `${currentYear}-${mStr}-${dStr}`;
+            }).catch(err => {
+                alert("プロファイルの取得に失敗しました: " + err.message);
+            });
+        }
 
-                if (dateStr === todayStr) td.classList.add("today");
-                if (dateStr === selectedDateStr) td.classList.add("selected");
+        // 🔄 我が子に関係するスケジュールと緊急連絡だけをリアルタイムに監視
+        function startWatchSchedules() {
+            db.collection("schedules").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
+                allSchedules = [];
+                const urgentContainer = document.getElementById("urgentCardContainer");
+                const urgentArea = document.getElementById("urgentAlertArea");
+                
+                urgentContainer.innerHTML = "";
+                let hasUrgent = false;
 
-                // 🔵🔴 ポチ（ドット）の判定
-                const daysItems = allSchedules.filter(item => item.date === dateStr);
-                if (daysItems.length > 0) {
-                    const dotsContainer = document.createElement("div");
-                    dotsContainer.className = "dots-container";
+                snapshot.forEach((doc) => {
+                    const item = doc.data();
                     
-                    const hasNormal = daysItems.some(item => item.type === 'normal');
-                    const hasUrgent = daysItems.some(item => item.type === 'urgent');
+                    // 「全員宛て」または「この世帯の生徒キー名宛て」のデータのみに絞り込む（部外者ブロック）
+                    if (item.student === "全員" || item.student === currentStudentKey) {
+                        allSchedules.push(item);
 
-                    if (hasNormal) { const b = document.createElement("div"); b.className="dot-blue"; dotsContainer.appendChild(b); }
-                    if (hasUrgent) { const r = document.createElement("div"); r.className="dot-red"; dotsContainer.appendChild(r); }
-                    td.appendChild(dotsContainer);
-                }
+                        // 緊急連絡タイプであれば、画面最上部にアラート表示
+                        if (item.type === "urgent") {
+                            hasUrgent = true;
+                            const urgentCard = `
+                                <div class="urgent-card">
+                                    <strong>${item.text.split('：')[0]}</strong>
+                                    ${item.text.split('：')[1] || ''}
+                                    <div style="text-align:right; font-size:0.8em; color:#7f8c8d; margin-top:5px;">日付: ${item.date}</div>
+                                </div>
+                            `;
+                            urgentContainer.insertAdjacentHTML('beforeend', urgentCard);
+                        }
+                    }
+                });
 
-                // タップイベント
-                td.onclick = () => selectCalendarDay(dateStr, daysItems);
-                row.appendChild(td);
-            }
-            
-            while (row.children.length < 7) {
-                row.appendChild(document.createElement("td"));
-            }
-            tbody.appendChild(row);
+                urgentArea.style.display = hasUrgent ? "block" : "none";
+                renderCalendar();
+            });
         }
 
-        function changeMonth(offset) {
-            currentMonth += offset;
-            if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-            if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-            renderCalendar();
+        // 🔑 ログイン処理
+        function handleLogin() {
+            const email = document.getElementById("loginEmail").value.trim();
+            const password = document.getElementById("loginPassword").value;
+            const errorDiv = document.getElementById("loginError");
+            errorDiv.style.display = "none";
+
+            auth.signInWithEmailAndPassword(email, password).catch((error) => {
+                errorDiv.style.display = "block";
+            });
         }
 
-        function selectCalendarDay(dateStr, items) {
-            selectedDateStr = dateStr;
-            renderCalendar(); // 選択枠(selected)をつけるため再描画
+        // 🚪 ログアウト処理
+        function handleLogout() {
+            if (confirm("ログアウトしますか？")) {
+                auth.signOut().then(() => { window.location.reload(); });
+            }
+        }
 
-            const detailBox = document.getElementById("calendarDetail");
-            if (items.length === 0) {
-                detailBox.innerHTML = "<span style='color:#95a5a6;'>この日の予定はありません。</span>";
+        // 🔒 パスワードの自発的更新（Firebase Auth と Firestoreの同時同期書き換え）
+        function updatePassword() {
+            const newPass = document.getElementById("newPassword").value;
+            if (newPass.length < 6) {
+                alert("⚠ パスワードはセキュリティのため6文字以上で入力してください。");
                 return;
             }
 
-            let html = "";
-            items.forEach(item => {
-                const color = item.type === 'urgent' ? '#e74c3c' : '#3498db';
-                const typeLabel = item.type === 'urgent' ? '【緊急】' : '【予定】';
-                html += `<div style="margin-bottom:8px; border-left:3px solid ${color}; padding-left:8px;">
-                            <strong style="color:${color};">${typeLabel}</strong> ${item.text}
-                         </div>`;
+            const user = auth.currentUser;
+            if (!user) return;
+
+            // 1. Firebase Authentication上の認証パスワードを更新
+            user.updatePassword(newPass).then(() => {
+                // 2. 成功したら、塾長が見る名簿マスタ（Firestore）のパスワード表示も同期して書き換える
+                return db.collection("parents").doc(currentStudentKey).update({
+                    pass: newPass
+                });
+            }).then(() => {
+                alert("🔒 パスワードを安全に更新しました。次回のログインからは新しいパスワードをご利用ください。塾長側の管理画面にも即時同期されました。");
+                document.getElementById("newPassword").value = "";
+            }).catch((error) => {
+                alert("パスワードの更新に失敗しました（最近ログインしていない場合、再ログインを求められることがあります）: " + error.message);
             });
+        }
+
+        // 📅 カレンダー描画ロジック（我が子の予定のみ）
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const monthTitle = document.getElementById('calendarMonthTitle');
+            
+            monthTitle.innerText = `${currentYear}年${String(currentMonth + 1).padStart(2, '0')}月`;
+            grid.innerHTML = '';
+
+            const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
+            weekdaysJa.forEach((w, idx) => {
+                const div = document.createElement('div');
+                div.className = `weekday ${idx===0?'sunday':''} ${idx===6?'saturday':''}`;
+                div.innerText = w; grid.appendChild(div);
+            });
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+                const div = document.createElement('div'); div.className = 'calendar-day empty'; grid.appendChild(div);
+            }
+
+            for (let day = 1; day <= totalDays; day++) {
+                const div = document.createElement('div'); div.className = 'calendar-day'; div.innerText = day;
+                const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
+                if (dayOfWeek === 0) div.classList.add('sunday');
+                if (dayOfWeek === 6) div.classList.add('saturday');
+
+                const formattedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                let targetEvents = allSchedules.filter(item => item.date === formattedDateStr);
+
+                if (targetEvents.length > 0) div.classList.add('has-event');
+                
+                div.onclick = () => {
+                    document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
+                    div.classList.add('selected');
+                    showDayDetail(formattedDateStr, day);
+                };
+                grid.appendChild(div);
+            }
+        }
+
+        function showDayDetail(dateStr, dayNum) {
+            const detailBox = document.getElementById('dayDetailBox');
+            let targetEvents = allSchedules.filter(item => item.date === dateStr);
+            const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
+            const dayIdx = new Date(dateStr).getDay();
+            
+            let html = `<strong>📅 ${currentMonth + 1}月${dayNum}日の予定</strong>`;
+            if (targetEvents.length === 0) {
+                html += `<p style="color:#999; margin:5px 0;">予定はありません。</p>`;
+            } else {
+                html += `<ul style="margin:5px 0 0 0; padding-left:0; list-style:none;">`;
+                targetEvents.forEach(item => {
+                    const isUrgent = item.type === 'urgent';
+                    const displayText = isUrgent ? item.text.replace('🚨【緊急】', '🚨 ') : item.text;
+                    html += `
+                        <li style="background:${isUrgent ? '#ffeae6' : '#e8f4fd'}; border-left:4px solid ${isUrgent ? '#e74c3c' : '#3498db'}; margin:6px 0; padding:8px; border-radius:4px; font-size:0.9em; line-height:1.4;">
+                            ${displayText}
+                        </li>`;
+                });
+                html += '</ul>';
+            }
             detailBox.innerHTML = html;
+        }
+
+        function changeMonth(dir) {
+            currentMonth += dir;
+            if (currentMonth > 11) { currentMonth = 0; currentYear += 1; }
+            else if (currentMonth < 0) { currentMonth = 11; currentYear -= 1; }
+            renderCalendar();
         }
     </script>
 </body>
