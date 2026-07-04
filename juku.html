@@ -321,14 +321,14 @@
                 </div>
                 
                 <div id="page6" class="box" style="display: none;">
-    <h2>📖 自習スペースの開放設定</h2>
-    <label>日付を選択:</label>
-    <div class="inline-selects">
-        <select id="selfStudyYear"></select><span>年</span>
-        <select id="selfStudyMonth"></select><span>月</span>
-        <select id="selfStudyDay"></select><span>日</span>
-    </div>
-    <label>使用可能時間帯:</label>
+                    <h2>📖 自習スペースの開放設定</h2>
+                        <label>日付を選択:</label>
+                            <div class="inline-selects">
+                                <select id="selfStudyYear"></select><span>年</span>
+                                <select id="selfStudyMonth"></select><span>月</span>
+                                <select id="selfStudyDay"></select><span>日</span>
+                </div>
+                <label>使用可能時間帯:</label>
     <div class="inline-selects">
         <select id="selfStudyStartHour"></select><span>時〜</span>
         <select id="selfStudyEndHour"></select><span>時</span>
@@ -805,7 +805,9 @@ function sendSelfStudy() {
     };
     grid.appendChild(div);
 }
+        }
 
+        
         function showDayDetail(dateStr, dayNum, filter) {
             const detailBox = document.getElementById('dayDetailBox');
             let targetEvents = schedules.filter(item => item.date === dateStr && (filter === 'すべて' || item.student === filter || item.student === '全員'));
