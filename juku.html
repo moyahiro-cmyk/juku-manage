@@ -172,9 +172,19 @@
                     <label>時間帯を指定:</label>
                     <div class="inline-selects">
                         <select id="startHourSelect"></select><span>時</span>
-                        <select id="startMinuteSelect"></select><span>分 〜</span>
+                        <select id="startMinuteSelect">
+                            <option value="00">00分</option>
+                            <option value="15">15分</option>
+                            <option value="30">30分</option>
+                            <option value="45">45分</option>
+                        </select><span> 〜</span>
                         <select id="endHourSelect"></select><span>時</span>
-                        <select id="endMinuteSelect"></select><span>分</span>
+                        <select id="endMinuteSelect">
+                            <option value="00">00分</option>
+                            <option value="15">15分</option>
+                            <option value="30">30分</option>
+                            <option value="45">45分</option>
+                        </select><span>分</span>
                     </div>
 
                     <label>追加の連絡事項:</label>
@@ -340,11 +350,10 @@
         const auth = firebase.auth(); 
         
         let schedules = [];
-        let parentsData = {}; // 👥 クラウドから取得する保護者データをここに集約
+        let parentsData = {}; 
         let currentYear = 2026;
         let currentMonth = 5;
 
-        // 初期設定用のダミー世帯マスタ
         const initialParents = {
             "佐藤 拓海": { student1: "佐藤 拓海 (小3)", student2: "—", student3: "—", parentName: "佐藤 明美", email: "sato@oizumi.com", pass: "sato123", connectId: "p-sato-7932", status: "連携済み", lastCheck: "07/04" },
             "鈴木 結衣": { student1: "鈴木 結衣 (小6)", student2: "鈴木 陽太 (小2)", student3: "—", parentName: "鈴木 健一", email: "suzuki@oizumi.com", pass: "suzuki456", connectId: "p-suzuki-1102", status: "連携済み", lastCheck: "07/03" },
@@ -360,10 +369,8 @@
             return studentStr;
         }
 
-        // 👥 クラウド上の保護者データを監視して一覧テーブルを描画
         function startWatchParents() {
             db.collection("parents").onSnapshot((snapshot) => {
-                // データが空（初回）なら初期マスターをクラウドに投入
                 if (snapshot.empty) {
                     Object.keys(initialParents).forEach(key => {
                         db.collection("parents").doc(key).set(initialParents[key]);
@@ -377,7 +384,7 @@
 
                 snapshot.forEach((doc) => {
                     const p = doc.data();
-                    parentsData[doc.id] = p; // メモリに保持
+                    parentsData[doc.id] = p; 
 
                     const statusBadge = p.status === "連携済み" 
                         ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
@@ -398,14 +405,12 @@
                     tbody.insertAdjacentHTML('beforeend', row);
                 });
 
-                // カードフォームが表示中なら再読込
                 if (document.getElementById('page5').style.display === 'block') {
                     loadCardForm();
                 }
             });
         }
 
-        // 🪪 クラウドのデータをフォームにロード
         function loadCardForm() {
             const selectedKey = document.getElementById("cardStudentSelect").value;
             const p = parentsData[selectedKey];
@@ -420,7 +425,6 @@
             document.getElementById("editPass").value = p.pass || "";
             document.getElementById("editConnectId").value = p.connectId || "";
 
-            // プレビュー表示
             let targetNamesHtml = formatStudentCell(p.student1);
             if (p.student2 && p.student2 !== "—") targetNamesHtml += "<br>" + formatStudentCell(p.student2);
             if (p.student3 && p.student3 !== "—") targetNamesHtml += "<br>" + formatStudentCell(p.student3);
@@ -430,7 +434,6 @@
             document.getElementById("cardTargetPass").innerText = p.pass || "";
         }
 
-        // 🪪 フォームの編集結果をクラウドへ直接送信（同期）
         function saveCardData() {
             const selectedKey = document.getElementById("cardStudentSelect").value;
             
@@ -453,7 +456,6 @@
             });
         }
 
-        // 認証状態の監視
         auth.onAuthStateChanged((user) => {
             const loginArea = document.getElementById("loginArea");
             const mainAdminArea = document.getElementById("mainAdminArea");
@@ -462,7 +464,7 @@
                 if (loginArea) loginArea.style.display = "none";
                 if (mainAdminArea) mainAdminArea.style.display = "block";
                 generateDropdowns();
-                startWatchParents(); // クラウドデータのリアルタイム監視スタート
+                startWatchParents(); 
             } else {
                 if (loginArea) loginArea.style.display = "block";
                 if (mainAdminArea) mainAdminArea.style.display = "none";
@@ -527,12 +529,10 @@
             const yearSel = document.getElementById('yearSelect');
             const monthSel = document.getElementById('monthSelect');
             const startHourSel = document.getElementById('startHourSelect');
-            const startMinuteSel = document.getElementById('startMinuteSelect');
             const endHourSel = document.getElementById('endHourSelect');
-            const endMinuteSel = document.getElementById('endMinuteSelect');
             const today = new Date();
 
-            if (!yearSel || !monthSel || !startHourSel || !startMinuteSel || !endHourSel || !endMinuteSel) return;
+            if (!yearSel || !monthSel || !startHourSel || !endHourSel) return;
 
             yearSel.innerHTML = '';
             for (let y = 2026; y <= 2028; y++) {
@@ -560,13 +560,11 @@
                 if (i === 19) opt2.selected = true;
                 startHourSel.appendChild(opt1); endHourSel.appendChild(opt2);
             }
+
+            // ⚠️ 分の選択肢を確実に復活させ、初期値をセット
+            document.getElementById('startMinuteSelect').value = "00";
+            document.getElementById('endMinuteSelect').value = "00";
             
-            startMinuteSel.innerHTML = ''; endMinuteSel.innerHTML = '';
-            for (let i = 0; i < 60; i += 10) {
-                let opt1 = document.createElement('option'); opt1.value = String(i).padStart(2, '0'); opt1.innerText = String(i).padStart(2, '0');
-                let opt2 = document.createElement('option'); opt2.value = String(i).padStart(2, '0'); opt2.innerText = String(i).padStart(2, '0');
-                startMinuteSel.appendChild(opt1); startMinuteSel.appendChild(opt2);
-            }
             currentYear = today.getFullYear();
             currentMonth = today.getMonth();
             updateNormalDayDisplay();
@@ -795,11 +793,9 @@
 
         function clearAllData() {
             if (confirm('クラウド上のすべてのデータを完全に削除しますか？')) {
-                // schedulesの削除
                 db.collection("schedules").get().then((q) => {
                     const batch = db.batch(); q.forEach((d) => batch.delete(d.ref)); return batch.commit();
                 });
-                // parentsの削除
                 db.collection("parents").get().then((q) => {
                     const batch = db.batch(); q.forEach((d) => batch.delete(d.ref)); return batch.commit();
                 }).then(() => {
