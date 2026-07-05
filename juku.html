@@ -85,6 +85,18 @@
         .calendar-day.empty { cursor: default; background: none !important; }
         .day-detail-box { background: #f8f9fa; padding: 10px; margin-top: 10px; border-radius: 6px; border: 1px dashed #3498db; min-height: 50px; font-size: 0.9em; }
 
+        /* 赤ポチのスタイル */
+.has-urgent::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #ff4d4d; /* 赤色 */
+    border-radius: 50%;
+    margin-right: 4px;
+}
+
+
         /* 👥 保護者リスト・🪪 登録カード */
         .admin-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
         .admin-table th, .admin-table td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
@@ -971,15 +983,18 @@ function sendSelfStudy() {
     // 【修正点】ここで「通常の予定」と「自習スペースの予定」をそれぞれ判定します
     const targetEvents = schedules.filter(item => item.date === formattedDateStr && (filter === 'すべて' || item.student === filter || item.student === '全員'));
     const hasStudy = schedules.some(item => item.date === formattedDateStr && item.type === 'study');
+    const hasUrgent = schedules.some(item => item.date === formattedDateStr && item.type === 'urgent'); // ★追加
 
     // 【修正点】クラスを追加
     if (targetEvents.length > 0) div.classList.add('has-event');
-    if (hasStudy) div.classList.add('has-study'); // 追加した緑丸用スタイル
+    if (hasStudy) div.classList.add('has-study'); // 緑ポチ
+    if (hasUrgent) div.classList.add('has-urgent'); // ★赤ポチ用クラスを追加
 
     div.onclick = () => {
         document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
         div.classList.add('selected');
-        showDayDetail(formattedDateStr, day, filter);
+        // ★クリック時に「全ての予定」を右側に表示するよう関数を呼び出す
+        showDayDetail(formattedDateStr, day, filter); 
     };
     grid.appendChild(div);
 }
