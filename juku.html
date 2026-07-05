@@ -714,6 +714,8 @@ function registerSelfStudy() {
         student: "自習", date: dateStr, text: text, type: 'study',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => alert("登録しました！"));
+    // 【ここを追加】カレンダーを再描画する関数を呼び出す
+        renderStudyCalendar();
 }
 
         function updateRightPanelLists() {
