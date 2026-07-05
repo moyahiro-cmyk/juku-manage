@@ -646,37 +646,34 @@
     updateStudyDayDropdown();
 
     // 2. 時・分のプルダウン（00〜23時, 00・30分）
-    const startHourSel = document.getElementById('studyStartHour');
-    const endHourSel = document.getElementById('studyEndHour');
+    const startHour = document.getElementById('studyStartHour');
+    const endHour = document.getElementById('studyEndHour');
     const startMinSel = document.getElementById('studyStartMinute');
     const endMinSel = document.getElementById('studyEndMinute');
 
     // 1. まずプルダウンの中身を空にする
-    startHourSel.innerHTML = '';
-    endHourSel.innerHTML = '';
+    startHour.innerHTML = '';
+    endHour.innerHTML = '';
 
-    // 2. 「時」を生成して追加（確実に生成）
+    // 0〜23時の生成
     for (let i = 0; i <= 23; i++) {
         let val = String(i).padStart(2, '0');
-        
         let optS = document.createElement('option');
         optS.value = val;
-        optS.textContent = i + "時";
-        startHourSel.appendChild(optS);
+        optS.textContent = i;
+        startHour.appendChild(optS);
 
         let optE = document.createElement('option');
         optE.value = val;
-        optE.textContent = i + "時";
-        endHourSel.appendChild(optE);
+        optE.textContent = i;
+        endHour.appendChild(optE);
     }
 
-    // 3. デフォルト値をセット
-    startHourSel.value = "18";
-    endHourSel.value = "19";
-    startMinSel.value = "00";
-    endMinSel.value = "00";
+    // デフォルト値のセット
+    startHour.value = "18";
+    endHour.value = "19";
     
-    // 4. 年月日もここで更新
+    // 日付プルダウンの初期化
     updateStudyDayDropdown();
 }
 
