@@ -398,7 +398,7 @@
 </div>
 
                 <div style="text-align:left;">
-                    <button class="clear-btn" id="clearAllData()">⚠ クラウドデータを完全リセット</button>
+                    <button class="clear-btn" onclick="clearAllData()">⚠ クラウドデータを完全リセット</button>
                 </div>
             </div>
 
@@ -1118,14 +1118,16 @@ function updateStudyDayDropdown() {
         });
         alert("リセットしました！");
 
-        // 【ここを追加】画面上のリストを強制的に空にする
-        document.getElementById('urgentHistoryList').innerHTML = '';
-        document.getElementById('normalHistoryList').innerHTML = '';
+        // 画面を最新状態にする
+        schedules = [];
+        renderStudyCalendar(); // カレンダーを描画し直す
         
-        // カレンダーがある場合はそれも再描画
-        if (typeof renderStudyCalendar === 'function') {
-            renderStudyCalendar();
-        }
+        // もし他にも表示エリアがあるならここもクリア
+        if(document.getElementById('urgentHistoryList')) document.getElementById('urgentHistoryList').innerHTML = '';
+        if(document.getElementById('normalHistoryList')) document.getElementById('normalHistoryList').innerHTML = '';
+    }).catch((error) => {
+        console.error("削除エラー: ", error);
+        alert("削除に失敗しました。");
     });
 }
 
