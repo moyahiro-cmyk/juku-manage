@@ -863,6 +863,86 @@ function sendSelfStudy() {
 }
         }
 
+        // 1. 自習用カレンダーの月管理変数
+let studyYear = 2026;
+let studyMonth = 6; // 0が1月
+
+// 2. 自習用カレンダーの初期化と描画
+function renderStudyCalendar() {
+    const grid = document.getElementById('studyCalendarGrid');
+    const monthTitle = document.getElementById('studyMonthTitle');
+    if (!grid) return; // IDがない場合は中断
+    
+    monthTitle.innerText = `${studyYear}年${String(studyMonth + 1).padStart(2, '0')}月`;
+    grid.innerHTML = '';
+
+    const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+    weekdays.forEach(w => {
+        const div = document.createElement('div'); div.className = 'weekday'; div.innerText = w;
+        grid.appendChild(div);
+    });
+
+    const firstDay = new Date(studyYear, studyMonth, 1).getDay();
+    const totalDays = new Date(studyYear, studyMonth + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+        grid.appendChild(document.createElement('div'));
+    }
+
+    for (let day = 1; day <= totalDays; day++) {
+        const div = document.createElement('div');
+        div.className = 'calendar-day';
+        div.innerText = day;
+        
+        const dateStr = `${studyYear}-${String(studyMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        // 自習の予定があるか判定して緑ポチ
+        if (schedules.some(s => s.date === dateStr && s.type === 'study')) {
+            div.classList.add('has-study');
+        }
+        grid.appendChild(div);
+    }
+}
+
+// 3. プルダウン初期化
+function initStudyDropdowns() {
+    const ySel = document.getElementById('studyYearSelect');
+    const mSel = document.getElementById('studyMonthSelect');
+    const today = new Date();
+    
+    // 年・月の生成
+    ySel.innerHTML = ''; mSel.innerHTML = '';
+    for (let y = 2026; y <= 2028; y++) {
+        let opt = document.createElement('option'); opt.value = y; opt.innerText = y;
+        if (y === today.getFullYear()) opt.selected = true;
+        ySel.appendChild(opt);
+    }
+    for (let i = 1; i <= 12; i++) {
+        let opt = document.createElement('option'); opt.value = String(i).padStart(2, '0'); opt.innerText = i;
+        if (i === (today.getMonth() + 1)) opt.selected = true;
+        mSel.appendChild(opt);
+    }
+    updateStudyDayDropdown();
+}
+
+function updateStudyDayDropdown() {
+    const y = document.getElementById('studyYearSelect').value;
+    const m = document.getElementById('studyMonthSelect').value;
+    const dSel = document.getElementById('studyDaySelect');
+    const lastDay = new Date(y, m, 0).getDate();
+    dSel.innerHTML = '';
+    for (let i = 1; i <= lastDay; i++) {
+        let opt = document.createElement('option'); opt.value = String(i).padStart(2, '0'); opt.innerText = i;
+        dSel.appendChild(opt);
+    }
+}
+
+// 4. タブ切り替え時に自習カレンダーを呼ぶ（switchTab関数の修正）
+// switchTab関数の中に以下を追加してください
+if (pageNum === 6) {
+    renderStudyCalendar();
+    initStudyDropdowns();
+}
+
 
         function showDayDetail(dateStr, dayNum, filter) {
             const detailBox = document.getElementById('dayDetailBox');
