@@ -1024,6 +1024,26 @@ function renderStudyCalendar() {
         }
         grid.appendChild(div);
     }
+
+    // 日付をクリックした時に右側に予定を表示する関数
+function showDetails(dateStr) {
+    const list = document.getElementById('studyList');
+    list.innerHTML = '';
+    document.getElementById('selectedDateText').innerText = dateStr + ' の予定';
+    
+    // その日の予定だけを抽出
+    const daySchedules = schedules.filter(s => s.date === dateStr && s.type === 'study');
+    
+    daySchedules.forEach(s => {
+        let li = document.createElement('li');
+        li.innerText = s.text;
+        list.appendChild(li);
+    });
+}
+
+// renderStudyCalendar の中の for ループにクリックイベントを追加
+// div.onclick = () => showDetails(dateStr); 
+// を追加すると、その日をクリックした時に右側が更新されます！
 }
 
 // 3. プルダウン初期化
