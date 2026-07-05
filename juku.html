@@ -402,10 +402,17 @@
                 </div>
             </div>
 
-            <div class="right-col" id="rightColumn">
-    <div class="box history-box normal-history" style="height: 500px;"> <!-- 高さを指定して縦長に -->
+            <<div class="right-col" id="rightColumn">
+    <!-- ID: history-class を追加 -->
+    <div id="history-class" class="history-box">
+        <h3>📅 指導予定の登録履歴</h3>
+        <ul id="classHistoryList"></ul>
+    </div>
+    
+    <!-- ID: history-urgent を追加 -->
+    <div id="history-urgent" class="history-box">
         <h3>📢 教室からの連絡 履歴</h3>
-        <ul id="urgentHistoryList" class="history-list"></ul>
+        <ul id="urgentHistoryList"></ul>
     </div>
 </div>
         </div>
@@ -810,7 +817,7 @@ function registerSelfStudy() {
         });
 
         function switchTab(pageNum) {
-    // ページとタブの切り替え
+    // 1. ページとタブの切り替え（既存の処理）
     for (let i = 1; i <= 6; i++) {
         const page = document.getElementById('page' + i);
         const tab = document.getElementById('tab' + i);
@@ -818,35 +825,35 @@ function registerSelfStudy() {
         if (tab) tab.classList.toggle('active', (pageNum === i));
     }
     
-    // レイアウト調整（右側の履歴パネルの表示/非表示）
+    // 2. 右側パネル（history-box）の表示制御
     const rightCol = document.getElementById('rightColumn');
     const leftCol = document.getElementById('leftColumn');
     
-    // 4, 5, 6ページは履歴パネルを隠す設定
+    // 履歴パネルの要素を取得（IDを付けておく必要があります）
+    const histClass = document.getElementById('history-class');
+    const histUrgent = document.getElementById('history-urgent');
+
+    // ★まず、全体を表示するか消すかを決める
     if (pageNum === 4 || pageNum === 5 || pageNum === 6) {
         rightCol.style.display = 'none'; 
         leftCol.classList.add('full-width');
     } else {
         rightCol.style.display = 'flex'; 
         leftCol.classList.remove('full-width');
+        
+        // ★さらに、中身の表示を切り替える
+        if (histClass) histClass.style.display = (pageNum === 1) ? 'block' : 'none';
+        if (histUrgent) histUrgent.style.display = (pageNum === 2) ? 'block' : 'none';
     }
 
-    // 各タブに応じた処理の実行
+    // 3. 各タブに応じた処理の実行（既存の処理）
     if (pageNum === 3) renderCalendar();
     if (pageNum === 5) loadCardForm();
     if (pageNum === 6) {
-        // 自習用カレンダーの初期化と描画
         initStudyDropdowns();
         renderStudyCalendar();
     }
-
-    
-
 }
-
-    // ▲▲▲ ここまで追加 ▲▲▲
-
-    // ... (rightColumnの表示判定など既存の処理) ...
 
 
         async function sendSchedule() {
