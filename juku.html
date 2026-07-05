@@ -1068,6 +1068,74 @@ function initStudyDropdowns() {
     endHour.value = "19";
 }
 
+// ページ読み込み時に全ての初期化を行う
+window.onload = function() {
+    initStudyDropdowns();
+    
+    // 「年」や「月」が変わった時に「日」を更新するイベントを追加
+    document.getElementById('studyYearSelect').addEventListener('change', updateStudyDayDropdown);
+    document.getElementById('studyMonthSelect').addEventListener('change', updateStudyDayDropdown);
+};
+
+function initStudyDropdowns() {
+    // 1. 年・月の生成
+    const ySel = document.getElementById('studyYearSelect');
+    const mSel = document.getElementById('studyMonthSelect');
+    const today = new Date();
+
+    ySel.innerHTML = '';
+    for (let y = 2026; y <= 2028; y++) {
+        let opt = document.createElement('option');
+        opt.value = y;
+        opt.innerText = y + "年";
+        if (y === today.getFullYear()) opt.selected = true;
+        ySel.appendChild(opt);
+    }
+
+    mSel.innerHTML = '';
+    for (let i = 1; i <= 12; i++) {
+        let opt = document.createElement('option');
+        opt.value = String(i).padStart(2, '0');
+        opt.innerText = i + "月";
+        if (i === (today.getMonth() + 1)) opt.selected = true;
+        mSel.appendChild(opt);
+    }
+    
+    // 2. 日の更新を実行
+    updateStudyDayDropdown();
+    
+    // 3. 時間の生成（先ほど修正したもの）
+    const startHour = document.getElementById('studyStartHour');
+    const endHour = document.getElementById('studyEndHour');
+    startHour.innerHTML = '';
+    endHour.innerHTML = '';
+    for (let i = 0; i <= 23; i++) {
+        let val = String(i).padStart(2, '0');
+        startHour.innerHTML += `<option value="${val}">${i}時</option>`;
+        endHour.innerHTML += `<option value="${val}">${i}時</option>`;
+    }
+    startHour.value = "18";
+    endHour.value = "19";
+}
+
+function updateStudyDayDropdown() {
+    const y = document.getElementById('studyYearSelect').value;
+    const m = document.getElementById('studyMonthSelect').value;
+    const dSel = document.getElementById('studyDaySelect');
+    
+    // その月が何日まであるかを計算
+    const lastDay = new Date(y, m, 0).getDate();
+    
+    dSel.innerHTML = '';
+    for (let i = 1; i <= lastDay; i++) {
+        let val = String(i).padStart(2, '0');
+        let opt = document.createElement('option');
+        opt.value = val;
+        opt.innerText = i + "日";
+        dSel.appendChild(opt);
+    }
+}
+
     </script>
 </body>
 </html>
