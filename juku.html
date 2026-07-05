@@ -854,7 +854,11 @@ function registerSelfStudy() {
         if (histClass) histClass.style.display = 'none';
         if (histUrgent) histUrgent.style.display = 'none';
 
-        if (pageNum === 1) histClass.style.display = 'block';
+        if (pageNum === 1) {
+            histClass.style.display = 'block';
+            renderHistory(); //★ここを追加：タブ1に切り替えた時に履歴を更新
+}
+
         if (pageNum === 2) histUrgent.style.display = 'block';
     }
 
@@ -908,6 +912,8 @@ function registerSelfStudy() {
             }).then(() => {
                 document.getElementById('scheduleText').value = '';
                 alert(`${student} くん/さんの予定を登録しました！`);
+
+                renderHistory();
             });
         }
 
@@ -1311,6 +1317,28 @@ function updateStudyDayDropdown() {
         let val = String(i).padStart(2, '0');
         dSel.innerHTML += `<option value="${val}">${i}</option>`;
     }
+}
+
+function renderHistory() {
+    const classList = document.getElementById('classHistoryList');
+    if (!classList) return;
+
+    // 1. 全スケジュールを「新しい順」に並べ替える
+    // ※もしデータに登録日時がない場合、今の配列の最後尾から8件を取るのが直近の入力になります
+    const recentSchedules = [...schedules].reverse().slice(0, 8);
+
+    // 2. リストをクリアして再描画
+    classList.innerHTML = '';
+    
+    recentSchedules.forEach(item => {
+        let li = document.createElement('li');
+        li.style.cssText = "margin: 5px 0; padding: 5px; border-bottom: 1px solid #eee; font-size: 0.9em;";
+        
+        // 履歴の見た目（生徒名と日付）
+        li.innerHTML = `<strong>${item.student}</strong> - ${item.date}<br>
+                        <span style="color:#666;">${item.text}</span>`;
+        classList.appendChild(li);
+    });
 }
 
 // ページ読み込み完了後にボタンと関数を紐付ける
