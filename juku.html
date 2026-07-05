@@ -701,37 +701,36 @@ function registerSelfStudy() {
         });
 
         function switchTab(pageNum) {
-            document.getElementById('page1').style.display = pageNum === 1 ? 'block' : 'none';
-            document.getElementById('page2').style.display = pageNum === 2 ? 'block' : 'none';
-            document.getElementById('page3').style.display = pageNum === 3 ? 'block' : 'none';
-            document.getElementById('page4').style.display = pageNum === 4 ? 'block' : 'none';
-            document.getElementById('page5').style.display = pageNum === 5 ? 'block' : 'none';
-            
-            document.getElementById('tab1').classList.toggle('active', pageNum === 1);
-            document.getElementById('tab2').classList.toggle('active', pageNum === 2);
-            document.getElementById('tab3').classList.toggle('active', pageNum === 3);
-            document.getElementById('tab4').classList.toggle('active', pageNum === 4);
-            document.getElementById('tab5').classList.toggle('active', pageNum === 5);
-
-            document.getElementById('page6').style.display = pageNum === 6 ? 'block' : 'none';
-            document.getElementById('tab6').classList.toggle('active', pageNum === 6);
-
-
-            const rightCol = document.getElementById('rightColumn');
-            const leftCol = document.getElementById('leftColumn');
-            
-            if (pageNum === 4 || pageNum === 5) {
-                rightCol.style.display = 'none'; leftCol.classList.add('full-width');  
-            } else {
-                rightCol.style.display = 'flex'; leftCol.classList.remove('full-width');
-            }
-
-            if (pageNum === 3) renderCalendar();
-            if (pageNum === 5) loadCardForm();
-            if (pageNum === 6) {
-        renderStudyCalendar();
-        initStudyDropdowns();
+    // ページとタブの切り替え
+    for (let i = 1; i <= 6; i++) {
+        const page = document.getElementById('page' + i);
+        const tab = document.getElementById('tab' + i);
+        if (page) page.style.display = (pageNum === i) ? 'block' : 'none';
+        if (tab) tab.classList.toggle('active', (pageNum === i));
     }
+    
+    // レイアウト調整（右側の履歴パネルの表示/非表示）
+    const rightCol = document.getElementById('rightColumn');
+    const leftCol = document.getElementById('leftColumn');
+    
+    // 4, 5, 6ページは履歴パネルを隠す設定
+    if (pageNum === 4 || pageNum === 5 || pageNum === 6) {
+        rightCol.style.display = 'none'; 
+        leftCol.classList.add('full-width');
+    } else {
+        rightCol.style.display = 'flex'; 
+        leftCol.classList.remove('full-width');
+    }
+
+    // 各タブに応じた処理の実行
+    if (pageNum === 3) renderCalendar();
+    if (pageNum === 5) loadCardForm();
+    if (pageNum === 6) {
+        // 自習用カレンダーの初期化と描画
+        initStudyDropdowns();
+        renderStudyCalendar();
+    }
+}
     // ▲▲▲ ここまで追加 ▲▲▲
 
     // ... (rightColumnの表示判定など既存の処理) ...
