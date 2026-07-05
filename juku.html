@@ -241,7 +241,7 @@
                     <button class="notify-btn" onclick="sendSchedule()">予定を登録する</button>
                 </div>
 
-                <!-- 🚨 2. 緊急連絡の入力画面 -->
+                <!-- 🚨 2. 教室からの連絡　の入力画面 -->
                 <div id="page2" class="box" style="display: none;">
                     <h2 style="color: #e74c3c;">【一斉/個別】緊急連絡の送信登録</h2>
                     <label>通知を送る対象:</label>
@@ -855,11 +855,30 @@ function registerSelfStudy() {
         if (histUrgent) histUrgent.style.display = 'none';
 
         if (pageNum === 1) {
-            histClass.style.display = 'block';
-            renderHistory(); //★ここを追加：タブ1に切り替えた時に履歴を更新
+        // 授業予定タブの時
+        histClass.style.display = 'block';
+        histUrgent.style.display = 'none';
+        renderHistory();
+    } else if (pageNum === 2) {
+        // 緊急連絡タブの時
+        histClass.style.display = 'none';
+        histUrgent.style.display = 'block';
+        renderUrgentHistory(); // さっき作った関数
+    }
 }
 
-        if (pageNum === 2) histUrgent.style.display = 'block';
+// 緊急連絡送信関数（sendUrgentなど）の最後
+function sendUrgent() {
+    // ...保存処理...
+    db.collection("schedules").add({
+        type: 'urgent',
+        text: "...",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        // ...アラートなど...
+        renderUrgentHistory(); // ★送信後に即座に反映
+    });
+}
     }
 
     // （以下、既存の処理）
@@ -1005,6 +1024,33 @@ function sendSelfStudy() {
     grid.appendChild(div);
 }
         }
+
+        function renderUrgentHistory() {
+    // 右側の余白にある、表示用のリストを取得
+    const urgentList = document.getElementById('urgentHistoryList');
+    if (!urgentList) return;
+
+    // 1. 全スケジュールから 'urgent' タイプだけ抜き出して、新しい順に並べる
+    const urgentItems = schedules
+        .filter(item => item.type === 'urgent')
+        .sort((a, b) => b.createdAt - a.createdAt);
+
+    // 2. リストの中身を一旦空にしてから、新しく書き出す
+    urgentList.innerHTML = '<h3>📢 直近の連絡履歴</h3>';
+    
+    if (urgentItems.length === 0) {
+        urgentList.innerHTML += '<p style="color:#666;">送信履歴はありません。</p>';
+    } else {
+        // 3. 最新の8件だけを表示する
+        urgentItems.slice(0, 8).forEach(item => {
+            let li = document.createElement('li');
+            li.style.cssText = "margin: 8px 0; padding: 10px; border-left: 5px solid #e74c3c; background: #fff5f5; font-size: 0.9em;";
+            li.innerHTML = `<strong>${item.date || '日付未設定'}</strong><br>
+                            <span style="color:#c0392b;">${item.text}</span>`;
+            urgentList.appendChild(li);
+        });
+    }
+}
 
         // 1. 自習用カレンダーの月管理変数
 let studyYear = 2026;
