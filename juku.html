@@ -1042,6 +1042,32 @@ function updateStudyDayDropdown() {
                 });
             }
         }
+
+        // ページが読み込まれたら自動で初期化する
+window.onload = function() {
+    initStudyDropdowns();
+};
+
+// 中身を確実に生成する関数（既にある場合は上書きしてください）
+function initStudyDropdowns() {
+    const startHour = document.getElementById('studyStartHour');
+    const endHour = document.getElementById('studyEndHour');
+    
+    // 二重生成防止のためクリア
+    startHour.innerHTML = '';
+    endHour.innerHTML = '';
+
+    for (let i = 0; i <= 23; i++) {
+        let val = String(i).padStart(2, '0');
+        startHour.innerHTML += `<option value="${val}">${i}時</option>`;
+        endHour.innerHTML += `<option value="${val}">${i}時</option>`;
+    }
+    
+    // デフォルト値
+    startHour.value = "18";
+    endHour.value = "19";
+}
+
     </script>
 </body>
 </html>
