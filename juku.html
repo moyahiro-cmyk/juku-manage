@@ -1109,7 +1109,7 @@ function updateStudyDayDropdown() {
             renderCalendar();
         }
 
-        function clearalldata() {
+        function clearAllData() {
             if (!confirm("本当に全データを削除しますか？")) return;
 
     db.collection("schedules").get().then((querySnapshot) => {
