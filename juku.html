@@ -1043,11 +1043,6 @@ function updateStudyDayDropdown() {
             }
         }
 
-        // ページが読み込まれたら自動で初期化する
-window.onload = function() {
-    initStudyDropdowns();
-};
-
 // 中身を確実に生成する関数（既にある場合は上書きしてください）
 function initStudyDropdowns() {
     const startHour = document.getElementById('studyStartHour');
@@ -1067,15 +1062,6 @@ function initStudyDropdowns() {
     startHour.value = "18";
     endHour.value = "19";
 }
-
-// ページ読み込み時に全ての初期化を行う
-window.onload = function() {
-    initStudyDropdowns();
-    
-    // 「年」や「月」が変わった時に「日」を更新するイベントを追加
-    document.getElementById('studyYearSelect').addEventListener('change', updateStudyDayDropdown);
-    document.getElementById('studyMonthSelect').addEventListener('change', updateStudyDayDropdown);
-};
 
 function initStudyDropdowns() {
     // 1. 年・月の生成
@@ -1133,6 +1119,67 @@ function updateStudyDayDropdown() {
         opt.value = val;
         opt.innerText = i + "日";
         dSel.appendChild(opt);
+    }
+}
+
+// ページを開いた瞬間に自動実行
+window.onload = function() {
+    initAllDropdowns(); // 年月日と時間の初期化を一括で実行
+    
+    // イベントリスナーを追加
+    document.getElementById('studyYearSelect').addEventListener('change', updateStudyDayDropdown);
+    document.getElementById('studyMonthSelect').addEventListener('change', updateStudyDayDropdown);
+};
+
+function initAllDropdowns() {
+    const today = new Date();
+    
+    // 1. 年・月・日の生成とセット
+    const ySel = document.getElementById('studyYearSelect');
+    const mSel = document.getElementById('studyMonthSelect');
+
+    // 年 (2026-2028)
+    ySel.innerHTML = '';
+    for(let y=2026; y<=2028; y++){
+        ySel.innerHTML += `<option value="${y}" ${y === today.getFullYear() ? 'selected' : ''}>${y}</option>`;
+    }
+
+    // 月 (01-12)
+    mSel.innerHTML = '';
+    for(let i=1; i<=12; i++){
+        let val = String(i).padStart(2, '0');
+        mSel.innerHTML += `<option value="${val}" ${i === (today.getMonth()+1) ? 'selected' : ''}>${i}</option>`;
+    }
+
+    // 日の生成を関数呼び出し
+    updateStudyDayDropdown();
+
+    // 2. 時間の生成 (00-23)
+    const hS = document.getElementById('studyStartHour');
+    const hE = document.getElementById('studyEndHour');
+    hS.innerHTML = ''; hE.innerHTML = '';
+    for(let i=0; i<=23; i++){
+        let val = String(i).padStart(2, '0');
+        hS.innerHTML += `<option value="${val}">${i}</option>`;
+        hE.innerHTML += `<option value="${val}">${i}</option>`;
+    }
+    hS.value = "18"; // デフォルト
+    hE.value = "19"; // デフォルト
+}
+
+// 月が変わるたびに「日」を再生成する関数
+function updateStudyDayDropdown() {
+    const y = document.getElementById('studyYearSelect').value;
+    const m = document.getElementById('studyMonthSelect').value;
+    const dSel = document.getElementById('studyDaySelect');
+    
+    // その月の最終日を取得
+    const lastDay = new Date(y, m, 0).getDate();
+    
+    dSel.innerHTML = '';
+    for(let i=1; i<=lastDay; i++){
+        let val = String(i).padStart(2, '0');
+        dSel.innerHTML += `<option value="${val}">${i}</option>`;
     }
 }
 
