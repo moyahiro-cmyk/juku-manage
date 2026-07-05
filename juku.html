@@ -713,7 +713,8 @@ function registerSelfStudy() {
     db.collection("schedules").add({
         student: "自習", date: dateStr, text: text, type: 'study',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => alert("登録しました！"));
+    }).then(() => {
+        alert("登録しました！");
     // ★ ここで最新データをDBから再取得し、その後にカレンダーを描画する
         db.collection("schedules").get().then((querySnapshot) => {
             schedules = []; // 全体で使っているschedules変数を空にする
@@ -723,7 +724,9 @@ function registerSelfStudy() {
     // 【ここを追加】カレンダーを再描画する関数を呼び出す
         renderStudyCalendar();
 });
+});
 }
+
 
 
         function updateRightPanelLists() {
