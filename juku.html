@@ -859,15 +859,15 @@ function registerSelfStudy() {
         histClass.style.display = 'block';
         histUrgent.style.display = 'none';
         renderHistory();
-    } else if (pageNum === 2) {
+        } else if (pageNum === 2) {
         // 緊急連絡タブの時
         histClass.style.display = 'none';
         histUrgent.style.display = 'block';
         renderUrgentHistory(); // さっき作った関数
+        }
     }
 }
-        }
-        
+
 
 // 緊急連絡送信関数（sendUrgentなど）の最後
 function sendUrgent() {
