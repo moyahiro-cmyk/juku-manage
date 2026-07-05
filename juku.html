@@ -829,7 +829,7 @@ function registerSelfStudy() {
         });
 
         function switchTab(pageNum) {
-    // 既存のページ切り替え処理
+    // 1. ページ切り替え処理
     for (let i = 1; i <= 6; i++) {
         const page = document.getElementById('page' + i);
         const tab = document.getElementById('tab' + i);
@@ -837,7 +837,7 @@ function registerSelfStudy() {
         if (tab) tab.classList.toggle('active', (pageNum === i));
     }
     
-    // 右側のパネル制御
+    // 2. 右側のパネル制御
     const rightCol = document.getElementById('rightColumn');
     const leftCol = document.getElementById('leftColumn');
     const histClass = document.getElementById('history-class');
@@ -850,23 +850,20 @@ function registerSelfStudy() {
         rightCol.style.display = 'flex'; 
         leftCol.classList.remove('full-width');
         
-        // ★ここで一度、両方を隠してから「該当するものだけ」表示する
+        // 両方を一度隠す
         if (histClass) histClass.style.display = 'none';
         if (histUrgent) histUrgent.style.display = 'none';
 
+        // 該当するものだけ表示
         if (pageNum === 1) {
-        // 授業予定タブの時
-        histClass.style.display = 'block';
-        histUrgent.style.display = 'none';
-        renderHistory();
+            histClass.style.display = 'block';
+            renderHistory();
         } else if (pageNum === 2) {
-        // 緊急連絡タブの時
-        histClass.style.display = 'none';
-        histUrgent.style.display = 'block';
-        renderUrgentHistory(); // さっき作った関数
+            histUrgent.style.display = 'block';
+            renderUrgentHistory(); 
         }
-    }
-}
+    } // ← ここの } で else ブロックが終わるのが正しい構造です
+} // ← ここの } で switchTab 関数が終わります
 
 
 // 緊急連絡送信関数（sendUrgentなど）の最後
