@@ -96,6 +96,40 @@
         .qr-placeholder { width: 120px; height: 120px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; margin: 10px 0; font-size: 0.8em; color: #666; border: 1px solid #ccc; }
         .student-grade-sub { font-size: 0.85em; color: #555; display: block; margin-top: 2px; font-weight: normal; }
 
+        /* カレンダーのコンテナを左寄せに */
+.study-container {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+#studyCalendarGrid {
+    width: 300px; /* カレンダーを小さく */
+}
+
+/* 緑ポチのズレを修正（中央配置） */
+.calendar-day {
+    position: relative;
+    text-align: center;
+}
+.has-study::after {
+    content: '●';
+    color: #27ae60;
+    font-size: 10px;
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%); /* これで完全に中央にズレを修正 */
+}
+
+/* 右側の詳細表示用エリア */
+#studyDetailArea {
+    flex: 1;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 8px;
+}
+
         @media (max-width: 768px) {
             .main-container { flex-direction: column; }
             .left-col, .right-col { max-width: 100%; width: 100%; }
@@ -328,6 +362,8 @@
         <button class="calendar-nav-btn" onclick="changeStudyMonth(1)">▶</button>
     </div>
     <div class="calendar-grid" id="studyCalendarGrid"></div>
+
+    
 
     <hr style="margin: 20px 0;">
     
