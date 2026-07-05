@@ -356,16 +356,26 @@
                 
                 <div id="page6" class="box" style="display: none;">
     <h2>📖 自習スペースの管理</h2>
-    <div class="calendar-header">
-        <button class="calendar-nav-btn" onclick="changeStudyMonth(-1)">◀</button>
-        <span id="studyMonthTitle">2026年07月</span>
-        <button class="calendar-nav-btn" onclick="changeStudyMonth(1)">▶</button>
+    <div style="display: flex; gap: 20px; align-items: flex-start;">
+    <!-- 左側：カレンダー -->
+    <div>
+        <div class="calendar-header">
+            <button class="calendar-nav-btn" onclick="changeStudyMonth(-1)">◀</button>
+            <span id="studyMonthTitle">2026年07月</span>
+            <button class="calendar-nav-btn" onclick="changeStudyMonth(1)">▶</button>
+        </div>
+        <div class="calendar-grid" id="studyCalendarGrid" style="width: 300px;"></div>
     </div>
-    <div class="calendar-grid" id="studyCalendarGrid"></div>
 
-    
+    <!-- 右側：詳細表示エリア -->
+    <div id="studyDetailArea" style="flex: 1; border: 1px solid #ddd; padding: 15px; border-radius: 8px;">
+        <h3>選択日の予定</h3>
+        <div id="selectedDateText">日付を選択してください</div>
+        <ul id="studyList"></ul>
+    </div>
+</div>
 
-    <hr style="margin: 20px 0;">
+<hr style="margin: 20px 0;">
     
     <label>年月日:</label>
     <div class="inline-selects">
