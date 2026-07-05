@@ -1022,6 +1022,9 @@ function renderStudyCalendar() {
         if (schedules.some(s => s.date === dateStr && s.type === 'study')) {
             div.classList.add('has-study');
         }
+        // ② 【追加】クリックした時に詳細を表示するイベントを追加
+    div.onclick = () => showStudyDetails(dateStr);
+
         grid.appendChild(div);
     }
 
