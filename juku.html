@@ -787,7 +787,46 @@ function registerSelfStudy() {
 });
 });
 }
+        // 日付をクリックした時に右側を更新する関数
+function displaySelectedDateInfo(dateStr) {
+    const rightCol = document.getElementById('rightColumn');
+    const histClass = document.getElementById('history-class');
+    const histUrgent = document.getElementById('history-urgent');
 
+    // 右側のパネルを表示
+    rightCol.style.display = 'flex';
+    document.getElementById('leftColumn').classList.remove('full-width');
+    
+    // 表示エリアをクリアして再構築
+    histClass.style.display = 'block';
+    histUrgent.style.display = 'block';
+    
+    // 既存のリストをクリア
+    const classList = document.getElementById('history-classList'); // 授業履歴のリストIDに合わせてください
+    const urgentList = document.getElementById('urgentHistoryList');
+    classList.innerHTML = `<h3>📅 ${dateStr} の予定</h3>`;
+    urgentList.innerHTML = `<h3>📢 ${dateStr} の連絡</h3>`;
+
+    // 1. その日の「授業予定」をフィルタリングして表示
+    const daySchedules = schedules.filter(s => s.date === dateStr && s.type === 'normal');
+    if (daySchedules.length > 0) {
+        daySchedules.forEach(item => {
+            classList.innerHTML += `<li style="margin: 8px 0;">${item.text}</li>`;
+        });
+    } else {
+        classList.innerHTML += '<p>予定はありません。</p>';
+    }
+
+    // 2. その日の「緊急連絡」をフィルタリングして表示
+    const dayUrgent = schedules.filter(s => s.date === dateStr && s.type === 'urgent');
+    if (dayUrgent.length > 0) {
+        dayUrgent.forEach(item => {
+            urgentList.innerHTML += `<li style="color:red; margin: 8px 0;">${item.text}</li>`;
+        });
+    } else {
+        urgentList.innerHTML += '<p>連絡はありません。</p>';
+    }
+}
 
 
         function updateRightPanelLists() {
@@ -1169,11 +1208,43 @@ function updateStudyDayDropdown() {
 
 
 
-        function showDayDetail(dateStr, dayNum, filter) {
-            const detailBox = document.getElementById('dayDetailBox');
-            let targetEvents = schedules.filter(item => item.date === dateStr && (filter === 'すべて' || item.student === filter || item.student === '全員'));
-            const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
-            const dayIdx = new Date(dateStr).getDay();
+        function showDayDetail(dateStr, dayNum, filter) { // 引数を dayNum と filter に
+    const rightCol = document.getElementById('rightColumn');
+    const leftCol = document.getElementById('leftColumn');
+    
+    // 表示エリアを取得
+    const classList = document.getElementById('history-classList'); 
+    const urgentList = document.getElementById('urgentHistoryList'); 
+    const titleArea = document.getElementById('dateDetailTitle'); 
+
+    // 右パネルを表示状態にする
+    rightCol.style.display = 'flex';
+    leftCol.classList.remove('full-width');
+
+    // ★修正：引数の dayNum と filter を使う
+    if (titleArea) titleArea.innerText = `📅 ${currentMonth + 1}月${dayNum}日 の予定`;
+
+    // フィルタリング処理
+    const dayEvents = schedules.filter(item => item.date === dateStr);
+    
+    // ★修正：引数の filter を使う
+    const normalEvents = dayEvents.filter(item => item.type === 'normal' && (filter === 'すべて' || item.student === filter || item.student === '全員'));
+    const urgentEvents = dayEvents.filter(item => item.type === 'urgent');
+
+    // 表示内容を構築
+    if (classList) {
+        classList.innerHTML = normalEvents.length > 0 
+            ? normalEvents.map(e => `<li>${e.text}</li>`).join('') 
+            : '<li>予定はありません</li>';
+    }
+
+    if (urgentList) {
+        urgentList.innerHTML = urgentEvents.length > 0 
+            ? urgentEvents.map(e => `<li style="color:red;">${e.text}</li>`).join('') 
+            : '<li>連絡はありません</li>';
+    }
+}
+
             let dayColorClass = dayIdx === 0 ? 'sun' : (dayIdx === 6 ? 'sat' : '');
 
             let html = `<strong>📅 ${currentMonth + 1}月${dayNum}日<span class="detail-day-span ${dayColorClass}">（${weekdaysJa[dayIdx]}）</span>の予定</strong>`;
