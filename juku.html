@@ -622,46 +622,60 @@
         }
 
         function initStudyDropdowns() {
-    const yearSel = document.getElementById('studyYearSelect');
-    const monthSel = document.getElementById('studyMonthSelect');
+    // 1. 年・月のプルダウン（初期値は今年・今月）
+    const ySel = document.getElementById('studyYearSelect');
+    const mSel = document.getElementById('studyMonthSelect');
+    const dSel = document.getElementById('studyDaySelect');
     const today = new Date();
-    const startHourSel = document.getElementById('studyStartHour');
-    const endHourSel = document.getElementById('studyEndHour');
-    
-    // すでに中身が入っている場合は二重に追加しないようクリア
-    startHourSel.innerHTML = '';
-    endHourSel.innerHTML = '';
 
-    // 0時から23時まで生成
-    for (let i = 0; i <= 23; i++) {
-        let opt1 = document.createElement('option');
-        opt1.value = String(i).padStart(2, '0');
-        opt1.innerText = i;
-        startHourSel.appendChild(opt1);
-
-        let opt2 = document.createElement('option');
-        opt2.value = String(i).padStart(2, '0');
-        opt2.innerText = i;
-        endHourSel.appendChild(opt2);
-    }
-    
-    // デフォルト値をセット（例：開始18時、終了19時）
-    startHourSel.value = "18";
-    endHourSel.value = "19";
-
-
-    // 年・月のセット（既存ロジックを流用）
+    ySel.innerHTML = '';
     for (let y = 2026; y <= 2028; y++) {
         let opt = document.createElement('option'); opt.value = y; opt.innerText = y;
         if (y === today.getFullYear()) opt.selected = true;
-        yearSel.appendChild(opt);
+        ySel.appendChild(opt);
     }
+
+    mSel.innerHTML = '';
     for (let i = 1; i <= 12; i++) {
         let opt = document.createElement('option'); opt.value = String(i).padStart(2, '0'); opt.innerText = i;
         if (i === (today.getMonth() + 1)) opt.selected = true;
-        monthSel.appendChild(opt);
+        mSel.appendChild(opt);
     }
+    
+    // 日のプルダウンを生成
     updateStudyDayDropdown();
+
+    // 2. 時・分のプルダウン（00〜23時, 00・30分）
+    const startH = document.getElementById('studyStartHour');
+    const endH = document.getElementById('studyEndHour');
+    startH.innerHTML = ''; endH.innerHTML = '';
+    
+    for (let i = 0; i <= 23; i++) {
+        let val = String(i).padStart(2, '0');
+        startH.innerHTML += `<option value="${val}">${i}</option>`;
+        endH.innerHTML += `<option value="${val}">${i}</option>`;
+    }
+    
+    // 分の固定選択肢（HTML側にあるなら以下のようにJavaScript側で制御も可能）
+    document.getElementById('studyStartMinute').value = "00";
+    document.getElementById('studyEndMinute').value = "00";
+}
+
+// 日のプルダウンを更新する関数（月が変わった時用）
+function updateStudyDayDropdown() {
+    const y = document.getElementById('studyYearSelect').value;
+    const m = document.getElementById('studyMonthSelect').value;
+    const dSel = document.getElementById('studyDaySelect');
+    const lastDay = new Date(y, m, 0).getDate();
+    
+    const currentDay = dSel.value; // 現在選ばれている日を保持
+    dSel.innerHTML = '';
+    for (let i = 1; i <= lastDay; i++) {
+        let val = String(i).padStart(2, '0');
+        let opt = document.createElement('option'); opt.value = val; opt.innerText = i;
+        if (val === currentDay) opt.selected = true;
+        dSel.appendChild(opt);
+    }
 }
 
 function updateStudyDayDropdown() {
