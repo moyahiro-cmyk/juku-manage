@@ -1109,18 +1109,25 @@ function updateStudyDayDropdown() {
             renderCalendar();
         }
 
-        function clearAllData() {
-            if (confirm('クラウド上のすべてのデータを完全に削除しますか？')) {
-                db.collection("schedules").get().then((q) => {
-                    const batch = db.batch(); q.forEach((d) => batch.delete(d.ref)); return batch.commit();
-                });
-                db.collection("parents").get().then((q) => {
-                    const batch = db.batch(); q.forEach((d) => batch.delete(d.ref)); return batch.commit();
-                }).then(() => {
-                    alert('初期化完了');
-                });
-            }
+        function clearalldata() {
+            if (!confirm("本当に全データを削除しますか？")) return;
+
+    db.collection("schedules").get().then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+            doc.ref.delete();
+        });
+        alert("リセットしました！");
+
+        // 【ここを追加】画面上のリストを強制的に空にする
+        document.getElementById('urgentHistoryList').innerHTML = '';
+        document.getElementById('normalHistoryList').innerHTML = '';
+        
+        // カレンダーがある場合はそれも再描画
+        if (typeof renderStudyCalendar === 'function') {
+            renderStudyCalendar();
         }
+    });
+}
 
 // 中身を確実に生成する関数（既にある場合は上書きしてください）
 function initStudyDropdowns() {
