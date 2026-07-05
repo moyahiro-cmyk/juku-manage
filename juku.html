@@ -369,7 +369,7 @@
 
     <!-- 右側：詳細表示エリア -->
     <div id="studyDetailArea" style="flex: 1; border: 1px solid #ddd; padding: 15px; border-radius: 8px;">
-        <h3>選択日の予定</h3>
+        <h3>自習スペースの開放予定</h3>
         <div id="selectedDateText">日付を選択してください</div>
         <ul id="studyList"></ul>
     </div>
@@ -403,15 +403,11 @@
             </div>
 
             <div class="right-col" id="rightColumn">
-                <div class="box history-box urgent-history">
-                    <h3>🚨 緊急連絡の送信履歴</h3>
-                    <ul id="urgentHistoryList" class="history-list"></ul>
-                </div>
-                <div class="box history-box normal-history">
-                    <h3>📅 指導予定の登録履歴</h3>
-                    <ul id="normalHistoryList" class="history-list"></ul>
-                </div>
-            </div>
+    <div class="box history-box normal-history" style="height: 500px;"> <!-- 高さを指定して縦長に -->
+        <h3>📢 教室からの連絡 履歴</h3>
+        <ul id="urgentHistoryList" class="history-list"></ul>
+    </div>
+</div>
         </div>
     </div>
 
@@ -915,12 +911,12 @@ function registerSelfStudy() {
             }
 
             db.collection("schedules").add({
-                student: target, date: dateStr, text: `🚨【緊急】${title}：${body}`, type: 'urgent',
+                student: target, date: dateStr, text: `🚨【連絡】${title}：${body}`, type: 'urgent',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             }).then(() => {
                 document.getElementById('urgentTitle').value = '';
                 document.getElementById('urgentBody').value = '';
-                alert(`緊急連絡を登録しました！`);
+                alert(`教室からの連絡を登録しました！`);
             });
         }
 
