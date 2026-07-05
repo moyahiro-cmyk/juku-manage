@@ -817,7 +817,7 @@ function registerSelfStudy() {
         });
 
         function switchTab(pageNum) {
-    // 1. ページとタブの切り替え（既存の処理）
+    // 既存のページ切り替え処理
     for (let i = 1; i <= 6; i++) {
         const page = document.getElementById('page' + i);
         const tab = document.getElementById('tab' + i);
@@ -825,15 +825,12 @@ function registerSelfStudy() {
         if (tab) tab.classList.toggle('active', (pageNum === i));
     }
     
-    // 2. 右側パネル（history-box）の表示制御
+    // 右側のパネル制御
     const rightCol = document.getElementById('rightColumn');
     const leftCol = document.getElementById('leftColumn');
-    
-    // 履歴パネルの要素を取得（IDを付けておく必要があります）
     const histClass = document.getElementById('history-class');
     const histUrgent = document.getElementById('history-urgent');
 
-    // ★まず、全体を表示するか消すかを決める
     if (pageNum === 4 || pageNum === 5 || pageNum === 6) {
         rightCol.style.display = 'none'; 
         leftCol.classList.add('full-width');
@@ -841,18 +838,17 @@ function registerSelfStudy() {
         rightCol.style.display = 'flex'; 
         leftCol.classList.remove('full-width');
         
-        // ★さらに、中身の表示を切り替える
-        if (histClass) histClass.style.display = (pageNum === 1) ? 'block' : 'none';
-        if (histUrgent) histUrgent.style.display = (pageNum === 2) ? 'block' : 'none';
+        // ★ここで一度、両方を隠してから「該当するものだけ」表示する
+        if (histClass) histClass.style.display = 'none';
+        if (histUrgent) histUrgent.style.display = 'none';
+
+        if (pageNum === 1) histClass.style.display = 'block';
+        if (pageNum === 2) histUrgent.style.display = 'block';
     }
 
-    // 3. 各タブに応じた処理の実行（既存の処理）
+    // （以下、既存の処理）
     if (pageNum === 3) renderCalendar();
-    if (pageNum === 5) loadCardForm();
-    if (pageNum === 6) {
-        initStudyDropdowns();
-        renderStudyCalendar();
-    }
+    // ...
 }
 
 
