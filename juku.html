@@ -1028,6 +1028,30 @@ function renderStudyCalendar() {
         grid.appendChild(div);
     }
 
+function showStudyDetails(dateStr) {
+    // 右側のエリアの要素を取得
+    const list = document.getElementById('studyList');
+    const title = document.getElementById('selectedDateText');
+    
+    // 表示をクリアしてタイトルを更新
+    list.innerHTML = '';
+    title.innerText = dateStr + ' の予定';
+    
+    // その日の予定だけを抽出
+    const daySchedules = schedules.filter(s => s.date === dateStr && s.type === 'study');
+    
+    // 予定があればリストに追加
+    if (daySchedules.length > 0) {
+        daySchedules.forEach(s => {
+            let li = document.createElement('li');
+            li.innerText = s.text;
+            list.appendChild(li);
+        });
+    } else {
+        list.innerHTML = '<li>予定はありません</li>';
+    }
+}    
+
     // 日付をクリックした時に右側に予定を表示する関数
 function showDetails(dateStr) {
     const list = document.getElementById('studyList');
