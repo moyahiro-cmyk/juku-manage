@@ -321,19 +321,34 @@
                 </div>
                 
                 <div id="page6" class="box" style="display: none;">
-                    <h2>📖 自習スペースの開放設定</h2>
-                        <label>日付を選択:</label>
-                            <div class="inline-selects">
-                                <select id="selfStudyYear"></select><span>年</span>
-                                <select id="selfStudyMonth"></select><span>月</span>
-                                <select id="selfStudyDay"></select><span>日</span>
-                </div>
-                <label>使用可能時間帯:</label>
-    <div class="inline-selects">
-        <select id="selfStudyStartHour"></select><span>時〜</span>
-        <select id="selfStudyEndHour"></select><span>時</span>
+    <h2>📖 自習スペースの管理</h2>
+    <div class="calendar-header">
+        <button class="calendar-nav-btn" onclick="changeStudyMonth(-1)">◀</button>
+        <span id="studyMonthTitle">2026年07月</span>
+        <button class="calendar-nav-btn" onclick="changeStudyMonth(1)">▶</button>
     </div>
-    <button style="background-color: #27ae60;" onclick="sendSelfStudy()">自習スペースを開放する</button>
+    <div class="calendar-grid" id="studyCalendarGrid"></div>
+
+    <hr style="margin: 20px 0;">
+    
+    <label>年月日:</label>
+    <div class="inline-selects">
+        <select id="studyYearSelect"></select><span>年</span>
+        <select id="studyMonthSelect" onchange="updateStudyDayDropdown()"></select><span>月</span>
+        <select id="studyDaySelect"></select><span>日</span>
+    </div>
+    <label>使用可能時間帯:</label>
+    <div class="inline-selects">
+        <select id="studyStartHour"></select><span>時</span>
+        <select id="studyStartMinute">
+            <option value="00">00</option><option value="30">30</option>
+        </select><span>分 〜</span>
+        <select id="studyEndHour"></select><span>時</span>
+        <select id="studyEndMinute">
+            <option value="00">00</option><option value="30">30</option>
+        </select><span>分</span>
+    </div>
+    <button style="background-color: #27ae60;" onclick="registerSelfStudy()">自習スペースを追加する</button>
 </div>
 
                 <div style="text-align:left;">
@@ -606,6 +621,47 @@
             }
         }
 
+        function initStudyDropdowns() {
+    const yearSel = document.getElementById('studyYearSelect');
+    const monthSel = document.getElementById('studyMonthSelect');
+    const today = new Date();
+    
+    // 年・月のセット（既存ロジックを流用）
+    for (let y = 2026; y <= 2028; y++) {
+        let opt = document.createElement('option'); opt.value = y; opt.innerText = y;
+        if (y === today.getFullYear()) opt.selected = true;
+        yearSel.appendChild(opt);
+    }
+    for (let i = 1; i <= 12; i++) {
+        let opt = document.createElement('option'); opt.value = String(i).padStart(2, '0'); opt.innerText = i;
+        if (i === (today.getMonth() + 1)) opt.selected = true;
+        monthSel.appendChild(opt);
+    }
+    updateStudyDayDropdown();
+}
+
+function updateStudyDayDropdown() {
+    const year = document.getElementById('studyYearSelect').value;
+    const month = document.getElementById('studyMonthSelect').value;
+    const daySel = document.getElementById('studyDaySelect');
+    const lastDay = new Date(year, month, 0).getDate();
+    daySel.innerHTML = '';
+    for (let i = 1; i <= lastDay; i++) {
+        let opt = document.createElement('option'); opt.value = String(i).padStart(2, '0'); opt.innerText = i;
+        daySel.appendChild(opt);
+    }
+}
+
+function registerSelfStudy() {
+    const dateStr = `${document.getElementById('studyYearSelect').value}-${document.getElementById('studyMonthSelect').value}-${document.getElementById('studyDaySelect').value}`;
+    const text = `${document.getElementById('studyStartHour').value}:${document.getElementById('studyStartMinute').value}〜${document.getElementById('studyEndHour').value}:${document.getElementById('studyEndMinute').value}`;
+    
+    db.collection("schedules").add({
+        student: "自習", date: dateStr, text: text, type: 'study',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => alert("登録しました！"));
+}
+
         function updateRightPanelLists() {
             const urgentListEl = document.getElementById('urgentHistoryList');
             const normalListEl = document.getElementById('normalHistoryList');
@@ -807,7 +863,7 @@ function sendSelfStudy() {
 }
         }
 
-        
+
         function showDayDetail(dateStr, dayNum, filter) {
             const detailBox = document.getElementById('dayDetailBox');
             let targetEvents = schedules.filter(item => item.date === dateStr && (filter === 'すべて' || item.student === filter || item.student === '全員'));
