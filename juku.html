@@ -731,6 +731,7 @@ function registerSelfStudy() {
         renderStudyCalendar();
     }
 }
+
     // ▲▲▲ ここまで追加 ▲▲▲
 
     // ... (rightColumnの表示判定など既存の処理) ...
@@ -942,12 +943,6 @@ function updateStudyDayDropdown() {
     }
 }
 
-// 4. タブ切り替え時に自習カレンダーを呼ぶ（switchTab関数の修正）
-// switchTab関数の中に以下を追加してください
-if (pageNum === 6) {
-    renderStudyCalendar();
-    initStudyDropdowns();
-}
 
 
         function showDayDetail(dateStr, dayNum, filter) {
