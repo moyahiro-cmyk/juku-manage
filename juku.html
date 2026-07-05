@@ -861,7 +861,9 @@ function registerSelfStudy() {
         } else if (pageNum === 2) {
             histUrgent.style.display = 'block';
             renderUrgentHistory(); 
-        }
+        } // （以下、既存の処理）
+    else if (pageNum === 3) {renderCalendar();
+    // ...
     } // ← ここの } で else ブロックが終わるのが正しい構造です
 } // ← ここの } で switchTab 関数が終わります
 
@@ -878,12 +880,6 @@ function sendUrgent() {
         renderUrgentHistory(); // ★送信後に即座に反映
     });
 }
-
-
-    // （以下、既存の処理）
-    if (pageNum === 3) renderCalendar();
-    // ...
-
 
 
         async function sendSchedule() {
