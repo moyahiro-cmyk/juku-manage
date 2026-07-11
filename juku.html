@@ -542,7 +542,7 @@
             const selectedKey = document.getElementById("cardStudentSelect").value;
             
             const updatedData = {
-                status: document.getElementById('editStatus').value
+                status: document.getElementById('editStatus').value.trim(),
                 student1: document.getElementById("editStudent1").value.trim(),
                 student2: document.getElementById("editStudent2").value.trim(),
                 student3: document.getElementById("editStudent3").value.trim(),
