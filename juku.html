@@ -311,10 +311,7 @@
 
                 <!-- 🪪 5. 登録カード画面 -->
                 <div id="page5" class="box" style="display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-    <h2>🪪 保護者画面への登録用カード</h2>
-    <button onclick="resetFormForNew()" style="cursor: pointer;">＋ 新規登録へ</button>
-</div>
+                    <h2>🪪 保護者画面への登録用カード</h2>
                     <p style="font-size: 0.85em; color: #666;">新入塾の保護者に配布する、個別用システム登録コードの編集・発行画面です。</p>
                     
                     <label>配布する生徒（世帯基本）を選択:</label>
@@ -336,13 +333,6 @@
                             <label>生徒② (きょうだい・任意)</label>
                             <input type="text" id="editStudent2">
                             
-                            <label>在籍ステータス</label>
-<select id="editStatus">
-    <option value="OZ">OZ (第1教室)</option>
-    <option value="JY">JY (第2教室)</option>
-    <option value="卒業">卒業</option>
-</select>
-
                             <label>生徒③ (きょうだい・任意)</label>
                             <input type="text" id="editStudent3">
                             
@@ -357,8 +347,6 @@
                             
                             <label>保護者用連携ID</label>
                             <input type="text" id="editConnectId" readonly style="background:#eee;">
-
-                            <input type="hidden" id="editingParentId" value="">
 
                             <button style="margin-top: 12px; background-color: #2ecc71;" onclick="saveCardData()">🔥 この内容でクラウドデータを更新する</button>
                         </div>
@@ -539,6 +527,28 @@
             document.getElementById("cardTargetName").innerHTML = targetNamesHtml;
             document.getElementById("cardTargetId").innerText = p.connectId || "—";
             document.getElementById("cardTargetPass").innerText = p.pass || "";
+        }
+
+        function saveCardData() {
+            const selectedKey = document.getElementById("cardStudentSelect").value;
+            
+            const updatedData = {
+                student1: document.getElementById("editStudent1").value.trim(),
+                student2: document.getElementById("editStudent2").value.trim(),
+                student3: document.getElementById("editStudent3").value.trim(),
+                parentName: document.getElementById("editParentName").value.trim(),
+                email: document.getElementById("editEmail").value.trim(),
+                pass: document.getElementById("editPass").value.trim(),
+                connectId: document.getElementById("editConnectId").value.trim()
+            };
+
+            db.collection("parents").doc(selectedKey).update(updatedData)
+            .then(() => {
+                alert(`🔥 クラウド上の「${selectedKey}」世帯のマスターデータを更新しました！保護者画面にも即時同期されます。`);
+            })
+            .catch(err => {
+                alert("クラウドデータの更新に失敗しました: " + err.message);
+            });
         }
 
         auth.onAuthStateChanged((user) => {
@@ -1419,72 +1429,6 @@ window.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', clearAllData);
     }
 });
-
-// --- 編集・新規登録の切り替え ---
-function resetFormForNew() {
-    // 隠しIDを空にして「新規」モードにする
-    document.getElementById('editingParentId').value = '';
-    // 入力欄をすべて空にする（各IDは実際のHTMLに合わせてください）
-    // 例: document.getElementById('studentName').value = '';
-
-    // 以下、実際のHTMLのIDに合わせて調整してください（現在の入力欄のIDを埋めます）
-    document.getElementById('studentName').value = ''; // 例: 生徒氏名の入力欄ID
-    document.getElementById('parentName').value = '';  // 例: 保護者氏名の入力欄ID
-    // ...必要に応じて他の入力欄もクリア...
-
-    document.getElementById('editStudent1').value = '';
-    document.getElementById('editStudent2').value = '';
-    document.getElementById('editStudent3').value = '';
-    document.getElementById('editParentName').value = '';
-    document.getElementById('editEmail').value = '';
-    document.getElementById('editPass').value = '';
-    document.getElementById('editConnectId').value = ''; // 新規ならIDを生成するか空にする
-    alert('新規入力モードです。');
-}
-
-function saveCardData() {
-    const parentId = document.getElementById('editingParentId').value;
-    const selectedKey = document.getElementById("cardStudentSelect").value;
-    
-    const updatedData = {
-                status: document.getElementById('editStatus').value
-                student1: document.getElementById("editStudent1").value.trim(),
-                student2: document.getElementById("editStudent2").value.trim(),
-                student3: document.getElementById("editStudent3").value.trim(),
-                parentName: document.getElementById("editParentName").value.trim(),
-                email: document.getElementById("editEmail").value.trim(),
-                pass: document.getElementById("editPass").value.trim(),
-                connectId: document.getElementById("editConnectId").value.trim(),
-            };
-
-    // 隠しID(editingParentId)が空なら「新規追加」、あれば「上書き更新」
-    if (!parentId|| parentId === "") {
-        // 新規登録処理（例: Firestoreへの追加）
-        db.collection("parents").add(data)
-            .then(() => {
-                alert("新規登録が完了しました！");
-    })
-            .catch(e => {
-            console.error(e);
-            alert("新規登録に失敗しました: " + e.message);
-            });
-    }
-    
-    else {
-        // 優先的に hidden の parentId を使い、なければ選択中の Key を使う
-        const targetId = parentId || selectedKey;
-        // 更新処理（例: Firestoreの特定のドキュメントを更新）
-
-        db.collection("parents").doc(targetId).update(data)
-            .then(() => {
-                alert(`🔥 「${data.parentName}」様のデータを更新しました！`);
-            })
-            .catch(e => {
-                console.error(e);
-                alert("更新に失敗しました: " + e.message);
-            });
-        }
-    }
 
     </script>
 </body>
