@@ -311,7 +311,11 @@
 
                 <!-- 🪪 5. 登録カード画面 -->
                 <div id="page5" class="box" style="display: none;">
-                    <h2>🪪 保護者画面への登録用カード</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <h2>🪪 保護者画面への登録用カード</h2>
+    <!-- このボタンを復活させます -->
+    <button onclick="resetFormForNew()" style="cursor: pointer; padding: 5px 10px;">＋ 新規登録へ</button>
+</div>
                     <p style="font-size: 0.85em; color: #666;">新入塾の保護者に配布する、個別用システム登録コードの編集・発行画面です。</p>
                     
                     <label>配布する生徒（世帯基本）を選択:</label>
@@ -1439,6 +1443,19 @@ window.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', clearAllData);
     }
 });
+
+function resetFormForNew() {
+    document.getElementById('editingParentId').value = ''; // 新規モードにするためにIDをクリア
+    document.getElementById('editStudent1').value = '';
+    document.getElementById('editStudent2').value = '';
+    document.getElementById('editStudent3').value = '';
+    document.getElementById('editParentName').value = '';
+    document.getElementById('editEmail').value = '';
+    document.getElementById('editPass').value = '';
+    document.getElementById('editConnectId').value = '';
+    document.getElementById('editStatus').value = 'OZ'; // 在籍ステータスもデフォルトに戻す
+    alert('新規登録モードになりました。内容を入力して保存してください。');
+}
 
     </script>
 </body>
