@@ -1435,31 +1435,21 @@ function renderHistory() {
     const classList = document.getElementById('classHistoryList');
     if (!classList) return;
 
-    // 1. 全スケジュールを「新しい順」に並べ替える
-    // ※もしデータに登録日時がない場合、今の配列の最後尾から8件を取るのが直近の入力になります
     const recentSchedules = [...schedules].reverse().slice(0, 8);
 
-    // 2. リストをクリアして再描画
     classList.innerHTML = '';
     
     recentSchedules.forEach(item => {
         let li = document.createElement('li');
         li.style.cssText = "margin: 5px 0; padding: 5px; border-bottom: 1px solid #eee; font-size: 0.9em;";
         
-        // 履歴の見た目（生徒名と日付）
         li.innerHTML = `<strong>${item.student}</strong> - ${item.date}<br>
                         <span style="color:#666;">${item.text}</span>`;
         classList.appendChild(li);
     });
 }
 
-// ページ読み込み完了後にボタンと関数を紐付ける
-window.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('clearAllBtn');
-    if (btn) {
-        btn.addEventListener('click', clearAllData);
-    }
-});
+
 
 function resetFormForNew() {
     document.getElementById('editingParentId').value = ''; // 新規モードにするためにIDをクリア
@@ -1473,6 +1463,13 @@ function resetFormForNew() {
     document.getElementById('editStatus').value = 'OZ'; // 在籍ステータスもデフォルトに戻す
     alert('新規登録モードになりました。内容を入力して保存してください。');
 }
+// ページ読み込み完了後にボタンと関数を紐付ける
+window.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('clearAllBtn');
+    if (btn) {
+        btn.addEventListener('click', clearAllData);
+    }
+});
 
     </script>
 </body>
