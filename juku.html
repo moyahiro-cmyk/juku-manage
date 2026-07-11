@@ -1304,21 +1304,23 @@ function updateStudyDayDropdown() {
         }
 
         function clearAllData() {
-            if (!confirm("本当に全データを削除しますか？")) return;
+            if (!confirm("本当に予定、通知履歴を削除しますか？")) return;
 
-    db.collection("schedules").get().then((querySnapshot) => {
-        querySnapshot.forEach((doc) => {
-            doc.ref.delete();
+        // ここに消したいコレクションの名前を入れる
+    const targetCollections = ["schedules", "notifications"]; 
+
+    // 各コレクションを順番に削除
+    const deletePromises = targetCollections.map(colName => {
+        return db.collection(colName).get().then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+                doc.ref.delete();
+            });
         });
-        alert("リセットしました！");
-
-        // 画面を最新状態にする
-        schedules = [];
-        renderStudyCalendar(); // カレンダーを描画し直す
+    });
         
-        // もし他にも表示エリアがあるならここもクリア
-        if(document.getElementById('urgentHistoryList')) document.getElementById('urgentHistoryList').innerHTML = '';
-        if(document.getElementById('normalHistoryList')) document.getElementById('normalHistoryList').innerHTML = '';
+        Promise.all(deletePromises).then(() => {
+        alert("リセット完了しました！");
+        location.reload(); // ページを再読み込みするのが一番確実です
     }).catch((error) => {
         console.error("削除エラー: ", error);
         alert("削除に失敗しました。");
