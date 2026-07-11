@@ -193,13 +193,11 @@
                 <div id="page1" class="box">
                     <h2>【個別】授業予定の登録</h2>
                     <label>対象の生徒を指定:</label>
-                    <select id="studentSelect">
-                        <option value="佐藤 拓海">佐藤 拓海 くん</option>
-                        <option value="鈴木 結衣">鈴木 結衣 さん</option>
-                        <option value="高橋 蓮">高橋 蓮 くん</option>
-                        <option value="田中 葵">田中 葵 さん</option>
-                        <option value="渡辺 翔太">渡辺 翔太 くん</option>
-                    </select>
+                    <!-- 中身を空にする -->
+    <select id="studentSelect">
+        <option value="">読み込み中...</option>
+    </select>
+
                     <label>教科を選択:</label>
                     <select id="subjectSelect">
                         <option value="英語">英語</option>
@@ -465,6 +463,22 @@
             "渡辺 翔太": { student1: "渡辺 翔太 (中3)", student2: "—", student3: "—", parentName: "渡辺 哲也", email: "watanabe@oizumi.com", pass: "wata555", connectId: "p-watanabe-3092", status: "連携済み", lastCheck: "07/01" }
         };
 
+        // プルダウンを生成・更新する関数
+function updateStudentDropdown(snapshot) {
+    const select = document.getElementById("studentSelect");
+    // 一度リセット
+    select.innerHTML = '<option value="">対象を選択してください</option>';
+    
+    snapshot.forEach((doc) => {
+        const data = doc.data();
+        const option = document.createElement("option");
+        option.value = doc.id; // ドキュメントIDを値にすると処理しやすいです
+        // student1 の名前（例：田中 葵 (小5)）をそのまま表示
+        option.textContent = data.student1; 
+        select.appendChild(option);
+    });
+}
+
         function startWatchParents() {
     db.collection("parents").onSnapshot((snapshot) => {
         // もしデータがない場合に勝手に登録する処理（不要なら削除）
@@ -528,6 +542,9 @@
                     </tr>
                 `;
                 tableBody.insertAdjacentHTML('beforeend', row);
+
+                updateStudentDropdown(snapshot);
+                
             });
         }
     });
@@ -1510,6 +1527,30 @@ window.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('clearAllBtn');
     if (btn) btn.addEventListener('click', clearAllData);
 });
+
+function updateAllParentDropdowns() {
+    db.collection("parents").get().then((snapshot) => {
+        // 更新したいプルダウンのIDを配列で指定（タブ1, 2, 3のIDに合わせてください）
+        const selectIds = ["targetStudentSelect", "notifyTargetSelect", "calendarFilterSelect"];
+        
+        selectIds.forEach(id => {
+            const select = document.getElementById(id);
+            if (!select) return;
+
+            // 「全生徒」などの初期選択肢を残す場合はここを調整
+            select.innerHTML = '<option value="all">全員を対象にする</option>';
+            
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const option = document.createElement("option");
+                option.value = doc.id;
+                // student1の名前を表示する（必要に応じてparentNameに変えてください）
+                option.textContent = data.student1 || data.parentName;
+                select.appendChild(option);
+            });
+        });
+    });
+}
 
     </script>
 </body>
