@@ -319,14 +319,8 @@
 </div>
                     <p style="font-size: 0.85em; color: #666;">新入塾の保護者に配布する、個別用システム登録コードの編集・発行画面です。</p>
                     
-                    <label>配布する生徒（世帯基本）を選択:</label>
-                    <select id="cardStudentSelect" onchange="loadCardForm()">
-                        <option value="佐藤 拓海">佐藤 拓海 くん</option>
-                        <option value="鈴木 結衣">鈴木 結衣 さん</option>
-                        <option value="高橋 蓮">高橋 蓮 くん（※未連携）</option>
-                        <option value="田中 葵">田中 葵 さん</option>
-                        <option value="渡辺 翔太">渡辺 翔太 くん</option>
-                    </select>
+                    <!-- フォーム内の見えないところにIDを保持する枠を追加 -->
+<input type="hidden" id="hiddenEditKey" value="">
 
                     <div class="card-flex-container">
                         <div class="card-edit-form">
@@ -555,31 +549,29 @@ function editParent(id) {
     // 1. 登録カード（ページ5）を表示
     switchTab(5);
 
-    // 2. プルダウンの値をセット
-    const select = document.getElementById("cardStudentSelect");
-    select.value = id;
-
     // 3. データを反映する関数を呼び出し
     loadCardForm();
 }
 
 
         function loadCardForm() {
-            const selectedKey = document.getElementById("cardStudentSelect").value;
             const p = parentsData[selectedKey];
             
             if (!p) return;
 
-            // ★ここを追加：データベースのstatusをプルダウンに反映させる
-    document.getElementById("editStatus").value = p.status || "OZ";
-            document.getElementById("editStudent1").value = p.student1 || "";
-            document.getElementById("editStudent2").value = p.student2 || "—";
-            document.getElementById("editStudent3").value = p.student3 || "—";
-            document.getElementById("editParentName").value = p.parentName || "";
-            document.getElementById("editEmail").value = p.email || "";
-            document.getElementById("editPass").value = p.pass || "";
-            document.getElementById("editConnectId").value = p.connectId || "";
+            // 隠しフィールドにIDをセット（ここを更新することで保存時にIDがわかる）
+    document.getElementById("hiddenEditKey").value = id;
 
+    // フォームに値を流し込む
+    document.getElementById("editStatus").value = p.status || "OZ";
+    document.getElementById("editStudent1").value = p.student1 || "";
+    document.getElementById("editStudent2").value = p.student2 || "—";
+    document.getElementById("editStudent3").value = p.student3 || "—";
+    document.getElementById("editParentName").value = p.parentName || "";
+    document.getElementById("editEmail").value = p.email || "";
+    document.getElementById("editPass").value = p.pass || "";
+    document.getElementById("editConnectId").value = p.connectId || "";
+    
             let targetNamesHtml = formatStudentCell(p.student1);
             if (p.student2 && p.student2 !== "—") targetNamesHtml += "<br>" + formatStudentCell(p.student2);
             if (p.student3 && p.student3 !== "—") targetNamesHtml += "<br>" + formatStudentCell(p.student3);
@@ -587,7 +579,7 @@ function editParent(id) {
             document.getElementById("cardTargetName").innerHTML = targetNamesHtml;
             document.getElementById("cardTargetId").innerText = p.connectId || "—";
             document.getElementById("cardTargetPass").innerText = p.pass || "";
-        }
+}
 
         function saveCardData() {
             const selectedKey = document.getElementById("cardStudentSelect").value;
@@ -1480,17 +1472,26 @@ function renderHistory() {
 
 
 function resetFormForNew() {
-    document.getElementById('editingParentId').value = ''; // 新規モードにするためにIDをクリア
-    document.getElementById('editStudent1').value = '';
-    document.getElementById('editStudent2').value = '';
-    document.getElementById('editStudent3').value = '';
+    // 隠しキーを空にする（これが「新規作成」の合図）
+    document.getElementById("hiddenEditKey").value = "";
+
+    // フォームをリセット
+    document.getElementById("editStatus").value = "OZ";
+    document.getElementById("editStudent1").value = "";
+    document.getElementById("editStudent2").value = "—";
+    document.getElementById("editStudent3").value = "—";
     document.getElementById('editParentName').value = '';
     document.getElementById('editEmail').value = '';
     document.getElementById('editPass').value = '';
     document.getElementById('editConnectId').value = '';
-    document.getElementById('editStatus').value = 'OZ'; // 在籍ステータスもデフォルトに戻す
-    alert('新規登録モードになりました。内容を入力して保存してください。');
+    
+    // 3. 画面をタブ5へ移動
+    switchTab(5);
+    
+    console.log("新規登録モードにリセットしました");
 }
+}
+
 // ページ読み込み完了後にボタンと関数を紐付ける
 window.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('clearAllBtn');
