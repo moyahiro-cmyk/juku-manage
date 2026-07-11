@@ -243,14 +243,9 @@
                 <div id="page2" class="box" style="display: none;">
                     <h2 style="color: #e74c3c;">【一斉/個別】緊急連絡の送信登録</h2>
                     <label>通知を送る対象:</label>
-                    <select id="broadcastTarget">
-                        <option value="全員">全生徒の保護者（一斉通知）</option>
-                        <option value="佐藤 拓海">佐藤 拓海 くんの保護者のみ</option>
-                        <option value="鈴木 結衣">鈴木 結衣 さんの保護者のみ</option>
-                        <option value="高橋 蓮">高橋 蓮 くんの保護者のみ</option>
-                        <option value="田中 葵">田中 葵 さんの保護者のみ</option>
-                        <option value="渡辺 翔太">渡辺 翔太 くんの保護者のみ</option>
-                    </select>
+                    <select id="notifyTargetSelect">
+    <option value="all">全生徒の保護者（一斉通知）</option>
+</select>
 
                     <label>対象となる日付を指定（任意）:</label>
                     <div class="urgent-date-container">
@@ -268,15 +263,10 @@
                 <!-- 👁 3. カレンダー確認画面 -->
                 <div id="page3" class="box" style="display: none;">
                     <h2>生徒予定カレンダー（全体把握用）</h2>
-                    <label>表示する生徒で絞り込み:</label>
-                    <select id="calendarFilter" onchange="renderCalendar()">
-                        <option value="すべて">すべての生徒の予定を表示</option>
-                        <option value="佐藤 拓海">佐藤 拓海 くん</option>
-                        <option value="鈴木 結衣">鈴木 結衣 さん</option>
-                        <option value="高橋 蓮">高橋 蓮 くん</option>
-                        <option value="田中 葵">田中 葵 さん</option>
-                        <option value="渡辺 翔太">渡辺 翔太 くん</option>
-                    </select>
+                    <label>表示する生徒を選択:</label>
+                    <select id="calendarFilterSelect">
+    <option value="all">全員を表示</option>
+</select>
                     <div class="calendar-header" style="margin-top:15px;">
                         <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀</button>
                         <span id="calendarMonthTitle">2026年06月</span>
@@ -543,8 +533,8 @@ function updateStudentDropdown(snapshot) {
                 `;
                 tableBody.insertAdjacentHTML('beforeend', row);
 
-                updateStudentDropdown(snapshot);
-                
+                updateAllDropdown(snapshot);
+
             });
         }
     });
@@ -1528,29 +1518,31 @@ window.addEventListener('DOMContentLoaded', () => {
     if (btn) btn.addEventListener('click', clearAllData);
 });
 
-function updateAllParentDropdowns() {
-    db.collection("parents").get().then((snapshot) => {
-        // 更新したいプルダウンのIDを配列で指定（タブ1, 2, 3のIDに合わせてください）
-        const selectIds = ["targetStudentSelect", "notifyTargetSelect", "calendarFilterSelect"];
-        
-        selectIds.forEach(id => {
-            const select = document.getElementById(id);
-            if (!select) return;
+// 全てのプルダウンを同期させる関数
+function updateAllDropdowns(snapshot) {
+    const selects = [
+        { id: "studentSelect", label: "対象を選択" },           // タブ1
+        { id: "notifyTargetSelect", label: "全生徒の保護者（一斉通知）" }, // タブ2
+        { id: "calendarFilterSelect", label: "全員を表示" }      // タブ3
+    ];
 
-            // 「全生徒」などの初期選択肢を残す場合はここを調整
-            select.innerHTML = '<option value="all">全員を対象にする</option>';
-            
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                const option = document.createElement("option");
-                option.value = doc.id;
-                // student1の名前を表示する（必要に応じてparentNameに変えてください）
-                option.textContent = data.student1 || data.parentName;
-                select.appendChild(option);
-            });
+    selects.forEach(item => {
+        const select = document.getElementById(item.id);
+        if (!select) return;
+
+        // 初期化（タブごとに少し表示を変える）
+        select.innerHTML = `<option value="all">${item.label}</option>`;
+        
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            const option = document.createElement("option");
+            option.value = doc.id;
+            option.textContent = data.student1; // 例：田中 葵 (小5)
+            select.appendChild(option);
         });
     });
 }
+
 
     </script>
 </body>
