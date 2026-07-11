@@ -516,9 +516,9 @@
             const validStatus = (p.status === "JY" || p.status === "卒業") ? p.status : "OZ";
 
             // 2. 連携状態バッジは「連携済み」か「未連携」のみを判定
-            const statusBadge = (p.status === "連携済み") 
-                ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
-                : `<span style="color: #7f8c8d;">○ 未連携</span>`;
+            const statusBadge = (p.connectId && p.pass) 
+    ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
+    : `<span style="color: #7f8c8d;">○ 未連携</span>`;
 
             const row = `
                 <tr>
@@ -538,12 +538,6 @@
         });
         }
 
-        // 自動的にプルダウンを最新にする
-        generateDropdowns();
-
-        if (document.getElementById('page5').style.display === 'block') {
-            loadCardForm();
-        }
     });
 }
 
