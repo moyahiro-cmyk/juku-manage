@@ -295,6 +295,7 @@
                     <table class="admin-table">
                         <thead>
                             <tr>
+                                <th>在籍</th> <!-- ←これを追加 -->
                                 <th>生徒①<br><span style="font-size:0.8em;font-weight:normal;color:#666;">氏名 / 学年</span></th>
                                 <th>生徒②<br><span style="font-size:0.8em;font-weight:normal;color:#666;">氏名 / 学年</span></th>
                                 <th>生徒③<br><span style="font-size:0.8em;font-weight:normal;color:#666;">氏名 / 学年</span></th>
@@ -488,34 +489,51 @@
                 const tbody = document.getElementById("parentTableBody");
                 tbody.innerHTML = "";
 
-                snapshot.forEach((doc) => {
-                    const p = doc.data();
-                    parentsData[doc.id] = p; 
+                let dataArray = [];
+        snapshot.forEach((doc) => {
+            parentsData[doc.id] = doc.data();
+            dataArray.push({ id: doc.id, ...doc.data() });
+        });
 
-                    const statusBadge = p.status === "連携済み" 
-                        ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
-                        : `<span style="color: #7f8c8d;">○ 未連携</span>`;
+        // ★ここでソートを実行
+        const statusOrder = { "OZ": 1, "JY": 2, "卒業": 3 };
+        dataArray.sort((a, b) => {
+            const valA = statusOrder[a.status || "OZ"] || 4;
+            const valB = statusOrder[b.status || "OZ"] || 4;
+            return valA - valB;
+        });
 
-                    const row = `
-                        <tr>
-                            <td>${formatStudentCell(p.student1)}</td>
-                            <td>${formatStudentCell(p.student2)}</td>
-                            <td>${formatStudentCell(p.student3)}</td>
-                            <td><strong>${p.parentName} 様</strong></td>
-                            <td><code>${p.email}</code></td>
-                            <td><code>${p.pass}</code></td>
-                            <td>${statusBadge}</td>
-                            <td>${p.lastCheck}</td>
-                        </tr>
-                    `;
-                    tbody.insertAdjacentHTML('beforeend', row);
-                });
+        // テーブルの組み立て
+        const tbody = document.getElementById("parentTableBody");
+        tbody.innerHTML = "";
 
-                if (document.getElementById('page5').style.display === 'block') {
-                    loadCardForm();
-                }
-            });
+        dataArray.forEach((p) => {
+            const statusBadge = p.status === "連携済み" 
+                ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
+                : `<span style="color: #7f8c8d;">○ 未連携</span>`;
+
+            // ★在籍を表示する新しいセルを追加
+            const row = `
+                <tr>
+                    <td style="text-align:center; font-weight:bold;">${p.status || "OZ"}</td>
+                    <td>${formatStudentCell(p.student1)}</td>
+                    <td>${formatStudentCell(p.student2)}</td>
+                    <td>${formatStudentCell(p.student3)}</td>
+                    <td><strong>${p.parentName} 様</strong></td>
+                    <td><code>${p.email}</code></td>
+                    <td><code>${p.pass}</code></td>
+                    <td>${statusBadge}</td>
+                    <td>${p.lastCheck || "-"}</td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
+
+        if (document.getElementById('page5').style.display === 'block') {
+            loadCardForm();
         }
+    });
+}
 
         function loadCardForm() {
             const selectedKey = document.getElementById("cardStudentSelect").value;
@@ -1151,7 +1169,7 @@ function showStudyDetails(dateStr) {
 }    
 
     // 日付をクリックした時に右側に予定を表示する関数
-function showDetails(dateStr) {
+ showDetails(dateStr) {
     const list = document.getElementById('studyList');
     list.innerHTML = '';
     document.getElementById('selectedDateText').innerText = dateStr + ' の予定';
