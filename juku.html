@@ -496,10 +496,15 @@
         // ★ここでソートを実行
         const statusOrder = { "OZ": 1, "JY": 2, "卒業": 3 };
         dataArray.sort((a, b) => {
-            const valA = statusOrder[a.status || "OZ"] || 4;
-            const valB = statusOrder[b.status || "OZ"] || 4;
+           / 文字列の前後にある空白を削除して比較
+            const sA = (a.status || "OZ").trim();
+            const sB = (b.status || "OZ").trim();
+            
+            // 定義した順番（1, 2, 3）を取得。定義外なら4（一番下）にする
+            const valA = statusOrder[sA] || 4;
+            const valB = statusOrder[sB] || 4;
+            
             return valA - valB;
-        });
 
         // テーブルの組み立て
         const tableBody = document.getElementById("parentTableBody");
