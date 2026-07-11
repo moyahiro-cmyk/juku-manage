@@ -500,7 +500,7 @@
                 p.status = "OZ"; // データがない場合は強制的にOZにする
             }
         });
-        const statusOrder = { "OZ": 1, "JY": 2, "卒業": 3 };
+        // const statusOrder = { "OZ": 1, "JY": 2, "卒業": 3 };
         dataArray.sort((a, b) => {
             // "OZ", "JY", "卒業" 以外はすべて「OZ」として扱うための関数
             const sA = (p.status || "OZ").trim(); // ここを修正
