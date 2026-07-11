@@ -314,8 +314,6 @@
                     <h2>🪪 保護者画面への登録用カード</h2>
                     <p style="font-size: 0.85em; color: #666;">新入塾の保護者に配布する、個別用システム登録コードの編集・発行画面です。</p>
                     
-                    <button onclick="resetFormForNew()">＋ 新規登録へ</button>
-
                     <label>配布する生徒（世帯基本）を選択:</label>
                     <select id="cardStudentSelect" onchange="loadCardForm()">
                         <option value="佐藤 拓海">佐藤 拓海 くん</option>
@@ -341,8 +339,6 @@
                             <label>保護者氏名</label>
                             <input type="text" id="editParentName">
                             
-                            <input type="hidden" id="editingParentId" value="">
-
                             <label>メールアドレス</label>
                             <input type="email" id="editEmail">
                             
@@ -435,135 +431,1004 @@
     </div>
 
     <script>
-       // --- 初期設定 ---
-const firebaseConfig = {
-    apiKey: "AIzaSyCvsoHNZ_XcRsMB1ZQp0MZEjaQ9_4twIZk", 
-    authDomain: "juku-manage-dba.firebaseapp.com",
-    projectId: "juku-manage-dba",
-    storageBucket: "juku-manage-dba.firebasestorage.app",
-    messagingSenderId: "28426983865",
-    appId: "1:28426983865:web:252cd63d7f1b1cc3eb7e68"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyCvsoHNZ_XcRsMB1ZQp0MZEjaQ9_4twIZk", 
+            authDomain: "juku-manage-dba.firebaseapp.com",
+            projectId: "juku-manage-dba",
+            storageBucket: "juku-manage-dba.firebasestorage.app",
+            messagingSenderId: "28426983865",
+            appId: "1:28426983865:web:252cd63d7f1b1cc3eb7e68"
+        };
 
-firebase.initializeApp(firebaseConfig);
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth(); 
+        
+        let schedules = [];
+        let parentsData = {}; 
+        let currentYear = 2026;
+        let currentMonth = 5;
 
-const db = firebase.firestore();
-const auth = firebase.auth();
+        const initialParents = {
+            "佐藤 拓海": { student1: "佐藤 拓海 (小3)", student2: "—", student3: "—", parentName: "佐藤 明美", email: "sato@oizumi.com", pass: "sato123", connectId: "p-sato-7932", status: "連携済み", lastCheck: "07/04" },
+            "鈴木 結衣": { student1: "鈴木 結衣 (小6)", student2: "鈴木 陽太 (小2)", student3: "—", parentName: "鈴木 健一", email: "suzuki@oizumi.com", pass: "suzuki456", connectId: "p-suzuki-1102", status: "連携済み", lastCheck: "07/03" },
+            "高橋 蓮": { student1: "高橋 蓮 (中1)", student2: "—", student3: "—", parentName: "高橋 浩二", email: "takahashi@oizumi.com", pass: "taka789", connectId: "p-takahashi-4481", status: "未連携", lastCheck: "-" },
+            "田中 葵": { student1: "田中 葵 (小5)", student2: "田中 岬 (小3)", student3: "田中 結菜 (小1)", parentName: "田中 奈緒", email: "tanaka@oizumi.com", pass: "tanaka123", connectId: "p-tanaka-8821", status: "連携済み", lastCheck: "06/30" },
+            "渡辺 翔太": { student1: "渡辺 翔太 (中3)", student2: "—", student3: "—", parentName: "渡辺 哲也", email: "watanabe@oizumi.com", pass: "wata555", connectId: "p-watanabe-3092", status: "連携済み", lastCheck: "07/01" }
+        };
 
-// --- ページ読み込み時処理 ---
-window.addEventListener('DOMContentLoaded', () => {
-    initAllDropdowns();
-    renderStudyCalendar();
-
-    // 認証状態の監視
-    auth.onAuthStateChanged((user) => {
-        const loginArea = document.getElementById("loginArea");
-        const mainAdminArea = document.getElementById("mainAdminArea");
-        if (user?.email === "ken5oizumi@gmail.com") {
-            loginArea.style.display = "none";
-            mainAdminArea.style.display = "block";
-            startWatchParents();
-        } else {
-            loginArea.style.display = "block";
-            mainAdminArea.style.display = "none";
+        function formatStudentCell(studentStr) {
+            if (!studentStr || studentStr === "—") return "—";
+            const match = studentStr.match(/^(.+?)\s*\((.+?)\)$/);
+            if (match) return `<strong>${match[1]}</strong><span class="student-grade-sub">${match[2]}</span>`;
+            return studentStr;
         }
-    });
-});
 
-// --- プルダウン・ドロップダウンの初期化 ---
-function initAllDropdowns() {
+        function startWatchParents() {
+            db.collection("parents").onSnapshot((snapshot) => {
+                if (snapshot.empty) {
+                    Object.keys(initialParents).forEach(key => {
+                        db.collection("parents").doc(key).set(initialParents[key]);
+                    });
+                    return;
+                }
+
+                parentsData = {};
+                const tbody = document.getElementById("parentTableBody");
+                tbody.innerHTML = "";
+
+                snapshot.forEach((doc) => {
+                    const p = doc.data();
+                    parentsData[doc.id] = p; 
+
+                    const statusBadge = p.status === "連携済み" 
+                        ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
+                        : `<span style="color: #7f8c8d;">○ 未連携</span>`;
+
+                    const row = `
+                        <tr>
+                            <td>${formatStudentCell(p.student1)}</td>
+                            <td>${formatStudentCell(p.student2)}</td>
+                            <td>${formatStudentCell(p.student3)}</td>
+                            <td><strong>${p.parentName} 様</strong></td>
+                            <td><code>${p.email}</code></td>
+                            <td><code>${p.pass}</code></td>
+                            <td>${statusBadge}</td>
+                            <td>${p.lastCheck}</td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+
+                if (document.getElementById('page5').style.display === 'block') {
+                    loadCardForm();
+                }
+            });
+        }
+
+        function loadCardForm() {
+            const selectedKey = document.getElementById("cardStudentSelect").value;
+            const p = parentsData[selectedKey];
+            
+            if (!p) return;
+
+            document.getElementById("editStudent1").value = p.student1 || "";
+            document.getElementById("editStudent2").value = p.student2 || "—";
+            document.getElementById("editStudent3").value = p.student3 || "—";
+            document.getElementById("editParentName").value = p.parentName || "";
+            document.getElementById("editEmail").value = p.email || "";
+            document.getElementById("editPass").value = p.pass || "";
+            document.getElementById("editConnectId").value = p.connectId || "";
+
+            let targetNamesHtml = formatStudentCell(p.student1);
+            if (p.student2 && p.student2 !== "—") targetNamesHtml += "<br>" + formatStudentCell(p.student2);
+            if (p.student3 && p.student3 !== "—") targetNamesHtml += "<br>" + formatStudentCell(p.student3);
+
+            document.getElementById("cardTargetName").innerHTML = targetNamesHtml;
+            document.getElementById("cardTargetId").innerText = p.connectId || "—";
+            document.getElementById("cardTargetPass").innerText = p.pass || "";
+        }
+
+        function saveCardData() {
+            const selectedKey = document.getElementById("cardStudentSelect").value;
+            
+            const updatedData = {
+                student1: document.getElementById("editStudent1").value.trim(),
+                student2: document.getElementById("editStudent2").value.trim(),
+                student3: document.getElementById("editStudent3").value.trim(),
+                parentName: document.getElementById("editParentName").value.trim(),
+                email: document.getElementById("editEmail").value.trim(),
+                pass: document.getElementById("editPass").value.trim(),
+                connectId: document.getElementById("editConnectId").value.trim()
+            };
+
+            db.collection("parents").doc(selectedKey).update(updatedData)
+            .then(() => {
+                alert(`🔥 クラウド上の「${selectedKey}」世帯のマスターデータを更新しました！保護者画面にも即時同期されます。`);
+            })
+            .catch(err => {
+                alert("クラウドデータの更新に失敗しました: " + err.message);
+            });
+        }
+
+        auth.onAuthStateChanged((user) => {
+            const loginArea = document.getElementById("loginArea");
+            const mainAdminArea = document.getElementById("mainAdminArea");
+            
+            if (user && user.email === "ken5oizumi@gmail.com") {
+                if (loginArea) loginArea.style.display = "none";
+                if (mainAdminArea) mainAdminArea.style.display = "block";
+                generateDropdowns();
+                startWatchParents(); 
+            } else {
+                if (loginArea) loginArea.style.display = "block";
+                if (mainAdminArea) mainAdminArea.style.display = "none";
+            }
+        });
+
+        function handleLogin() {
+            const email = document.getElementById("loginEmail").value.trim();
+            const password = document.getElementById("loginPassword").value;
+            const errorDiv = document.getElementById("loginError");
+            if (errorDiv) errorDiv.style.display = "none";
+
+            auth.signInWithEmailAndPassword(email, password)
+                .catch((error) => {
+                    if (errorDiv) errorDiv.style.display = "block";
+                });
+        }
+
+        function handleLogout() {
+            if (confirm("ログアウトしますか？")) {
+                auth.signOut().then(() => { window.location.reload(); });
+            }
+        }
+
+        function togglePassword() {
+            const passwordInput = document.getElementById("loginPassword");
+            const checkbox = document.getElementById("togglePasswordVisibility");
+            passwordInput.type = checkbox.checked ? "text" : "password";
+        }
+
+        function handleNormalDateUpdate() { updateDayDropdown(); updateNormalDayDisplay(); }
+
+        function updateNormalDayDisplay() {
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            const day = document.getElementById('daySelect').value;
+            const displayEl = document.getElementById('normalDayDisplay');
+            if (!year || !month || !day) return;
+            const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
+            const dateObj = new Date(`${year}-${month}-${day}`);
+            const dayIdx = dateObj.getDay();
+            displayEl.innerText = `（${weekdaysJa[dayIdx]}）`;
+            displayEl.className = 'day-display';
+            if (dayIdx === 0) displayEl.classList.add('sun');
+            if (dayIdx === 6) displayEl.classList.add('sat');
+        }
+
+        function handleUrgentDateChange() {
+            const dateInput = document.getElementById('urgentDate').value;
+            const displayEl = document.getElementById('urgentDayDisplay');
+            if (!dateInput) { displayEl.innerText = ''; return; }
+            const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
+            const dateObj = new Date(dateInput);
+            const dayIdx = dateObj.getDay();
+            displayEl.innerText = `（${weekdaysJa[dayIdx]}）`;
+            displayEl.className = 'day-display';
+            if (dayIdx === 0) displayEl.classList.add('sun');
+            if (dayIdx === 6) displayEl.classList.add('sat');
+        }
+
+        function generateDropdowns() {
+            const yearSel = document.getElementById('yearSelect');
+            const monthSel = document.getElementById('monthSelect');
+            const startHourSel = document.getElementById('startHourSelect');
+            const endHourSel = document.getElementById('endHourSelect');
+            const today = new Date();
+
+            if (!yearSel || !monthSel || !startHourSel || !endHourSel) return;
+
+            yearSel.innerHTML = '';
+            for (let y = 2026; y <= 2028; y++) {
+                let opt = document.createElement('option'); opt.value = String(y); opt.innerText = y;
+                if (y === today.getFullYear()) opt.selected = true;
+                yearSel.appendChild(opt);
+            }
+
+            monthSel.innerHTML = '';
+            for (let i = 1; i <= 12; i++) {
+                let opt = document.createElement('option'); opt.value = String(i).padStart(2, '0'); opt.innerText = i;
+                if (i === (today.getMonth() + 1)) opt.selected = true;
+                monthSel.appendChild(opt);
+            }
+            
+            updateDayDropdown();
+            const daySel = document.getElementById('daySelect');
+            if (daySel) { daySel.value = String(today.getDate()).padStart(2, '0'); }
+
+            startHourSel.innerHTML = ''; endHourSel.innerHTML = '';
+            for (let i = 0; i <= 23; i++) {
+                let opt1 = document.createElement('option'); opt1.value = String(i).padStart(2, '0'); opt1.innerText = i;
+                let opt2 = document.createElement('option'); opt2.value = String(i).padStart(2, '0'); opt2.innerText = i;
+                if (i === 18) opt1.selected = true;
+                if (i === 19) opt2.selected = true;
+                startHourSel.appendChild(opt1); endHourSel.appendChild(opt2);
+            }
+
+            // ⚠️ 分の選択肢を確実に復活させ、初期値をセット
+            document.getElementById('startMinuteSelect').value = "00";
+            document.getElementById('endMinuteSelect').value = "00";
+            
+            currentYear = today.getFullYear();
+            currentMonth = today.getMonth();
+            updateNormalDayDisplay();
+        }
+
+        function updateDayDropdown() {
+            const yearSel = document.getElementById('yearSelect');
+            const monthSel = document.getElementById('monthSelect');
+            const daySel = document.getElementById('daySelect');
+            if (!yearSel || !monthSel || !daySel) return;
+            const selectedYear = parseInt(yearSel.value);
+            const selectedMonth = parseInt(monthSel.value);
+            const currentSelectedDay = daySel.value;
+            const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
+            daySel.innerHTML = '';
+            for (let i = 1; i <= lastDay; i++) {
+                let opt = document.createElement('option'); opt.value = String(i).padStart(2, '0'); opt.innerText = i;
+                if (String(i).padStart(2, '0') === currentSelectedDay) { opt.selected = true; }
+                daySel.appendChild(opt);
+            }
+        }
+
+        function initStudyDropdowns() {
+    // 1. 年・月のプルダウン（初期値は今年・今月）
+    const ySel = document.getElementById('studyYearSelect');
+    const mSel = document.getElementById('studyMonthSelect');
+    const dSel = document.getElementById('studyDaySelect');
     const today = new Date();
-    const ySels = document.querySelectorAll('[id$="YearSelect"]');
-    ySels.forEach(sel => {
-        sel.innerHTML = '';
-        for(let y=2026; y<=2028; y++){
-            sel.innerHTML += `<option value="${y}" ${y === today.getFullYear() ? 'selected' : ''}>${y}年</option>`;
-        }
-    });
-    // ※必要に応じて月・日の生成ロジックもここに追加
+
+    ySel.innerHTML = '';
+    for (let y = 2026; y <= 2028; y++) {
+        let opt = document.createElement('option'); opt.value = y; opt.innerText = y;
+        if (y === today.getFullYear()) opt.selected = true;
+        ySel.appendChild(opt);
+    }
+
+    mSel.innerHTML = '';
+    for (let i = 1; i <= 12; i++) {
+        let opt = document.createElement('option'); opt.value = String(i).padStart(2, '0'); opt.innerText = i;
+        if (i === (today.getMonth() + 1)) opt.selected = true;
+        mSel.appendChild(opt);
+    }
+    
+    // 日のプルダウンを生成
+    updateStudyDayDropdown();
+
+    // 2. 時・分のプルダウン（00〜23時, 00・30分）
+    const startHour = document.getElementById('studyStartHour');
+    const endHour = document.getElementById('studyEndHour');
+    const startMinSel = document.getElementById('studyStartMinute');
+    const endMinSel = document.getElementById('studyEndMinute');
+
+    // 1. まずプルダウンの中身を空にする
+    startHour.innerHTML = '';
+    endHour.innerHTML = '';
+
+    // 0〜23時の生成
+    for (let i = 0; i <= 23; i++) {
+        let val = String(i).padStart(2, '0');
+        let optS = document.createElement('option');
+        optS.value = val;
+        optS.textContent = i;
+        startHour.appendChild(optS);
+
+        let optE = document.createElement('option');
+        optE.value = val;
+        optE.textContent = i;
+        endHour.appendChild(optE);
+    }
+
+    // デフォルト値のセット
+    startHour.value = "18";
+    endHour.value = "19";
+    
+    // 日付プルダウンの初期化
     updateStudyDayDropdown();
 }
 
-// --- Firebase データ同期 ---
-function startWatchParents() {
-    db.collection("parents").onSnapshot((snapshot) => {
-        const tbody = document.getElementById("parentTableBody");
-        tbody.innerHTML = "";
-        snapshot.forEach((doc) => {
-            const p = doc.data();
-            const row = `<tr>
-                <td>${p.student1 || ''}</td>
-                <td>${p.parentName || ''}</td>
-                <td><button onclick="editParent('${doc.id}')">編集</button></td>
-            </tr>`;
-            tbody.insertAdjacentHTML('beforeend', row);
-        });
-    });
-}
-
-// --- 既存の機能ロジック ---
-function renderStudyCalendar() {
-    // カレンダー描画のロジックをここに記述
+// 日のプルダウンを更新する関数（月が変わった時用）
+function updateStudyDayDropdown() {
+    const y = document.getElementById('studyYearSelect').value;
+    const m = document.getElementById('studyMonthSelect').value;
+    const dSel = document.getElementById('studyDaySelect');
+    const lastDay = new Date(y, m, 0).getDate();
+    
+    const currentDay = dSel.value; // 現在選ばれている日を保持
+    dSel.innerHTML = '';
+    for (let i = 1; i <= lastDay; i++) {
+        let val = String(i).padStart(2, '0');
+        let opt = document.createElement('option'); opt.value = val; opt.innerText = i;
+        if (val === currentDay) opt.selected = true;
+        dSel.appendChild(opt);
+    }
 }
 
 function updateStudyDayDropdown() {
-    // 日付選択のロジックをここに記述
+    const year = document.getElementById('studyYearSelect').value;
+    const month = document.getElementById('studyMonthSelect').value;
+    const daySel = document.getElementById('studyDaySelect');
+    const lastDay = new Date(year, month, 0).getDate();
+    daySel.innerHTML = '';
+    for (let i = 1; i <= lastDay; i++) {
+        let opt = document.createElement('option'); opt.value = String(i).padStart(2, '0'); opt.innerText = i;
+        daySel.appendChild(opt);
+    }
 }
 
-function editParent(id) {
-    // 編集ボタン押下時の処理
-    console.log("編集対象ID:", id);
-}
-
-function saveCardData() {
-    // 保存（更新）のロジックをここに記述
-}
-
-// --- 今後の機能追加用 ---
-function resetFormForNew() {
-    // フォームをクリアする関数をここに追加していきます
-}
-
-function resetFormForNew() {
-    // 隠しIDを空にする（これで「新規登録」だと判断される）
-    document.getElementById("editingParentId").value = "";
+function registerSelfStudy() {
+    const dateStr = `${document.getElementById('studyYearSelect').value}-${document.getElementById('studyMonthSelect').value}-${document.getElementById('studyDaySelect').value}`;
+    const text = `${document.getElementById('studyStartHour').value}:${document.getElementById('studyStartMinute').value}〜${document.getElementById('studyEndHour').value}:${document.getElementById('studyEndMinute').value}`;
     
-    // 入力欄をすべて空にする（各IDはご自身のコードに合わせてください）
-    document.getElementById("studentName").value = "";
-    document.getElementById("parentName").value = "";
-    // 他の入力欄も同様に .value = "" を記述
-    
-    alert("新規登録モードになりました。内容を入力して保存してください。");
+    db.collection("schedules").add({
+        student: "自習", date: dateStr, text: text, type: 'study',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        alert("登録しました！");
+    // ★ ここで最新データをDBから再取得し、その後にカレンダーを描画する
+        db.collection("schedules").get().then((querySnapshot) => {
+            schedules = []; // 全体で使っているschedules変数を空にする
+            querySnapshot.forEach((doc) => {
+                schedules.push(doc.data());
+            });
+    // 【ここを追加】カレンダーを再描画する関数を呼び出す
+        renderStudyCalendar();
+});
+});
 }
-// パスワード表示切り替え関数
-function togglePassword() {
-    const passwordInput = document.getElementById("loginPassword");
-    const checkbox = document.getElementById("togglePasswordVisibility");
-    passwordInput.type = checkbox.checked ? "text" : "password";
-}
+        // 日付をクリックした時に右側を更新する関数
+function displaySelectedDateInfo(dateStr) {
+    const rightCol = document.getElementById('rightColumn');
+    const histClass = document.getElementById('history-class');
+    const histUrgent = document.getElementById('history-urgent');
 
-// ログイン実行関数
-function handleLogin() {
-    const email = document.getElementById("loginEmail").value.trim();
-    const password = document.getElementById("loginPassword").value;
-    const errorDiv = document.getElementById("loginError");
+    // 右側のパネルを表示
+    rightCol.style.display = 'flex';
+    document.getElementById('leftColumn').classList.remove('full-width');
     
-    auth.signInWithEmailAndPassword(email, password)
-        .catch((error) => {
-            console.error("ログイン失敗:", error);
-            if (errorDiv) errorDiv.style.display = "block";
+    // 表示エリアをクリアして再構築
+    histClass.style.display = 'block';
+    histUrgent.style.display = 'block';
+    
+    // 既存のリストをクリア
+    const classList = document.getElementById('history-classList'); // 授業履歴のリストIDに合わせてください
+    const urgentList = document.getElementById('urgentHistoryList');
+    classList.innerHTML = `<h3>📅 ${dateStr} の予定</h3>`;
+    urgentList.innerHTML = `<h3>📢 ${dateStr} の連絡</h3>`;
+
+    // 1. その日の「授業予定」をフィルタリングして表示
+    const daySchedules = schedules.filter(s => s.date === dateStr && s.type === 'normal');
+    if (daySchedules.length > 0) {
+        daySchedules.forEach(item => {
+            classList.innerHTML += `<li style="margin: 8px 0;">${item.text}</li>`;
         });
+    } else {
+        classList.innerHTML += '<p>予定はありません。</p>';
+    }
+
+    // 2. その日の「緊急連絡」をフィルタリングして表示
+    const dayUrgent = schedules.filter(s => s.date === dateStr && s.type === 'urgent');
+    if (dayUrgent.length > 0) {
+        dayUrgent.forEach(item => {
+            urgentList.innerHTML += `<li style="color:red; margin: 8px 0;">${item.text}</li>`;
+        });
+    } else {
+        urgentList.innerHTML += '<p>連絡はありません。</p>';
+    }
 }
 
-// ログアウト処理
-function handleLogout() {
-    auth.signOut().then(() => {
-        // ログアウト成功時、ページをリロードしてログイン画面に戻す
-        location.reload();
-    }).catch((error) => {
-        console.error("ログアウトエラー:", error);
+
+        function updateRightPanelLists() {
+            const urgentListEl = document.getElementById('urgentHistoryList');
+            const normalListEl = document.getElementById('normalHistoryList');
+            if (!urgentListEl || !normalListEl) return;
+
+            urgentListEl.innerHTML = ''; normalListEl.innerHTML = '';
+            const urgentEvents = schedules.filter(item => item.type === 'urgent');
+            if (urgentEvents.length === 0) {
+                urgentListEl.innerHTML = '<li style="color:#999; border-left-color:#ccc;">送信済みの緊急連絡はありません。</li>';
+            } else {
+                urgentEvents.forEach(item => {
+                    const li = document.createElement('li'); li.className = 'item-urgent';
+                    li.innerHTML = `<strong>${item.student}</strong> ： ${item.date.substring(5)} ${item.text}`;
+                    urgentListEl.appendChild(li);
+                });
+            }
+
+            const normalEvents = schedules.filter(item => item.type === 'normal');
+            if (normalEvents.length === 0) {
+                normalListEl.innerHTML = '<li style="color:#999; border-left-color:#ccc;">登録済みの授業予定はありません。</li>';
+            } else {
+                normalEvents.forEach(item => {
+                    const li = document.createElement('li'); li.className = 'item-normal';
+                    li.innerHTML = `<strong>${item.student}</strong> ： ${item.date.substring(5)} ${item.text}`;
+                    normalListEl.appendChild(li);
+                });
+            }
+        }
+
+        db.collection("schedules").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
+            schedules = [];
+            snapshot.forEach((doc) => {
+                let data = doc.data(); data.id = doc.id; schedules.push(data);
+            });
+            updateRightPanelLists();
+            if (document.getElementById('page3').style.display === 'block') renderCalendar();
+        });
+
+        function switchTab(pageNum) {
+    // 1. ページ切り替え処理
+    for (let i = 1; i <= 6; i++) {
+        const page = document.getElementById('page' + i);
+        const tab = document.getElementById('tab' + i);
+        if (page) page.style.display = (pageNum === i) ? 'block' : 'none';
+        if (tab) tab.classList.toggle('active', (pageNum === i));
+    }
+    
+    // 2. 右側のパネル制御
+    const rightCol = document.getElementById('rightColumn');
+    const leftCol = document.getElementById('leftColumn');
+    const histClass = document.getElementById('history-class');
+    const histUrgent = document.getElementById('history-urgent');
+
+    if (pageNum === 4 || pageNum === 5 || pageNum === 6) {
+        rightCol.style.display = 'none'; 
+        leftCol.classList.add('full-width');
+    } else {
+        rightCol.style.display = 'flex'; 
+        leftCol.classList.remove('full-width');
+        
+        // 両方を一度隠す
+        if (histClass) histClass.style.display = 'none';
+        if (histUrgent) histUrgent.style.display = 'none';
+
+        // 該当するものだけ表示
+        if (pageNum === 1) {
+            histClass.style.display = 'block';
+            renderHistory();
+        } else if (pageNum === 2) {
+            histUrgent.style.display = 'block';
+            renderUrgentHistory(); 
+        } else if (pageNum === 3) {
+            renderCalendar();
+        }
+    } 
+}
+
+
+// 緊急連絡送信関数（sendUrgentなど）の最後
+function sendUrgent() {
+    // ...保存処理...
+    db.collection("schedules").add({
+        type: 'urgent',
+        text: "...",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        // ...アラートなど...
+        renderUrgentHistory(); // ★送信後に即座に反映
     });
 }
+
+
+        async function sendSchedule() {
+            const student = document.getElementById('studentSelect').value;
+            const subject = document.getElementById('subjectSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            const day = document.getElementById('daySelect').value;
+            const startHour = document.getElementById('startHourSelect').value;
+            const startMinute = document.getElementById('startMinuteSelect').value;
+            const endHour = document.getElementById('endHourSelect').value;
+            const endMinute = document.getElementById('endMinuteSelect').value;
+            const extraText = document.getElementById('scheduleText').value.trim();
+            const dateStr = `${year}-${month}-${day}`;
+            
+            const newStart = parseInt(startHour) * 60 + parseInt(startMinute);
+            const newEnd = parseInt(endHour) * 60 + parseInt(endMinute);
+
+            if (newStart >= newEnd) { alert("⚠ 正しい時間帯を指定してください。"); return; }
+
+            const overlapIds = [];
+            schedules.filter(item => item.date === dateStr && item.type === 'normal' && (item.student === student || item.student === '全員'))
+            .forEach(oldEvent => {
+                const timeMatch = oldEvent.text.match(/(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
+                if (timeMatch) {
+                    const oldStart = parseInt(timeMatch[1]) * 60 + parseInt(timeMatch[2]);
+                    const oldEnd = parseInt(timeMatch[3]) * 60 + parseInt(timeMatch[4]);
+                    if (newStart < oldEnd && oldStart < newEnd) overlapIds.push(oldEvent.id);
+                }
+            });
+
+            if (overlapIds.length > 0) {
+                const batch = db.batch();
+                overlapIds.forEach(id => batch.delete(db.collection("schedules").doc(id)));
+                await batch.commit();
+            }
+
+            let finalMessage = `【${subject}】 ${startHour}:${startMinute}〜${endHour}:${endMinute} 開始`;
+            if (extraText) finalMessage += ` ｜ 連絡: ${extraText}`;
+
+            db.collection("schedules").add({
+                student: student, date: dateStr, text: finalMessage, type: 'normal',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                document.getElementById('scheduleText').value = '';
+                alert(`${student} くん/さんの予定を登録しました！`);
+
+                renderHistory();
+            });
+        }
+
+        function sendUrgentBroadcast() {
+            const target = document.getElementById('broadcastTarget').value;
+            const title = document.getElementById('urgentTitle').value.trim();
+            const body = document.getElementById('urgentBody').value.trim();
+            const inputDate = document.getElementById('urgentDate').value;
+
+            if (!title || !body) return alert('入力してください');
+
+            let dateStr = inputDate;
+            if (!dateStr) {
+                const today = new Date();
+                dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+            }
+
+            db.collection("schedules").add({
+                student: target, date: dateStr, text: `🚨【連絡】${title}：${body}`, type: 'urgent',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                document.getElementById('urgentTitle').value = '';
+                document.getElementById('urgentBody').value = '';
+                alert(`教室からの連絡を登録しました！`);
+            });
+        }
+
+        // 2. 自習スペース登録関数
+function sendSelfStudy() {
+    const dateStr = `${document.getElementById('selfStudyYear').value}-${document.getElementById('selfStudyMonth').value}-${document.getElementById('selfStudyDay').value}`;
+    const text = `自習スペース開放：${document.getElementById('selfStudyStartHour').value}:00〜${document.getElementById('selfStudyEndHour').value}:00`;
+
+    db.collection("schedules").add({
+        student: "自習", // カレンダー絞り込み用に区別
+        date: dateStr,
+        text: text,
+        type: 'study', // 緑丸判定用
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => alert("自習スペースを登録しました！"));
+}
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const monthTitle = document.getElementById('calendarMonthTitle');
+            const filter = document.getElementById('calendarFilter').value;
+            
+            monthTitle.innerText = `${currentYear}年${String(currentMonth + 1).padStart(2, '0')}月`;
+            grid.innerHTML = '';
+
+            const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
+            weekdaysJa.forEach((w, idx) => {
+                const div = document.createElement('div');
+                div.className = `weekday ${idx===0?'sunday':''} ${idx===6?'saturday':''}`;
+                div.innerText = w; grid.appendChild(div);
+            });
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+        const div = document.createElement('div'); div.className = 'calendar-day empty'; grid.appendChild(div);
+    }
+
+    for (let day = 1; day <= totalDays; day++) {
+        const div = document.createElement('div'); div.className = 'calendar-day'; div.innerText = day;
+        const formattedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        div.onclick = () => {
+            document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
+            div.classList.add('selected');
+            showDayDetail(formattedDateStr, day, filter); 
+        };
+        grid.appendChild(div);
+    }
+}
+
+        function renderUrgentHistory() {
+    // 右側の余白にある、表示用のリストを取得
+    const urgentList = document.getElementById('urgentHistoryList');
+    if (!urgentList) return;
+
+    // 1. 全スケジュールから 'urgent' タイプだけ抜き出して、新しい順に並べる
+    const urgentItems = schedules
+        .filter(item => item.type === 'urgent')
+        .sort((a, b) => b.createdAt - a.createdAt);
+
+    // 2. リストの中身を一旦空にしてから、新しく書き出す
+    urgentList.innerHTML = '<h3>📢 直近の連絡履歴</h3>';
+    
+    if (urgentItems.length === 0) {
+        urgentList.innerHTML += '<p style="color:#666;">送信履歴はありません。</p>';
+    } else {
+        // 3. 最新の8件だけを表示する
+        urgentItems.slice(0, 8).forEach(item => {
+            let li = document.createElement('li');
+            li.style.cssText = "margin: 8px 0; padding: 10px; border-left: 5px solid #e74c3c; background: #fff5f5; font-size: 0.9em;";
+            li.innerHTML = `<strong>${item.date || '日付未設定'}</strong><br>
+                            <span style="color:#c0392b;">${item.text}</span>`;
+            urgentList.appendChild(li);
+        });
+    }
+}
+
+        // 1. 自習用カレンダーの月管理変数
+let studyYear = 2026;
+let studyMonth = 6; // 0が1月
+
+// 2. 自習用カレンダーの初期化と描画
+function renderStudyCalendar() {
+    const grid = document.getElementById('studyCalendarGrid');
+    const monthTitle = document.getElementById('studyMonthTitle');
+    if (!grid) return; // IDがない場合は中断
+    
+    monthTitle.innerText = `${studyYear}年${String(studyMonth + 1).padStart(2, '0')}月`;
+    grid.innerHTML = '';
+
+    const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+    weekdays.forEach(w => {
+        const div = document.createElement('div'); div.className = 'weekday'; div.innerText = w;
+        grid.appendChild(div);
+    });
+
+    const firstDay = new Date(studyYear, studyMonth, 1).getDay();
+    const totalDays = new Date(studyYear, studyMonth + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+        grid.appendChild(document.createElement('div'));
+    }
+
+    for (let day = 1; day <= totalDays; day++) {
+        const div = document.createElement('div');
+        div.className = 'calendar-day';
+        div.innerText = day;
+        
+        const dateStr = `${studyYear}-${String(studyMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        // 自習の予定があるか判定して緑ポチ
+        if (schedules.some(s => s.date === dateStr && s.type === 'study')) {
+            div.classList.add('has-study');
+        }
+        // ② 【追加】クリックした時に詳細を表示するイベントを追加
+    div.onclick = () => showStudyDetails(dateStr);
+
+        grid.appendChild(div);
+    }
+
+function showStudyDetails(dateStr) {
+    // 右側のエリアの要素を取得
+    const list = document.getElementById('studyList');
+    const title = document.getElementById('selectedDateText');
+    
+    // 表示をクリアしてタイトルを更新
+    list.innerHTML = '';
+    title.innerText = dateStr + ' の予定';
+    
+    // その日の予定だけを抽出
+    const daySchedules = schedules.filter(s => s.date === dateStr && s.type === 'study');
+    
+    // 予定があればリストに追加
+    if (daySchedules.length > 0) {
+        daySchedules.forEach(s => {
+            let li = document.createElement('li');
+            li.innerText = s.text;
+            list.appendChild(li);
+        });
+    } else {
+        list.innerHTML = '<li>予定はありません</li>';
+    }
+}    
+
+    // 日付をクリックした時に右側に予定を表示する関数
+function showDetails(dateStr) {
+    const list = document.getElementById('studyList');
+    list.innerHTML = '';
+    document.getElementById('selectedDateText').innerText = dateStr + ' の予定';
+    
+    // その日の予定だけを抽出
+    const daySchedules = schedules.filter(s => s.date === dateStr && s.type === 'study');
+    
+    daySchedules.forEach(s => {
+        let li = document.createElement('li');
+        li.innerText = s.text;
+        list.appendChild(li);
+    });
+}
+
+// renderStudyCalendar の中の for ループにクリックイベントを追加
+// div.onclick = () => showDetails(dateStr); 
+// を追加すると、その日をクリックした時に右側が更新されます！
+}
+
+// 3. プルダウン初期化
+function initStudyDropdowns() {
+    const ySel = document.getElementById('studyYearSelect');
+    const mSel = document.getElementById('studyMonthSelect');
+    const today = new Date();
+    
+    // 年・月の生成
+    ySel.innerHTML = ''; mSel.innerHTML = '';
+    for (let y = 2026; y <= 2028; y++) {
+        let opt = document.createElement('option'); opt.value = y; opt.innerText = y;
+        if (y === today.getFullYear()) opt.selected = true;
+        ySel.appendChild(opt);
+    }
+    for (let i = 1; i <= 12; i++) {
+        let opt = document.createElement('option'); opt.value = String(i).padStart(2, '0'); opt.innerText = i;
+        if (i === (today.getMonth() + 1)) opt.selected = true;
+        mSel.appendChild(opt);
+    }
+    updateStudyDayDropdown();
+}
+
+function updateStudyDayDropdown() {
+    const y = document.getElementById('studyYearSelect').value;
+    const m = document.getElementById('studyMonthSelect').value;
+    const dSel = document.getElementById('studyDaySelect');
+    const lastDay = new Date(y, m, 0).getDate();
+    dSel.innerHTML = '';
+    for (let i = 1; i <= lastDay; i++) {
+        let opt = document.createElement('option'); opt.value = String(i).padStart(2, '0'); opt.innerText = i;
+        dSel.appendChild(opt);
+    }
+}
+
+
+
+        function showDayDetail(dateStr, dayNum, filter) { // 引数を dayNum と filter に
+    const rightCol = document.getElementById('rightColumn');
+    const leftCol = document.getElementById('leftColumn');
+    
+    // 表示エリアを取得
+    const classList = document.getElementById('history-classList'); 
+    const urgentList = document.getElementById('urgentHistoryList'); 
+    const titleArea = document.getElementById('dateDetailTitle'); 
+
+    
+    // 右パネルを表示状態にする
+    rightCol.style.display = 'flex';
+    leftCol.classList.remove('full-width');
+
+    // ★修正：引数の dayNum と filter を使う
+    if (titleArea) titleArea.innerText = `📅 ${currentMonth + 1}月${dayNum}日 の予定`;
+
+    // フィルタリング処理
+    const dayEvents = schedules.filter(item => item.date === dateStr);
+    
+    // ★修正：引数の filter を使う
+    const normalEvents = dayEvents.filter(item => item.type === 'normal' && (filter === 'すべて' || item.student === filter || item.student === '全員'));
+    const urgentEvents = dayEvents.filter(item => item.type === 'urgent');
+
+    // 表示内容を構築
+    if (classList) {
+        classList.innerHTML = normalEvents.length > 0 
+            ? normalEvents.map(e => `<li>${e.text}</li>`).join('') 
+            : '<li>予定はありません</li>';
+    }
+
+    if (urgentList) {
+        urgentList.innerHTML = urgentEvents.length > 0 
+            ? urgentEvents.map(e => `<li style="color:red;">${e.text}</li>`).join('') 
+            : '<li>連絡はありません</li>';
+    }
+}
+
+        function changeMonth(dir) {
+            currentMonth += dir;
+            if (currentMonth > 11) { currentMonth = 0; currentYear += 1; }
+            else if (currentMonth < 0) { currentMonth = 11; currentYear -= 1; }
+            renderCalendar();
+        }
+
+        function clearAllData() {
+            if (!confirm("本当に全データを削除しますか？")) return;
+
+    db.collection("schedules").get().then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+            doc.ref.delete();
+        });
+        alert("リセットしました！");
+
+        // 画面を最新状態にする
+        schedules = [];
+        renderStudyCalendar(); // カレンダーを描画し直す
+        
+        // もし他にも表示エリアがあるならここもクリア
+        if(document.getElementById('urgentHistoryList')) document.getElementById('urgentHistoryList').innerHTML = '';
+        if(document.getElementById('normalHistoryList')) document.getElementById('normalHistoryList').innerHTML = '';
+    }).catch((error) => {
+        console.error("削除エラー: ", error);
+        alert("削除に失敗しました。");
+    });
+}
+
+// 中身を確実に生成する関数（既にある場合は上書きしてください）
+function initStudyDropdowns() {
+    const startHour = document.getElementById('studyStartHour');
+    const endHour = document.getElementById('studyEndHour');
+    
+    // 二重生成防止のためクリア
+    startHour.innerHTML = '';
+    endHour.innerHTML = '';
+
+    for (let i = 0; i <= 23; i++) {
+        let val = String(i).padStart(2, '0');
+        startHour.innerHTML += `<option value="${val}">${i}時</option>`;
+        endHour.innerHTML += `<option value="${val}">${i}時</option>`;
+    }
+    
+    // デフォルト値
+    startHour.value = "18";
+    endHour.value = "19";
+}
+
+function initStudyDropdowns() {
+    // 1. 年・月の生成
+    const ySel = document.getElementById('studyYearSelect');
+    const mSel = document.getElementById('studyMonthSelect');
+    const today = new Date();
+
+    ySel.innerHTML = '';
+    for (let y = 2026; y <= 2028; y++) {
+        let opt = document.createElement('option');
+        opt.value = y;
+        opt.innerText = y + "年";
+        if (y === today.getFullYear()) opt.selected = true;
+        ySel.appendChild(opt);
+    }
+
+    mSel.innerHTML = '';
+    for (let i = 1; i <= 12; i++) {
+        let opt = document.createElement('option');
+        opt.value = String(i).padStart(2, '0');
+        opt.innerText = i + "月";
+        if (i === (today.getMonth() + 1)) opt.selected = true;
+        mSel.appendChild(opt);
+    }
+    
+    // 2. 日の更新を実行
+    updateStudyDayDropdown();
+    
+    // 3. 時間の生成（先ほど修正したもの）
+    const startHour = document.getElementById('studyStartHour');
+    const endHour = document.getElementById('studyEndHour');
+    startHour.innerHTML = '';
+    endHour.innerHTML = '';
+    for (let i = 0; i <= 23; i++) {
+        let val = String(i).padStart(2, '0');
+        startHour.innerHTML += `<option value="${val}">${i}時</option>`;
+        endHour.innerHTML += `<option value="${val}">${i}時</option>`;
+    }
+    startHour.value = "18";
+    endHour.value = "19";
+}
+
+function updateStudyDayDropdown() {
+    const y = document.getElementById('studyYearSelect').value;
+    const m = document.getElementById('studyMonthSelect').value;
+    const dSel = document.getElementById('studyDaySelect');
+    
+    // その月が何日まであるかを計算
+    const lastDay = new Date(y, m, 0).getDate();
+    
+    dSel.innerHTML = '';
+    for (let i = 1; i <= lastDay; i++) {
+        let val = String(i).padStart(2, '0');
+        let opt = document.createElement('option');
+        opt.value = val;
+        opt.innerText = i + "日";
+        dSel.appendChild(opt);
+    }
+}
+
+// ページを開いた瞬間に自動実行
+window.onload = function() {
+    initAllDropdowns(); // 年月日と時間の初期化を一括で実行
+    renderStudyCalendar(); // 画面を開いた時にもカレンダーを表示
+    
+    // イベントリスナーを追加
+    document.getElementById('studyYearSelect').addEventListener('change', updateStudyDayDropdown);
+    document.getElementById('studyMonthSelect').addEventListener('change', updateStudyDayDropdown);
+};
+
+function initAllDropdowns() {
+    const today = new Date();
+    
+    // 1. 年・月・日の生成とセット
+    const ySel = document.getElementById('studyYearSelect');
+    const mSel = document.getElementById('studyMonthSelect');
+
+    // 年 (2026-2028)
+    ySel.innerHTML = '';
+    for(let y=2026; y<=2028; y++){
+        ySel.innerHTML += `<option value="${y}" ${y === today.getFullYear() ? 'selected' : ''}>${y}</option>`;
+    }
+
+    // 月 (01-12)
+    mSel.innerHTML = '';
+    for(let i=1; i<=12; i++){
+        let val = String(i).padStart(2, '0');
+        mSel.innerHTML += `<option value="${val}" ${i === (today.getMonth()+1) ? 'selected' : ''}>${i}</option>`;
+    }
+
+    // 日の生成を関数呼び出し
+    updateStudyDayDropdown();
+
+    // 2. 時間の生成 (00-23)
+    const hS = document.getElementById('studyStartHour');
+    const hE = document.getElementById('studyEndHour');
+    hS.innerHTML = ''; hE.innerHTML = '';
+    for(let i=0; i<=23; i++){
+        let val = String(i).padStart(2, '0');
+        hS.innerHTML += `<option value="${val}">${i}</option>`;
+        hE.innerHTML += `<option value="${val}">${i}</option>`;
+    }
+    hS.value = "18"; // デフォルト
+    hE.value = "19"; // デフォルト
+}
+
+// 月が変わるたびに「日」を再生成する関数
+function updateStudyDayDropdown() {
+    const y = document.getElementById('studyYearSelect').value;
+    const m = document.getElementById('studyMonthSelect').value;
+    const dSel = document.getElementById('studyDaySelect');
+    
+    // その月の最終日を取得
+    const lastDay = new Date(y, m, 0).getDate();
+    
+    dSel.innerHTML = '';
+    for(let i=1; i<=lastDay; i++){
+        let val = String(i).padStart(2, '0');
+        dSel.innerHTML += `<option value="${val}">${i}</option>`;
+    }
+}
+
+function renderHistory() {
+    const classList = document.getElementById('classHistoryList');
+    if (!classList) return;
+
+    // 1. 全スケジュールを「新しい順」に並べ替える
+    // ※もしデータに登録日時がない場合、今の配列の最後尾から8件を取るのが直近の入力になります
+    const recentSchedules = [...schedules].reverse().slice(0, 8);
+
+    // 2. リストをクリアして再描画
+    classList.innerHTML = '';
+    
+    recentSchedules.forEach(item => {
+        let li = document.createElement('li');
+        li.style.cssText = "margin: 5px 0; padding: 5px; border-bottom: 1px solid #eee; font-size: 0.9em;";
+        
+        // 履歴の見た目（生徒名と日付）
+        li.innerHTML = `<strong>${item.student}</strong> - ${item.date}<br>
+                        <span style="color:#666;">${item.text}</span>`;
+        classList.appendChild(li);
+    });
+}
+
+// ページ読み込み完了後にボタンと関数を紐付ける
+window.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('clearAllBtn');
+    if (btn) {
+        btn.addEventListener('click', clearAllData);
+    }
+});
 
     </script>
 </body>
