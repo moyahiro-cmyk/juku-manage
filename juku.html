@@ -443,7 +443,7 @@ const firebaseConfig = {
     storageBucket: "juku-manage-dba.firebasestorage.app",
     messagingSenderId: "28426983865",
     appId: "1:28426983865:web:252cd63d7f1b1cc3eb7e68" };
-    
+
 firebase.initializeApp(firebaseConfig);
 
 const db = firebase.firestore();
@@ -552,6 +552,16 @@ function handleLogin() {
             console.error("ログイン失敗:", error);
             if (errorDiv) errorDiv.style.display = "block";
         });
+}
+
+// ログアウト処理
+function logout() {
+    auth.signOut().then(() => {
+        // ログアウト成功時、ページをリロードしてログイン画面に戻す
+        location.reload();
+    }).catch((error) => {
+        console.error("ログアウトエラー:", error);
+    });
 }
     </script>
 </body>
