@@ -506,14 +506,16 @@
         tableBody.innerHTML = "";
 
         dataArray.forEach((p) => {
+            // ステータスをきれいにする（空ならOZにする）
+            const displayStatus = (p.status === "OZ" || p.status === "JY" || p.status === "卒業") ? p.status : "OZ";
+
             const statusBadge = p.status === "連携済み" 
                 ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
                 : `<span style="color: #7f8c8d;">○ 未連携</span>`;
 
-            // ★在籍を表示する新しいセルを追加
             const row = `
                 <tr>
-                    <td style="text-align:center; font-weight:bold;">${p.status || "OZ"}</td>
+                    <td style="text-align:center; font-weight:bold;">${displayStatus}</td>
                     <td>${formatStudentCell(p.student1)}</td>
                     <td>${formatStudentCell(p.student2)}</td>
                     <td>${formatStudentCell(p.student3)}</td>
