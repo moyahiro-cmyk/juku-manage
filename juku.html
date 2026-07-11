@@ -507,26 +507,30 @@
             tableBody.innerHTML = "";
 
             dataArray.forEach((p) => {
-                const statusBadge = p.status === "連携済み" 
-                    ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
-                    : `<span style="color: #7f8c8d;">○ 未連携</span>`;
+                // 1. 在籍ステータスの表示を「OZ, JY, 卒業」のいずれか（未定義ならOZ）に固定
+            const validStatus = (p.status === "JY" || p.status === "卒業") ? p.status : "OZ";
 
-                const row = `
-                    <tr>
-                        <td style="text-align:center; font-weight:bold;">${(p.status || "OZ").trim()}</td>
-                        <td>${formatStudentCell(p.student1)}</td>
-                        <td>${formatStudentCell(p.student2)}</td>
-                        <td>${formatStudentCell(p.student3)}</td>
-                        <td><strong>${p.parentName} 様</strong></td>
-                        <td><code>${p.email}</code></td>
-                        <td><code>${p.pass}</code></td>
-                        <td>${statusBadge}</td>
-                        <td>${p.lastCheck || "-"}</td>
-                        <td><button onclick="editParent('${p.id}')">編集</button></td>
-                    </tr>
-                `;
-                tableBody.insertAdjacentHTML('beforeend', row);
-            });
+            // 2. 連携状態バッジは「連携済み」か「未連携」のみを判定
+            const statusBadge = (p.status === "連携済み") 
+                ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
+                : `<span style="color: #7f8c8d;">○ 未連携</span>`;
+
+            const row = `
+                <tr>
+                    <td style="text-align:center; font-weight:bold;">${validStatus}</td>
+                    <td>${formatStudentCell(p.student1)}</td>
+                    <td>${formatStudentCell(p.student2)}</td>
+                    <td>${formatStudentCell(p.student3)}</td>
+                    <td><strong>${p.parentName} 様</strong></td>
+                    <td><code>${p.email}</code></td>
+                    <td><code>${p.pass}</code></td>
+                    <td>${statusBadge}</td>
+                    <td>${p.lastCheck || "-"}</td>
+                    <td><button onclick="editParent('${p.id}')">編集</button></td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML('beforeend', row);
+        });
         }
 
         // 自動的にプルダウンを最新にする
