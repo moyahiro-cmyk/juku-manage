@@ -513,9 +513,9 @@
                 const row = `
                     <tr>
                         <td style="text-align:center; font-weight:bold;">${validStatus}</td>
-                        <td>${formatStudentCell(p.student1)}</td>
-                        <td>${formatStudentCell(p.student2)}</td>
-                        <td>${formatStudentCell(p.student3)}</td>
+                        <td>${p.student1 || "—"}</td>
+                        <td>${p.student2 || "—"}</td>
+                        <td>${p.student3 || "—"}</td>
                         <td><strong>${p.parentName} 様</strong></td>
                         <td><code>${p.email}</code></td>
                         <td><code>${p.pass}</code></td>
@@ -1496,6 +1496,11 @@ function resetFormForNew() {
     console.log("新規登録モードにリセットしました");
 }
 
+function formatStudentCell(studentName) {
+    // もし名前が空や「—」ならそのまま返し、そうでなければ名前を返すシンプルな関数
+    if (!studentName || studentName === "—") return "—";
+    return studentName;
+}
 
 // ページ読み込み完了後にボタンと関数を紐付ける
 window.addEventListener('DOMContentLoaded', () => {
