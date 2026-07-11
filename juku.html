@@ -603,6 +603,7 @@ function editParent(id) {
 
         function saveCardData() {
     const editingKey = document.getElementById("hiddenEditKey").value;
+
     const data = {
         status: document.getElementById('editStatus').value.trim(),
         student1: document.getElementById("editStudent1").value.trim(),
@@ -629,25 +630,6 @@ function editParent(id) {
         });
     }
 }
-
-    const updatedData = {
-        status: document.getElementById('editStatus').value.trim(),
-        student1: document.getElementById("editStudent1").value.trim(),
-        student2: document.getElementById("editStudent2").value.trim(),
-        student3: document.getElementById("editStudent3").value.trim(),
-        parentName: document.getElementById("editParentName").value.trim(),
-        email: document.getElementById("editEmail").value.trim(),
-        pass: document.getElementById("editPass").value.trim(),
-        connectId: document.getElementById("editConnectId").value.trim()
-    };
-
-    // 念のため、書き込み前にログを出す（ブラウザのF12キーで確認できます）
-    console.log("更新対象ID:", selectedKey, "更新データ:", updatedData);
-
-    db.collection("parents").doc(selectedKey).update(updatedData)
-    .then(() => alert("更新しました！"))
-    .catch(err => alert("失敗: " + err.message));
-
 
 
         auth.onAuthStateChanged((user) => {
