@@ -493,7 +493,7 @@
         });
 
         // 優先順位定義：JYを一番上に
-        const statusOrder = { "JY": 1, "OZ": 2, "卒業": 3 };
+        const statusOrder = { "OZ": 1, "JY": 2, "卒業": 3 };
         dataArray.sort((a, b) => {
             const sA = (a.status || "OZ").trim();
             const sB = (b.status || "OZ").trim();
