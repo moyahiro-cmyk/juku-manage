@@ -208,9 +208,7 @@
                         <option value="その他">その他（面談・イベント等）</option>
                     </select>
                     
-                    <div style="text-align:left;">
-                    <button class="clear-btn" onclick="clearAllData()">⚠ クラウドデータを完全リセット</button>
-                </div>
+                    
                     
                     <label>日付を指定:</label>
                     <div class="inline-selects">
@@ -241,6 +239,11 @@
                     <label>追加の連絡事項:</label>
                     <input type="text" id="scheduleText" placeholder="例：本日は単語テストから始めます">
                     <button class="notify-btn" onclick="sendSchedule()">予定を登録する</button>
+
+                    <div style="text-align:left;">
+                    <button class="clear-btn" onclick="clearAllData()">⚠ クラウドデータを完全リセット</button>
+                </div>
+
                 </div>
 
                 <!-- 🚨 2. 教室からの連絡　の入力画面 -->
