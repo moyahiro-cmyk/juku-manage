@@ -519,6 +519,8 @@
             
             if (!p) return;
 
+            // ★ここを追加：データベースのstatusをプルダウンに反映させる
+    document.getElementById("editStatus").value = p.status || "OZ";
             document.getElementById("editStudent1").value = p.student1 || "";
             document.getElementById("editStudent2").value = p.student2 || "—";
             document.getElementById("editStudent3").value = p.student3 || "—";
@@ -540,6 +542,7 @@
             const selectedKey = document.getElementById("cardStudentSelect").value;
             
             const updatedData = {
+                status: document.getElementById('editStatus').value
                 student1: document.getElementById("editStudent1").value.trim(),
                 student2: document.getElementById("editStudent2").value.trim(),
                 student3: document.getElementById("editStudent3").value.trim(),
