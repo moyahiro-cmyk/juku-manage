@@ -526,7 +526,25 @@ function resetFormForNew() {
     
     alert("新規登録モードになりました。内容を入力して保存してください。");
 }
+// パスワード表示切り替え関数
+function togglePassword() {
+    const passwordInput = document.getElementById("loginPassword");
+    const checkbox = document.getElementById("togglePasswordVisibility");
+    passwordInput.type = checkbox.checked ? "text" : "password";
+}
 
+// ログイン実行関数
+function handleLogin() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    const errorDiv = document.getElementById("loginError");
+    
+    auth.signInWithEmailAndPassword(email, password)
+        .catch((error) => {
+            console.error("ログイン失敗:", error);
+            if (errorDiv) errorDiv.style.display = "block";
+        });
+}
     </script>
 </body>
 </html>
