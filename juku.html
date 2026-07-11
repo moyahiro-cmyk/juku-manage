@@ -208,6 +208,10 @@
                         <option value="その他">その他（面談・イベント等）</option>
                     </select>
                     
+                    <div style="text-align:left;">
+                    <button class="clear-btn" onclick="clearAllData()">⚠ クラウドデータを完全リセット</button>
+                </div>
+                    
                     <label>日付を指定:</label>
                     <div class="inline-selects">
                         <select id="yearSelect" onchange="handleNormalDateUpdate()"></select><span>年</span>
@@ -405,9 +409,7 @@
     <button style="background-color: #27ae60;" onclick="registerSelfStudy()">自習スペースを追加する</button>
 </div>
 
-                <div style="text-align:left;">
-                    <button class="clear-btn" onclick="clearAllData()">⚠ クラウドデータを完全リセット</button>
-                </div>
+                
             </div>
 
             <div class="right-col" id="rightColumn">
