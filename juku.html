@@ -355,7 +355,7 @@
                             <input type="text" id="editConnectId" readonly style="background:#eee;">
 
                             <input type="hidden" id="hiddenEditKey">
-                            
+
                             <button style="margin-top: 12px; background-color: #2ecc71;" onclick="saveCardData()">🔥 この内容でクラウドデータを更新する</button>
                         </div>
 
@@ -647,7 +647,7 @@ function editParent(id) {
     db.collection("parents").doc(selectedKey).update(updatedData)
     .then(() => alert("更新しました！"))
     .catch(err => alert("失敗: " + err.message));
-}
+
 
 
         auth.onAuthStateChanged((user) => {
