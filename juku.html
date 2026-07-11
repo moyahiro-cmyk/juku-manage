@@ -488,17 +488,24 @@
         parentsData = {};
         let dataArray = [];
         snapshot.forEach((doc) => {
-            parentsData[doc.id] = doc.data();
-            dataArray.push({ id: doc.id, ...doc.data() });
+            const data = doc.data();
+            parentsData[doc.id] = data;
+            // データを安全に保持するためにidと中身を結合
+            dataArray.push({ id: doc.id, ...data });
         });
 
-        // 優先順位定義：JYを一番上に
+        // ★最強のソート：ステータスが空でも「OZ」として扱い、必ず定義順に並べる
         const statusOrder = { "OZ": 1, "JY": 2, "卒業": 3 };
+        
         dataArray.sort((a, b) => {
+            // ステータスを「OZ」で初期化し、空白を削除
             const sA = (a.status || "OZ").trim();
             const sB = (b.status || "OZ").trim();
+            
+            // 定義にない場合は「4」として最後尾に回す
             const valA = statusOrder[sA] || 4;
             const valB = statusOrder[sB] || 4;
+            
             return valA - valB;
         });
 
