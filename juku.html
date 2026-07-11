@@ -494,6 +494,8 @@
             dataArray.push({ id: doc.id, ...data });
         });
 
+        console.log("読み込んだデータ件数:", dataArray.length);
+
         // ★最強のソート：ステータスが空でも「OZ」として扱い、必ず定義順に並べる
         const statusOrder = { "OZ": 1, "JY": 2, "卒業": 3 };
         
@@ -589,26 +591,32 @@ function editParent(id) {
 
         function saveCardData() {
             const selectedKey = document.getElementById("cardStudentSelect").value;
-            
-            const updatedData = {
-                status: document.getElementById('editStatus').value.trim(),
-                student1: document.getElementById("editStudent1").value.trim(),
-                student2: document.getElementById("editStudent2").value.trim(),
-                student3: document.getElementById("editStudent3").value.trim(),
-                parentName: document.getElementById("editParentName").value.trim(),
-                email: document.getElementById("editEmail").value.trim(),
-                pass: document.getElementById("editPass").value.trim(),
-                connectId: document.getElementById("editConnectId").value.trim()
-            };
+    
+    // 【ガード】選択されていない場合は処理を止める
+    if (!selectedKey || selectedKey === "undefined" || selectedKey === "") {
+        alert("エラー：保存対象の保護者が選択されていません。もう一度リストから選び直してください。");
+        return;
+    }
 
-            db.collection("parents").doc(selectedKey).update(updatedData)
-            .then(() => {
-                alert(`🔥 クラウド上の「${selectedKey}」世帯のマスターデータを更新しました！保護者画面にも即時同期されます。`);
-            })
-            .catch(err => {
-                alert("クラウドデータの更新に失敗しました: " + err.message);
-            });
-        }
+    const updatedData = {
+        status: document.getElementById('editStatus').value.trim(),
+        student1: document.getElementById("editStudent1").value.trim(),
+        student2: document.getElementById("editStudent2").value.trim(),
+        student3: document.getElementById("editStudent3").value.trim(),
+        parentName: document.getElementById("editParentName").value.trim(),
+        email: document.getElementById("editEmail").value.trim(),
+        pass: document.getElementById("editPass").value.trim(),
+        connectId: document.getElementById("editConnectId").value.trim()
+    };
+
+    // 念のため、書き込み前にログを出す（ブラウザのF12キーで確認できます）
+    console.log("更新対象ID:", selectedKey, "更新データ:", updatedData);
+
+    db.collection("parents").doc(selectedKey).update(updatedData)
+    .then(() => alert("更新しました！"))
+    .catch(err => alert("失敗: " + err.message));
+}
+
 
         auth.onAuthStateChanged((user) => {
             const loginArea = document.getElementById("loginArea");
@@ -625,6 +633,20 @@ function editParent(id) {
             }
         });
 
+        function createNewParent() {
+    const newData = {
+        parentName: document.getElementById("editParentName").value.trim(),
+        student1: document.getElementById("editStudent1").value.trim(),
+        email: document.getElementById("editEmail").value.trim(),
+        status: "OZ" // デフォルト
+    };
+
+    // ドキュメントIDを自動生成して新規作成（既存を上書きしない！）
+    db.collection("parents").add(newData)
+    .then(() => alert("新規登録完了しました！"))
+    .catch(err => alert("失敗: " + err.message));
+}
+        
         function handleLogin() {
             const email = document.getElementById("loginEmail").value.trim();
             const password = document.getElementById("loginPassword").value;
