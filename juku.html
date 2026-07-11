@@ -311,7 +311,10 @@
 
                 <!-- 🪪 5. 登録カード画面 -->
                 <div id="page5" class="box" style="display: none;">
-                    <h2>🪪 保護者画面への登録用カード</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <h2>🪪 保護者画面への登録用カード</h2>
+    <button onclick="resetFormForNew()" style="cursor: pointer;">＋ 新規登録へ</button>
+</div>
                     <p style="font-size: 0.85em; color: #666;">新入塾の保護者に配布する、個別用システム登録コードの編集・発行画面です。</p>
                     
                     <label>配布する生徒（世帯基本）を選択:</label>
@@ -1438,7 +1441,46 @@ function resetFormForNew() {
     document.getElementById('editingParentId').value = '';
     // 入力欄をすべて空にする（各IDは実際のHTMLに合わせてください）
     // 例: document.getElementById('studentName').value = '';
-    alert('新規登録モードになりました。内容を入力して保存してください。');
+
+    // 以下、実際のHTMLのIDに合わせて調整してください（現在の入力欄のIDを埋めます）
+    document.getElementById('studentName').value = ''; // 例: 生徒氏名の入力欄ID
+    document.getElementById('parentName').value = '';  // 例: 保護者氏名の入力欄ID
+    // ...必要に応じて他の入力欄もクリア...
+
+    document.getElementById('editStudent1').value = '';
+    document.getElementById('editStudent2').value = '';
+    document.getElementById('editStudent3').value = '';
+    document.getElementById('editParentName').value = '';
+    document.getElementById('editEmail').value = '';
+    document.getElementById('editPass').value = '';
+    document.getElementById('editConnectId').value = ''; // 新規ならIDを生成するか空にする
+    alert('新規入力モードです。');
+}
+}
+function saveCardData() {
+    const parentId = document.getElementById('editingParentId').value;
+    const data = {
+        student1: document.getElementById('editStudent1').value,
+        student2: document.getElementById('editStudent2').value,
+        student3: document.getElementById('editStudent3').value,
+        parentName: document.getElementById('editParentName').value,
+        email: document.getElementById('editEmail').value,
+        pass: document.getElementById('editPass').value,
+        connectId: document.getElementById('editConnectId').value
+    };
+
+    // 隠しID(editingParentId)が空なら「新規追加」、あれば「上書き更新」
+    if (!parentId) {
+        // 新規登録処理（例: Firestoreへの追加）
+        db.collection("parents").add(data)
+            .then(() => alert("新規登録が完了しました！"))
+            .catch(e => console.error(e));
+    } else {
+        // 更新処理（例: Firestoreの特定のドキュメントを更新）
+        db.collection("parents").doc(parentId).update(data)
+            .then(() => alert("データを更新しました！"))
+            .catch(e => console.error(e));
+    }
 }
 
     </script>
