@@ -467,10 +467,9 @@
 
         function startWatchParents() {
     db.collection("parents").onSnapshot((snapshot) => {
+        // もしデータがない場合に勝手に登録する処理（不要なら削除）
         if (snapshot.empty) {
-            Object.keys(initialParents).forEach(key => {
-                db.collection("parents").doc(key).set(initialParents[key]);
-            });
+            console.log("データが空です。");
             return;
         }
 
@@ -478,6 +477,10 @@
         let dataArray = [];
         snapshot.forEach((doc) => {
             const data = doc.data();
+            // データがなければ強制的にステータスをOZにする
+            if (!data.status || data.status === "連携済み") {
+                data.status = "OZ";
+            }
             parentsData[doc.id] = data;
             dataArray.push({ id: doc.id, ...data });
         });
@@ -515,7 +518,7 @@
                         <td style="text-align:center; font-weight:bold;">${validStatus}</td>
                         <td>${p.student1 || "—"}</td>
                         <td>${p.student2 || "—"}</td>
-                        <td>${p.student3 || "—"}</td>
+                    <td>${p.student3 || "—"}</td>
                         <td><strong>${p.parentName} 様</strong></td>
                         <td><code>${p.email}</code></td>
                         <td><code>${p.pass}</code></td>
