@@ -348,6 +348,8 @@
                             <label>保護者用連携ID</label>
                             <input type="text" id="editConnectId" readonly style="background:#eee;">
 
+                            <input type="hidden" id="editingParentId" value="">
+
                             <button style="margin-top: 12px; background-color: #2ecc71;" onclick="saveCardData()">🔥 この内容でクラウドデータを更新する</button>
                         </div>
 
@@ -1429,6 +1431,15 @@ window.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', clearAllData);
     }
 });
+
+// --- 編集・新規登録の切り替え ---
+function resetFormForNew() {
+    // 隠しIDを空にして「新規」モードにする
+    document.getElementById('editingParentId').value = '';
+    // 入力欄をすべて空にする（各IDは実際のHTMLに合わせてください）
+    // 例: document.getElementById('studentName').value = '';
+    alert('新規登録モードになりました。内容を入力して保存してください。');
+}
 
     </script>
 </body>
