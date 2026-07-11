@@ -555,7 +555,7 @@ function handleLogin() {
 }
 
 // ログアウト処理
-function logout() {
+function handlelogout() {
     auth.signOut().then(() => {
         // ログアウト成功時、ページをリロードしてログイン画面に戻す
         location.reload();
