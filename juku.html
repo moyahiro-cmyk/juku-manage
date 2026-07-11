@@ -502,8 +502,8 @@
         });
 
         // テーブルの組み立て
-        const tbody = document.getElementById("parentTableBody");
-        tbody.innerHTML = "";
+        const tableBody = document.getElementById("parentTableBody");
+        tableBody.innerHTML = "";
 
         dataArray.forEach((p) => {
             const statusBadge = p.status === "連携済み" 
@@ -524,7 +524,7 @@
                     <td>${p.lastCheck || "-"}</td>
                 </tr>
             `;
-            tbody.insertAdjacentHTML('beforeend', row);
+            tableBody.insertAdjacentHTML('beforeend', row);
         });
 
         if (document.getElementById('page5').style.display === 'block') {
