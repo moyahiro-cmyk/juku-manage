@@ -495,19 +495,18 @@
         // ★最強のソート：ステータスが空でも「OZ」として扱い、必ず定義順に並べる
         const statusOrder = { "OZ": 1, "JY": 2, "卒業": 3 };
         
+        dataArray.forEach(p => {
+            if (!p.status || p.status.trim() === "") {
+                p.status = "OZ"; // データがない場合は強制的にOZにする
+            }
+        });
+        const statusOrder = { "OZ": 1, "JY": 2, "卒業": 3 };
         dataArray.sort((a, b) => {
             // "OZ", "JY", "卒業" 以外はすべて「OZ」として扱うための関数
-            const getOrder = (status) => {
-                if (!status) return 1; // 空ならOZ
-                const s = status.toString().trim();
-                if (s === "OZ") return 1;
-                if (s === "JY") return 2;
-                if (s === "卒業") return 3;
-                return 1; // それ以外もOZ扱い
-            };
-
-            const valA = getOrder(a.status);
-            const valB = getOrder(b.status);
+            const sA = (p.status || "OZ").trim(); // ここを修正
+            // ↓ 下記のように修正してください
+            const valA = statusOrder[p.status] || 4;
+            const valB = statusOrder[p.status] || 4;
             
             return valA - valB;
         });
