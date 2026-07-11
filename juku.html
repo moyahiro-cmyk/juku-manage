@@ -465,13 +465,6 @@
             "渡辺 翔太": { student1: "渡辺 翔太 (中3)", student2: "—", student3: "—", parentName: "渡辺 哲也", email: "watanabe@oizumi.com", pass: "wata555", connectId: "p-watanabe-3092", status: "連携済み", lastCheck: "07/01" }
         };
 
-        function formatStudentCell(studentStr) {
-            if (!studentStr || studentStr === "—") return "—";
-            const match = studentStr.match(/^(.+?)\s*\((.+?)\)$/);
-            if (match) return `<strong>${match[1]}</strong><span class="student-grade-sub">${match[2]}</span>`;
-            return studentStr;
-        }
-
         function startWatchParents() {
     db.collection("parents").onSnapshot((snapshot) => {
         if (snapshot.empty) {
@@ -486,62 +479,54 @@
         snapshot.forEach((doc) => {
             const data = doc.data();
             parentsData[doc.id] = data;
-            // データを安全に保持するためにidと中身を結合
             dataArray.push({ id: doc.id, ...data });
         });
 
-        console.log("読み込んだデータ件数:", dataArray.length);
-
-        // ★最強のソート：ステータスが空でも「OZ」として扱い、必ず定義順に並べる
+        // 1. ソート用の定義（重複しないようここに置く）
         const statusOrder = { "OZ": 1, "JY": 2, "卒業": 3 };
         
+        // 2. データのクリーンアップ
         dataArray.forEach(p => {
             if (!p.status || p.status.trim() === "") {
-                p.status = "OZ"; // データがない場合は強制的にOZにする
+                p.status = "OZ";
             }
         });
-        // const statusOrder = { "OZ": 1, "JY": 2, "卒業": 3 };
-        dataArray.sort((a, b) => {
-            // "OZ", "JY", "卒業" 以外はすべて「OZ」として扱うための関数
-            const sA = (p.status || "OZ").trim(); // ここを修正
-            // ↓ 下記のように修正してください
-            const valA = statusOrder[p.status] || 4;
-            const valB = statusOrder[p.status] || 4;
-            
-            return valA - valB;
-        }
 
+        // 3. ソート処理（ここを正しく記述）
+        dataArray.sort((a, b) => {
+            const valA = statusOrder[a.status] || 4;
+            const valB = statusOrder[b.status] || 4;
+            return valA - valB;
+        });
+
+        // 4. テーブル描画
         const tableBody = document.getElementById("parentTableBody");
         if (tableBody) {
             tableBody.innerHTML = "";
 
             dataArray.forEach((p) => {
-                // 1. 在籍ステータスの表示を「OZ, JY, 卒業」のいずれか（未定義ならOZ）に固定
-            const validStatus = (p.status === "JY" || p.status === "卒業") ? p.status : "OZ";
+                const validStatus = p.status;
+                const statusBadge = (p.connectId && p.pass) 
+                    ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
+                    : `<span style="color: #7f8c8d;">○ 未連携</span>`;
 
-            // 2. 連携状態バッジは「連携済み」か「未連携」のみを判定
-            const statusBadge = (p.connectId && p.pass) 
-    ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
-    : `<span style="color: #7f8c8d;">○ 未連携</span>`;
-
-            const row = `
-                <tr>
-                    <td style="text-align:center; font-weight:bold;">${validStatus}</td>
-                    <td>${formatStudentCell(p.student1)}</td>
-                    <td>${formatStudentCell(p.student2)}</td>
-                    <td>${formatStudentCell(p.student3)}</td>
-                    <td><strong>${p.parentName} 様</strong></td>
-                    <td><code>${p.email}</code></td>
-                    <td><code>${p.pass}</code></td>
-                    <td>${statusBadge}</td>
-                    <td>${p.lastCheck || "-"}</td>
-                    <td><button onclick="editParent('${p.id}')">編集</button></td>
-                </tr>
-            `;
-            tableBody.insertAdjacentHTML('beforeend', row);
-        });
+                const row = `
+                    <tr>
+                        <td style="text-align:center; font-weight:bold;">${validStatus}</td>
+                        <td>${formatStudentCell(p.student1)}</td>
+                        <td>${formatStudentCell(p.student2)}</td>
+                        <td>${formatStudentCell(p.student3)}</td>
+                        <td><strong>${p.parentName} 様</strong></td>
+                        <td><code>${p.email}</code></td>
+                        <td><code>${p.pass}</code></td>
+                        <td>${statusBadge}</td>
+                        <td>${p.lastCheck || "-"}</td>
+                        <td><button onclick="editParent('${p.id}')">編集</button></td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
         }
-
     });
 }
 
