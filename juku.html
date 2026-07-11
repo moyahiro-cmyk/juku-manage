@@ -477,67 +477,77 @@
         }
 
         function startWatchParents() {
-            db.collection("parents").onSnapshot((snapshot) => {
-                if (snapshot.empty) {
-                    Object.keys(initialParents).forEach(key => {
-                        db.collection("parents").doc(key).set(initialParents[key]);
-                    });
-                    return;
-                }
+    db.collection("parents").onSnapshot((snapshot) => {
+        if (snapshot.empty) {
+            Object.keys(initialParents).forEach(key => {
+                db.collection("parents").doc(key).set(initialParents[key]);
+            });
+            return;
+        }
 
-                parentsData = {};
-
-                let dataArray = [];
+        parentsData = {};
+        let dataArray = [];
         snapshot.forEach((doc) => {
             parentsData[doc.id] = doc.data();
             dataArray.push({ id: doc.id, ...doc.data() });
         });
 
-        // ★ここでソートを実行
-        const statusOrder = { "OZ": 1, "JY": 2, "卒業": 3 };
+        // 優先順位定義：JYを一番上に
+        const statusOrder = { "JY": 1, "OZ": 2, "卒業": 3 };
         dataArray.sort((a, b) => {
-           / 文字列の前後にある空白を削除して比較
             const sA = (a.status || "OZ").trim();
             const sB = (b.status || "OZ").trim();
-            
-            // 定義した順番（1, 2, 3）を取得。定義外なら4（一番下）にする
             const valA = statusOrder[sA] || 4;
             const valB = statusOrder[sB] || 4;
-            
             return valA - valB;
-
-        // テーブルの組み立て
-        const tableBody = document.getElementById("parentTableBody");
-        tableBody.innerHTML = "";
-
-        dataArray.forEach((p) => {
-            // ステータスをきれいにする（空ならOZにする）
-            const displayStatus = (p.status === "OZ" || p.status === "JY" || p.status === "卒業") ? p.status : "OZ";
-
-            const statusBadge = p.status === "連携済み" 
-                ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
-                : `<span style="color: #7f8c8d;">○ 未連携</span>`;
-
-            const row = `
-                <tr>
-                    <td style="text-align:center; font-weight:bold;">${displayStatus}</td>
-                    <td>${formatStudentCell(p.student1)}</td>
-                    <td>${formatStudentCell(p.student2)}</td>
-                    <td>${formatStudentCell(p.student3)}</td>
-                    <td><strong>${p.parentName} 様</strong></td>
-                    <td><code>${p.email}</code></td>
-                    <td><code>${p.pass}</code></td>
-                    <td>${statusBadge}</td>
-                    <td>${p.lastCheck || "-"}</td>
-                </tr>
-            `;
-            tableBody.insertAdjacentHTML('beforeend', row);
         });
+
+        const tableBody = document.getElementById("parentTableBody");
+        if (tableBody) {
+            tableBody.innerHTML = "";
+
+            dataArray.forEach((p) => {
+                const statusBadge = p.status === "連携済み" 
+                    ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
+                    : `<span style="color: #7f8c8d;">○ 未連携</span>`;
+
+                const row = `
+                    <tr>
+                        <td style="text-align:center; font-weight:bold;">${(p.status || "OZ").trim()}</td>
+                        <td>${formatStudentCell(p.student1)}</td>
+                        <td>${formatStudentCell(p.student2)}</td>
+                        <td>${formatStudentCell(p.student3)}</td>
+                        <td><strong>${p.parentName} 様</strong></td>
+                        <td><code>${p.email}</code></td>
+                        <td><code>${p.pass}</code></td>
+                        <td>${statusBadge}</td>
+                        <td>${p.lastCheck || "-"}</td>
+                        <td><button onclick="editParent('${p.id}')">編集</button></td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        // 自動的にプルダウンを最新にする
+        generateDropdowns();
 
         if (document.getElementById('page5').style.display === 'block') {
             loadCardForm();
         }
     });
+}
+
+function editParent(id) {
+    // 1. 登録カード（ページ5）を表示
+    switchTab(5);
+
+    // 2. プルダウンの値をセット
+    const select = document.getElementById("cardStudentSelect");
+    select.value = id;
+
+    // 3. データを反映する関数を呼び出し
+    loadCardForm();
 }
 
 
