@@ -1520,6 +1520,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // 全てのプルダウンを同期させる関数
 function updateAllDropdowns(snapshot) {
+    console.log("Firebaseデータ取得数:", snapshot.size); // これを足してください
     const selects = [
         { id: "studentSelect", label: "対象を選択" },           // タブ1
         { id: "notifyTargetSelect", label: "全生徒の保護者（一斉通知）" }, // タブ2
