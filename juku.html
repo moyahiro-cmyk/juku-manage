@@ -1142,12 +1142,14 @@ function renderStudyCalendar() {
 
         grid.appendChild(div);
     }
+}
 
 function showStudyDetails(dateStr) {
     // 右側のエリアの要素を取得
     const list = document.getElementById('studyList');
     const title = document.getElementById('selectedDateText');
     
+    if (!list || !title) return;
     // 表示をクリアしてタイトルを更新
     list.innerHTML = '';
     title.innerText = dateStr + ' の予定';
@@ -1167,27 +1169,7 @@ function showStudyDetails(dateStr) {
     }
 }    
 
-    // 日付をクリックした時に右側に予定を表示する関数
- showDetails(dateStr) {
-    const list = document.getElementById('studyList');
-    list.innerHTML = '';
-    document.getElementById('selectedDateText').innerText = dateStr + ' の予定';
-    
-    // その日の予定だけを抽出
-    const daySchedules = schedules.filter(s => s.date === dateStr && s.type === 'study');
-    
-    daySchedules.forEach(s => {
-        let li = document.createElement('li');
-        li.innerText = s.text;
-        list.appendChild(li);
-    });
-}
-
-// renderStudyCalendar の中の for ループにクリックイベントを追加
-// div.onclick = () => showDetails(dateStr); 
-// を追加すると、その日をクリックした時に右側が更新されます！
-}
-
+ 
 // 3. プルダウン初期化
 function initStudyDropdowns() {
     const ySel = document.getElementById('studyYearSelect');
@@ -1195,17 +1177,13 @@ function initStudyDropdowns() {
     const today = new Date();
     
     // 年・月の生成
-    ySel.innerHTML = ''; mSel.innerHTML = '';
-    for (let y = 2026; y <= 2028; y++) {
-        let opt = document.createElement('option'); opt.value = y; opt.innerText = y;
-        if (y === today.getFullYear()) opt.selected = true;
-        ySel.appendChild(opt);
+    if(ySel) {
+        ySel.innerHTML = '';
+        for(let y=2026; y<=2028; y++){
+            ySel.innerHTML += `<option value="${y}" ${y === today.getFullYear() ? 'selected' : ''}>${y}</option>`;
+        }
     }
-    for (let i = 1; i <= 12; i++) {
-        let opt = document.createElement('option'); opt.value = String(i).padStart(2, '0'); opt.innerText = i;
-        if (i === (today.getMonth() + 1)) opt.selected = true;
-        mSel.appendChild(opt);
-    }
+    // ...以下、他の初期化処理...
     updateStudyDayDropdown();
 }
 
