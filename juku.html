@@ -354,6 +354,8 @@
                             <label>保護者用連携ID</label>
                             <input type="text" id="editConnectId" readonly style="background:#eee;">
 
+                            <input type="hidden" id="hiddenEditKey">
+                            
                             <button style="margin-top: 12px; background-color: #2ecc71;" onclick="saveCardData()">🔥 この内容でクラウドデータを更新する</button>
                         </div>
 
@@ -546,11 +548,29 @@
 }
 
 function editParent(id) {
-    // 1. 登録カード（ページ5）を表示
-    switchTab(5);
+    // 1. 隠しフィールドにIDを格納
+    document.getElementById("hiddenEditKey").value = id;
+    
+    // 2. データをフォームに流し込む（既存のloadCardFormを活用）
+    // 注意: loadCardFormの中身から "select" を見に行く処理は消してください
+    const p = parentsData[id];
+    if (p) {
+        document.getElementById("editStatus").value = p.status || "OZ";
+        document.getElementById("editStudent1").value = p.student1 || "";
+        document.getElementById("editStudent2").value = p.student2 || "—";
+        document.getElementById("editStudent3").value = p.student3 || "—";
+        document.getElementById("editParentName").value = p.parentName || "";
+        document.getElementById("editEmail").value = p.email || "";
+        document.getElementById("editPass").value = p.pass || "";
+        document.getElementById("editConnectId").value = p.connectId || "";
 
-    // 3. データを反映する関数を呼び出し
-    loadCardForm();
+        console.log("フォームへデータセット完了:", p.parentName);
+    } else {
+        console.error("IDに対応するデータが見つかりません:", id);
+    }
+    
+    // 画面遷移
+    switchTab(5);
 }
 
 
@@ -582,13 +602,33 @@ function editParent(id) {
 }
 
         function saveCardData() {
-            const selectedKey = document.getElementById("cardStudentSelect").value;
-    
-    // 【ガード】選択されていない場合は処理を止める
-    if (!selectedKey || selectedKey === "undefined" || selectedKey === "") {
-        alert("エラー：保存対象の保護者が選択されていません。もう一度リストから選び直してください。");
-        return;
+    const editingKey = document.getElementById("hiddenEditKey").value;
+    const data = {
+        status: document.getElementById('editStatus').value.trim(),
+        student1: document.getElementById("editStudent1").value.trim(),
+        student2: document.getElementById("editStudent2").value.trim(),
+        student3: document.getElementById("editStudent3").value.trim(),
+        parentName: document.getElementById("editParentName").value.trim(),
+        email: document.getElementById("editEmail").value.trim(),
+        pass: document.getElementById("editPass").value.trim(),
+        connectId: document.getElementById("editConnectId").value.trim()
+        };
+
+    if (!editingKey) {
+        db.collection("parents").add(data).then(() => {
+            alert("新規登録しました！");
+            loadParents(); // リスト再描画
+            switchTab(4);  // リスト画面へ
+        });
+    } else {
+        // 既存データの更新
+        db.collection("parents").doc(editingKey).update(data).then(() => {
+            alert("更新しました！");
+            loadParents(); // リスト再描画
+            switchTab(4);  // リスト画面へ
+        });
     }
+}
 
     const updatedData = {
         status: document.getElementById('editStatus').value.trim(),
