@@ -496,13 +496,18 @@
         const statusOrder = { "OZ": 1, "JY": 2, "卒業": 3 };
         
         dataArray.sort((a, b) => {
-            // ステータスを「OZ」で初期化し、空白を削除
-            const sA = (a.status || "OZ").trim();
-            const sB = (b.status || "OZ").trim();
-            
-            // 定義にない場合は「4」として最後尾に回す
-            const valA = statusOrder[sA] || 4;
-            const valB = statusOrder[sB] || 4;
+            // "OZ", "JY", "卒業" 以外はすべて「OZ」として扱うための関数
+            const getOrder = (status) => {
+                if (!status) return 1; // 空ならOZ
+                const s = status.toString().trim();
+                if (s === "OZ") return 1;
+                if (s === "JY") return 2;
+                if (s === "卒業") return 3;
+                return 1; // それ以外もOZ扱い
+            };
+
+            const valA = getOrder(a.status);
+            const valB = getOrder(b.status);
             
             return valA - valB;
         });
