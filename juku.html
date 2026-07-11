@@ -336,6 +336,13 @@
                             <label>生徒② (きょうだい・任意)</label>
                             <input type="text" id="editStudent2">
                             
+                            <label>在籍ステータス</label>
+<select id="editStatus">
+    <option value="OZ">OZ (第1教室)</option>
+    <option value="JY">JY (第2教室)</option>
+    <option value="卒業">卒業</option>
+</select>
+
                             <label>生徒③ (きょうだい・任意)</label>
                             <input type="text" id="editStudent3">
                             
@@ -532,28 +539,6 @@
             document.getElementById("cardTargetName").innerHTML = targetNamesHtml;
             document.getElementById("cardTargetId").innerText = p.connectId || "—";
             document.getElementById("cardTargetPass").innerText = p.pass || "";
-        }
-
-        function saveCardData() {
-            const selectedKey = document.getElementById("cardStudentSelect").value;
-            
-            const updatedData = {
-                student1: document.getElementById("editStudent1").value.trim(),
-                student2: document.getElementById("editStudent2").value.trim(),
-                student3: document.getElementById("editStudent3").value.trim(),
-                parentName: document.getElementById("editParentName").value.trim(),
-                email: document.getElementById("editEmail").value.trim(),
-                pass: document.getElementById("editPass").value.trim(),
-                connectId: document.getElementById("editConnectId").value.trim()
-            };
-
-            db.collection("parents").doc(selectedKey).update(updatedData)
-            .then(() => {
-                alert(`🔥 クラウド上の「${selectedKey}」世帯のマスターデータを更新しました！保護者画面にも即時同期されます。`);
-            })
-            .catch(err => {
-                alert("クラウドデータの更新に失敗しました: " + err.message);
-            });
         }
 
         auth.onAuthStateChanged((user) => {
@@ -1459,29 +1444,49 @@ function resetFormForNew() {
 
 function saveCardData() {
     const parentId = document.getElementById('editingParentId').value;
-    const data = {
-        student1: document.getElementById('editStudent1').value,
-        student2: document.getElementById('editStudent2').value,
-        student3: document.getElementById('editStudent3').value,
-        parentName: document.getElementById('editParentName').value,
-        email: document.getElementById('editEmail').value,
-        pass: document.getElementById('editPass').value,
-        connectId: document.getElementById('editConnectId').value
-    };
+    const selectedKey = document.getElementById("cardStudentSelect").value;
+    
+    const updatedData = {
+                status: document.getElementById('editStatus').value
+                student1: document.getElementById("editStudent1").value.trim(),
+                student2: document.getElementById("editStudent2").value.trim(),
+                student3: document.getElementById("editStudent3").value.trim(),
+                parentName: document.getElementById("editParentName").value.trim(),
+                email: document.getElementById("editEmail").value.trim(),
+                pass: document.getElementById("editPass").value.trim(),
+                connectId: document.getElementById("editConnectId").value.trim()
+            };
 
     // 隠しID(editingParentId)が空なら「新規追加」、あれば「上書き更新」
-    if (!parentId) {
+    if (!parentId|| parentId === "") {
         // 新規登録処理（例: Firestoreへの追加）
         db.collection("parents").add(data)
-            .then(() => alert("新規登録が完了しました！"))
-            .catch(e => console.error(e));
-    } else {
-        // 更新処理（例: Firestoreの特定のドキュメントを更新）
-        db.collection("parents").doc(parentId).update(data)
-            .then(() => alert("データを更新しました！"))
-            .catch(e => console.error(e));
+            .then(() => {
+                alert("新規登録が完了しました！");
+    })
+            .catch(e => {
+            console.error(e);
+            alert("新規登録に失敗しました: " + e.message);
+            });
     }
-}
+    
+    else {
+        // 優先的に hidden の parentId を使い、なければ選択中の Key を使う
+        const targetId = parentId || selectedKey;
+        // 更新処理（例: Firestoreの特定のドキュメントを更新）
+
+        db.collection("parents").doc(targetId).update(data)
+            .then(() => {
+                alert(`🔥 「${data.parentName}」様のデータを更新しました！`);
+            })
+            .catch(e => {
+                console.error(e);
+                alert("更新に失敗しました: " + e.message);
+            });
+
+        
+        }
+    }
 
     </script>
 </body>
