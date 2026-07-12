@@ -1045,7 +1045,22 @@ function sendUrgent() {
     const student = document.getElementById('studentSelect').value;
     // ... (他の変数はそのまま) ...
     const dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`; // 月日を0埋めしました
+    // 【追加】まずここでHTMLから値を取得してください
+    const year = document.getElementById('yearSelect').value;
+    const month = document.getElementById('monthSelect').value;
+    const day = document.getElementById('daySelect').value;
     
+    // 他の変数もここに並べます
+    const student = document.getElementById('studentSelect').value;
+    const subject = document.getElementById('subjectSelect').value;
+    const startHour = document.getElementById('startHourSelect').value;
+    const startMinute = document.getElementById('startMinuteSelect').value;
+    const endHour = document.getElementById('endHourSelect').value;
+    const endMinute = document.getElementById('endMinuteSelect').value;
+    const extraText = document.getElementById('scheduleText').value.trim();
+
+    // これ以降に、ご自身で書かれた「dateStr」などの処理を続ければ動きます！
+    const dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     // ... (時間のバリデーションはそのまま) ...
 
     // 【修正】重複チェックの条件も type: 'student' に合わせる
