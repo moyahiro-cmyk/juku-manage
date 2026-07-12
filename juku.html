@@ -487,6 +487,14 @@ function initSelectors() {
 }
 
 async function sendSchedule() {
+
+    // デバッグ用：各要素が正しく取れているか確認
+    const pSelect = document.getElementById("parentSelect");
+    const sInput = document.getElementById("studentName"); // IDが正しいか確認
+    
+    if (!pSelect) { console.error("エラー: parentSelect が見つかりません"); return; }
+    if (!sInput) { console.error("エラー: studentName が見つかりません"); return; }
+
     const parentName = document.getElementById('parentSelect').value;
     const studentName = document.getElementById('studentNameInput').value; // 手入力欄を取得
     const year = document.getElementById('yearSelect').value;
