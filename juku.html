@@ -1611,26 +1611,31 @@ function updateAllDropdowns(snapshot) {
 function loadStudentDropdown() {
     const studentSelect = document.getElementById("studentSelect");
     if (!studentSelect) return;
+    
+    // 一度クリア
     studentSelect.innerHTML = '<option value="">対象を選択</option>';
 
     db.collection("parents").get().then((snapshot) => {
         snapshot.forEach((doc) => {
             const data = doc.data();
-            
-            // フィールド student1, student2, student3 をチェックして名前を集める
+            console.log("読み込んだデータ:", data); // F12のコンソールに中身が出ます
+
+            // 生徒名リストを作成
             let nameList = [];
             if (data.student1 && data.student1 !== "—") nameList.push(data.student1);
             if (data.student2 && data.student2 !== "—") nameList.push(data.student2);
             if (data.student3 && data.student3 !== "—") nameList.push(data.student3);
             
-            // 名前が見つかった場合のみオプションを追加
+            // オプションを作成
             if (nameList.length > 0) {
                 const option = document.createElement("option");
-                option.value = doc.id; // ドキュメントID
-                option.text = nameList.join("・"); // "山田太郎・山田次郎" と表示
+                option.value = doc.id;
+                option.textContent = nameList.join("・"); // "山田太郎・山田次郎"
                 studentSelect.appendChild(option);
             }
         });
+    }).catch((err) => {
+        console.error("データ取得失敗:", err);
     });
 }
     </script>
