@@ -463,7 +463,7 @@ function updateStudentDropdown(snapshot) {
         const option = document.createElement("option");
         option.value = doc.id; // ドキュメントIDを値にすると処理しやすいです
         // student1 の名前（例：田中 葵 (小5)）をそのまま表示
-        option.textContent = data.parentName; 
+        option.textContent = `${data.parentName} 様`; 
         select.appendChild(option);
     });
 }
