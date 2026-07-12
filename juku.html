@@ -202,7 +202,7 @@
 <!-- 【追加】生徒名の手入力欄 -->
 <div class="input-group">
   <label>生徒名（手入力）：</label>
-  <input type="text" id="studentNameInputInput" placeholder="例：山田 太郎">
+  <input type="text" id="studentNameInput" placeholder="例：山田 太郎">
 </div>
 
 <!-- 日付・時間の修正（idを付与） -->
@@ -498,7 +498,7 @@ async function sendSchedule() {
     
     // ガード処理
     if (!pSelect) { console.error("エラー: parentSelect が見つかりません"); return; }
-    if (!sInput) { console.error("エラー: studentNameInputInput が見つかりません"); return; }
+    if (!sInput) { console.error("エラー: studentNameInput が見つかりません"); return; }
 
     const studentNameInput = sInput.value; // 変数を統一
     const parentId = pSelect.value;
@@ -1659,10 +1659,10 @@ function resetFormForNew() {
     console.log("新規登録モードにリセットしました");
 }
 
-function formatStudentCell(studentNameInput) {
-    // もし名前が空や「—」ならそのまま返し、そうでなければ名前を返すシンプルな関数
-    if (!studentNameInput || studentNameInput === "—") return "—";
-    return studentNameInput;
+function formatStudentCell(name) {
+    // nameが空、null、undefined、または "—" の場合は "—" を返す
+    if (!name || name === "—") return "—";
+    return name;
 }
 
 // ページ読み込み完了後にボタンと関数を紐付ける
