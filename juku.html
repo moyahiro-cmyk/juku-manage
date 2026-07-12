@@ -487,78 +487,48 @@ function initSelectors() {
 }
 
 async function sendSchedule() {
+    // 1. 各要素を取得
     const pSelect = document.getElementById("parentSelect");
-    const sInput = document.getElementById("studentNameInput"); // ここで改めて探す
+    const sInput = document.getElementById("studentNameInput"); // HTMLのIDと完全に一致させる
     
-    // もしそれでも null なら、HTMLのIDが本当に studentNameInput か確認が必要
-    if (!sInput) {
-        alert("エラー: 'studentNameInput' というIDの入力欄が見つかりません。HTMLを確認してください。");
+    // 2. 要素がない場合の詳細なチェック
+    if (!pSelect) {
+        alert("エラー: 保護者選択欄（parentSelect）が見つかりません。");
         return;
     }
-    
-    // ガード処理
-    if (!pSelect) { console.error("エラー: parentSelect が見つかりません"); return; }
-    if (!sInput) { console.error("エラー: studentNameInput が見つかりません"); return; }
+    if (!sInput) {
+        alert("エラー: 生徒名入力欄（studentNameInput）が見つかりません。HTMLを確認してください。");
+        return;
+    }
 
-    const studentNameInput = sInput.value; // 変数を統一
+    // 3. 値を取得
+    const studentName = sInput.value;
     const parentId = pSelect.value;
-    
-    // 選択された保護者名のテキストを取得
     const selectedParentName = pSelect.options[pSelect.selectedIndex].text;
 
-    if (!studentNameInput || parentId === "") {
+    if (!studentName || parentId === "") {
         alert("保護者の選択と生徒名の入力は必須です。");
         return;
     }
 
-    const year = document.getElementById('yearSelect').value;
-    const month = document.getElementById('monthSelect').value;
-    const day = document.getElementById('daySelect').value;
+    // ...以降の処理（年月日の取得など）...
+    const year = document.getElementById('yearSelect')?.value;
+    const month = document.getElementById('monthSelect')?.value;
+    const day = document.getElementById('daySelect')?.value;
 
     try {
         await db.collection("schedules").add({
             parentName: selectedParentName,
-            studentNameInput: studentNameInput, // 統一
+            studentName: studentName,
             date: `${year}-${month}-${day}`,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        
         alert("登録しました！");
-        sInput.value = ''; // リセットも統一
+        sInput.value = ''; 
     } catch (e) {
         console.error("登録エラー:", e);
         alert("保存に失敗しました。" + e.message);
     }
-}
-
-// ページ読み込み時に実行する初期化関数
-function initLessonSelectors() {
-    const ySel = document.getElementById('yearSelect');
-    const mSel = document.getElementById('monthSelect');
-    const today = new Date();
-
-    // 年の初期化
-    ySel.innerHTML = '';
-    for (let y = 2026; y <= 2028; y++) {
-        let opt = document.createElement('option');
-        opt.value = y;
-        opt.innerText = y + "年";
-        if (y === today.getFullYear()) opt.selected = true;
-        ySel.appendChild(opt);
-    }
-
-    // 月の初期化
-    mSel.innerHTML = '';
-    for (let i = 1; i <= 12; i++) {
-        let opt = document.createElement('option');
-        opt.value = String(i).padStart(2, '0');
-        opt.innerText = i + "月";
-        if (i === (today.getMonth() + 1)) opt.selected = true;
-        mSel.appendChild(opt);
-    }
-    
-    // 最後に日を生成
-    updateDayDropdown();
 }
 
 // 既存の updateDayDropdown はそのまま使用してOKです
