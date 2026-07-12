@@ -750,17 +750,17 @@ auth.onAuthStateChanged((user) => {
     db.collection("parents").get().then((snapshot) => {
         snapshot.forEach((doc) => {
             const data = doc.data();
-            const parentId = doc.id; // 山田さん、加藤さん等のID
+            const parentId = doc.id; 
 
-            // student1〜3を配列で回す
+            // 各生徒フィールドをチェック
             const studentFields = ['student1', 'student2', 'student3'];
 
             studentFields.forEach((field) => {
                 const name = data[field];
                 
-                // 【重要】ここで「データが存在する」かつ「空白ではない」ことだけを確認
-                // "—" も判定から除外
-                if (name && name !== "—" && name.trim() !== "") {
+                // 修正ポイント: 
+                // nameが存在し、かつ "—" でなく、かつ 空白文字を除去した後に空ではないこと
+                if (name && name !== "—" && name.toString().trim() !== "") {
                     const option = document.createElement('option');
                     option.value = parentId; 
                     option.textContent = name;
@@ -768,7 +768,6 @@ auth.onAuthStateChanged((user) => {
                 }
             });
         });
-        console.log("プルダウンの生成が完了しました");
     });
 }
 
