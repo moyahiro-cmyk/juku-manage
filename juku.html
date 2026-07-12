@@ -771,6 +771,9 @@ auth.onAuthStateChanged((user) => {
                     option.textContent = name;
                     studentSelect.appendChild(option);
                 }
+
+                console.log("★generateDropdownsが実行されました。現在のオプション数:", document.getElementById('studentSelect').options.length);
+}
             });
         });
         console.log("全生徒のリスト生成完了（フィールドの有無もチェック済み）");
