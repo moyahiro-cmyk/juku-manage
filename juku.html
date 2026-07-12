@@ -495,19 +495,61 @@ async function sendSchedule() {
     const month = document.getElementById('monthSelect').value;
     const day = document.getElementById('daySelect').value;
     
-    // 必須チェック（手入力欄が空なら保護者名を使うなどの処理も可能）
-    if(!studentName) {
-        alert("生徒名を入力してください。");
+    // 保護者名の値（テキストではなくIDとして扱う場合）
+    const selectedParentName = parentSelect.options[parentSelect.selectedIndex].text;
+
+    if (!studentName || parentSelect.value === "") {
+        alert("保護者の選択と生徒名の入力は必須です。");
         return;
     }
 
-    await db.collection("schedules").add({
-        parentName: parentName,
-        studentName: studentName,
-        date: `${year}-${month}-${day}`,
-        // ...以下省略
-    });
+    try {
+        await db.collection("schedules").add({
+            parentName: selectedParentName, // 選択した保護者名
+            studentName: studentName,       // 手入力した生徒名
+            date: `${year}-${month}-${day}`,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        alert("登録しました！");
+        // 登録後のリセット処理（必要であれば）
+        document.getElementById('studentNameInput').value = '';
+    } catch (e) {
+        console.error("エラー:", e);
+        alert("保存に失敗しました。");
+    }
 }
+
+// ページ読み込み時に実行する初期化関数
+function initLessonSelectors() {
+    const ySel = document.getElementById('yearSelect');
+    const mSel = document.getElementById('monthSelect');
+    const today = new Date();
+
+    // 年の初期化
+    ySel.innerHTML = '';
+    for (let y = 2026; y <= 2028; y++) {
+        let opt = document.createElement('option');
+        opt.value = y;
+        opt.innerText = y + "年";
+        if (y === today.getFullYear()) opt.selected = true;
+        ySel.appendChild(opt);
+    }
+
+    // 月の初期化
+    mSel.innerHTML = '';
+    for (let i = 1; i <= 12; i++) {
+        let opt = document.createElement('option');
+        opt.value = String(i).padStart(2, '0');
+        opt.innerText = i + "月";
+        if (i === (today.getMonth() + 1)) opt.selected = true;
+        mSel.appendChild(opt);
+    }
+    
+    // 最後に日を生成
+    updateDayDropdown();
+}
+
+// 既存の updateDayDropdown はそのまま使用してOKです
 
 function startWatchParents() {
     db.collection("parents").onSnapshot((snapshot) => {
@@ -1459,8 +1501,12 @@ window.onload = function() {
     initAllDropdowns(); // 年月日と時間の初期化を一括で実行
     renderStudyCalendar(); // 画面を開いた時にもカレンダーを表示
 
+    initLessonSelectors()
+
     // ★ここを追加：ページ読み込み時にリストを取得してプルダウンを完成させる
     loadStudentDropdown();
+    document.getElementById('yearSelect').addEventListener('change', updateDayDropdown);
+    document.getElementById('monthSelect').addEventListener('change', updateDayDropdown);
     
     // イベントリスナーを追加
     document.getElementById('studyYearSelect').addEventListener('change', updateStudyDayDropdown);
