@@ -1042,28 +1042,28 @@ function sendUrgent() {
 
 
         async function sendSchedule() {
+    // 1. まずHTMLから全ての値を安全に取得する
     const student = document.getElementById('studentSelect').value;
-    // ... (他の変数はそのまま) ...
-    const dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`; // 月日を0埋めしました
-    // 【追加】まずここでHTMLから値を取得してください
+    const subject = document.getElementById('subjectSelect').value;
     const year = document.getElementById('yearSelect').value;
     const month = document.getElementById('monthSelect').value;
     const day = document.getElementById('daySelect').value;
-    
-    // 他の変数もここに並べます
-    const student = document.getElementById('studentSelect').value;
-    const subject = document.getElementById('subjectSelect').value;
     const startHour = document.getElementById('startHourSelect').value;
     const startMinute = document.getElementById('startMinuteSelect').value;
     const endHour = document.getElementById('endHourSelect').value;
     const endMinute = document.getElementById('endMinuteSelect').value;
     const extraText = document.getElementById('scheduleText').value.trim();
 
-    // これ以降に、ご自身で書かれた「dateStr」などの処理を続ければ動きます！
+    // 2. 基本的なチェック
+    if (!student) { alert("対象の生徒を選択してください。"); return; }
+    
     const dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    // ... (時間のバリデーションはそのまま) ...
+    const newStart = parseInt(startHour) * 60 + parseInt(startMinute);
+    const newEnd = parseInt(endHour) * 60 + parseInt(endMinute);
 
-    // 【修正】重複チェックの条件も type: 'student' に合わせる
+    if (newStart >= newEnd) { alert("⚠ 正しい時間帯を指定してください。"); return; }
+
+    // 3. 重複チェック（type: 'student' で絞り込み）
     const overlapIds = [];
     schedules.filter(item => item.date === dateStr && item.type === 'student' && item.student === student)
     .forEach(oldEvent => {
@@ -1075,12 +1075,16 @@ function sendUrgent() {
         }
     });
 
-    // ... (batch削除部分はそのまま) ...
+    if (overlapIds.length > 0) {
+        const batch = db.batch();
+        overlapIds.forEach(id => batch.delete(db.collection("schedules").doc(id)));
+        await batch.commit();
+    }
 
+    // 4. 保存
     let finalMessage = `【${subject}】 ${startHour}:${startMinute}〜${endHour}:${endMinute} 開始`;
     if (extraText) finalMessage += ` ｜ 連絡: ${extraText}`;
 
-    // 【最重要】ここを type: 'student' に変更
     db.collection("schedules").add({
         student: student, 
         date: dateStr, 
@@ -1091,7 +1095,7 @@ function sendUrgent() {
         document.getElementById('scheduleText').value = '';
         alert(`登録しました！`);
         renderHistory();
-    });
+    }).catch(err => alert("エラー: " + err.message));
 }
 
         function sendUrgentBroadcast() {
