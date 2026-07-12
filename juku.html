@@ -591,39 +591,45 @@ function startWatchParents() {
         if (tableBody) {
             tableBody.innerHTML = "";
 
-            dataArray.forEach((p) => {
-                const validStatus = p.status;
-                const statusBadge = (p.connectId && p.pass) 
-                    ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
-                    : `<span style="color: #7f8c8d;">○ 未連携</span>`;
+            // ...（テーブル描画の処理が済んだ後）
 
-                const row = `
-                    <tr>
-                        <td style="text-align:center; font-weight:bold;">${validStatus}</td>
-                        <td>${p.student1 || "—"}</td>
-                        <td>${p.student2 || "—"}</td>
+        // ここで dataArray のループを閉じます
+        dataArray.forEach((p) => {
+            const validStatus = p.status;
+            const statusBadge = (p.connectId && p.pass) 
+                ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
+                : `<span style="color: #7f8c8d;">○ 未連携</span>`;
+
+            const row = `
+                <tr>
+                    <td style="text-align:center; font-weight:bold;">${validStatus}</td>
+                    <td>${p.student1 || "—"}</td>
+                    <td>${p.student2 || "—"}</td>
                     <td>${p.student3 || "—"}</td>
-                        <td><strong>${p.parentName} 様</strong></td>
-                        <td><code>${p.email}</code></td>
-                        <td><code>${p.pass}</code></td>
-                        <td>${statusBadge}</td>
-                        <td>${p.lastCheck || "-"}</td>
-                        <td><button onclick="editParent('${p.id}')">編集</button></td>
-                    </tr>
-                `;
-                tableBody.insertAdjacentHTML('beforeend', row);
+                    <td><strong>${p.parentName} 様</strong></td>
+                    <td><code>${p.email}</code></td>
+                    <td><code>${p.pass}</code></td>
+                    <td>${statusBadge}</td>
+                    <td>${p.lastCheck || "-"}</td>
+                    <td><button onclick="editParent('${p.id}')">編集</button></td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML('beforeend', row);
+        }); // ← ここで dataArray.forEach を閉じる
 
-                const pSelect = document.getElementById("parentSelect");
-if (pSelect) {
-    pSelect.innerHTML = '<option value="">対象を選択</option>';
-    dataArray.forEach(p => {
-        const option = document.createElement("option");
-        option.value = p.id;
-        option.textContent = p.parentName + " 様";
-        pSelect.appendChild(option);
-    });
-}
-            }
+        // ここでプルダウンを更新（テーブル描画とは別に実行）
+        const pSelect = document.getElementById("parentSelect");
+        if (pSelect) {
+            pSelect.innerHTML = '<option value="">対象を選択</option>';
+            dataArray.forEach(p => {
+                const option = document.createElement("option");
+                option.value = p.id;
+                option.textContent = p.parentName + " 様";
+                pSelect.appendChild(option);
+            });
+        }
+    }); // ← ここで onSnapshot を閉じる
+} // ← ここで startWatchParents 関数を閉じる
 
 
 
