@@ -1150,17 +1150,35 @@ function sendSelfStudy() {
         const div = document.createElement('div'); div.className = 'calendar-day empty'; grid.appendChild(div);
     }
 
-    for (let day = 1; day <= totalDays; day++) {
-        const div = document.createElement('div'); div.className = 'calendar-day'; div.innerText = day;
-        const formattedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        
-        div.onclick = () => {
-            document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
-            div.classList.add('selected');
-            showDayDetail(formattedDateStr, day, filter); 
-        };
-        grid.appendChild(div);
+    // ... (前略：空の日のループの後) ...
+
+for (let day = 1; day <= totalDays; day++) {
+    const div = document.createElement('div'); div.className = 'calendar-day'; div.innerText = day;
+    const formattedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
+    if (dayOfWeek === 0) div.classList.add('sunday');
+    if (dayOfWeek === 6) div.classList.add('saturday');
+
+    // ★重要：ここでフィルタリングして丸ポチを判定
+    let targetEvents = allSchedules.filter(item => 
+        item.date === formattedDateStr && (item.type === filter)
+    );
+
+    if (targetEvents.length > 0) {
+        div.classList.add('has-event');
+        // 色分けのクラス付与
+        if(filter === 'student') div.classList.add('dot-blue');
+        if(filter === 'news')    div.classList.add('dot-red');
+        if(filter === 'study')   div.classList.add('dot-green');
     }
+
+    div.onclick = () => {
+        document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
+        div.classList.add('selected');
+        showDayDetail(formattedDateStr, day, filter); 
+    };
+    grid.appendChild(div);
+}
 }
 
         function renderUrgentHistory() {
