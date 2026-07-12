@@ -740,43 +740,33 @@ auth.onAuthStateChanged((user) => {
             if (dayIdx === 6) displayEl.classList.add('sat');
         }
 
-       function generateDropdowns() {
-    // 【対策】すでに追加済みのオプションがあれば、二重生成をストップ
+      function generateDropdowns() {
     const studentSelect = document.getElementById('studentSelect');
-    if (studentSelect && studentSelect.options.length > 1) return;
+    if (!studentSelect) return;
     
-    // リセット
+    // 【重要】これまでのオプションをすべてクリアする
+    // これにより、何回呼び出されてもリストは常に「最新の1回分」になります
     studentSelect.innerHTML = '<option value="">対象を選択</option>';
 
     db.collection("parents").get().then((snapshot) => {
         snapshot.forEach((doc) => {
             const data = doc.data();
             const parentId = doc.id; 
-
-            // 各フィールドを個別にチェックして、存在し、かつ中身がある場合のみ追加
             const fields = ['student1', 'student2', 'student3'];
             
             fields.forEach((field) => {
                 const name = data[field];
                 
-                // 1. name が存在するか（undefinedでないか）
-                // 2. name が空文字列でないか
-                // 3. name が '—' でないか
-                if (name && 
-                    typeof name === 'string' && 
-                    name.trim() !== "" && 
-                    name !== "—") {
-                    
+                // データがある時だけ追加
+                if (name && typeof name === 'string' && name.trim() !== "" && name !== "—") {
                     const option = document.createElement('option');
                     option.value = parentId; 
                     option.textContent = name;
                     studentSelect.appendChild(option);
                 }
-
-                console.log("★generateDropdownsが実行されました。現在のオプション数:", document.getElementById('studentSelect').options.length);
             });
         });
-        console.log("全生徒のリスト生成完了（フィールドの有無もチェック済み）");
+        console.log("プルダウンの再生成が完了しました。現在のオプション数:", studentSelect.options.length);
     });
 }
 
