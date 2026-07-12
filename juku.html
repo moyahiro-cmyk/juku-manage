@@ -660,6 +660,14 @@ function editParent(id) {
                 if (mainAdminArea) mainAdminArea.style.display = "none";
                 isMonitoring = false; // ログアウトしたらフラグを下ろす
             }
+
+            console.log("--- 認証状態の変化 ---");
+    if (user) {
+        console.log("ログイン中のユーザー:", user.email);
+        console.log("メールアドレス一致:", user.email === "ken5oizumi@gmail.com");
+    } else {
+        console.log("ユーザーはログアウト状態です");
+    }
         });
 
         function createNewParent() {
