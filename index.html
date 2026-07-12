@@ -51,7 +51,7 @@
             <h2>【塾長画面】予定追加 ＆ 即時通知</h2>
             
             <label>対象の生徒を指定（最大25人対応枠）:</label>
-            <select id="studentSelect">
+            <select id="parentSelect">
                 <option value="佐藤 拓海">佐藤 拓海 くん</option>
                 <option value="鈴木 結衣">鈴木 結衣 さん</option>
                 <option value="高橋 蓮">高橋 蓮 くん</option>
@@ -117,7 +117,7 @@
 
         // 塾長が予定を登録し、通知を送る
         function sendUrgentNotification() {
-            const student = document.getElementById('studentSelect').value;
+            const student = document.getElementById('parentSelect').value;
             const date = document.getElementById('scheduleDate').value;
             const text = document.getElementById('scheduleText').value;
 
