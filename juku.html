@@ -1697,20 +1697,17 @@ function loadStudentDropdown() {
         let count = 0;
         snapshot.forEach((doc) => {
             const data = doc.data();
-            const students = [data.student1, data.student2, data.student3];
             
-            students.forEach((name) => {
-                if (name && typeof name === 'string' && name.trim() !== "" && name !== "—") {
-                    const option = document.createElement("option");
-                    option.value = doc.id; 
-                    option.textContent = name; 
-                    parentSelect.appendChild(option);
-                    count++;
-                }
-            });
+            // 生徒ごとに分けるのではなく、保護者データ1件につき1つのoptionを作る
+            const option = document.createElement("option");
+            option.value = doc.id; 
+            // 生徒名ではなく、保護者名を表示する
+            option.textContent = data.parentName + " 様"; 
+            parentSelect.appendChild(option);
+            count++;
         });
-        // 【重要】何個追加できたか出力
-        console.log("プルダウン更新完了: 合計 " + count + " 名を追加しました。");
+        
+        console.log("プルダウン更新完了: 合計 " + count + " 名（保護者）を追加しました。");
     }).catch((e) => {
         console.error("データ取得エラー:", e);
     });
