@@ -740,7 +740,7 @@ auth.onAuthStateChanged((user) => {
             if (dayIdx === 6) displayEl.classList.add('sat');
         }
 
-        function generateDropdowns() {
+       function generateDropdowns() {
     const studentSelect = document.getElementById('studentSelect');
     if (!studentSelect) return;
     
@@ -752,15 +752,20 @@ auth.onAuthStateChanged((user) => {
             const data = doc.data();
             const parentId = doc.id; 
 
-            // 各生徒フィールドをチェック
+            // フィールドを列挙
             const studentFields = ['student1', 'student2', 'student3'];
 
             studentFields.forEach((field) => {
                 const name = data[field];
                 
-                // 修正ポイント: 
-                // nameが存在し、かつ "—" でなく、かつ 空白文字を除去した後に空ではないこと
-                if (name && name !== "—" && name.toString().trim() !== "") {
+                // ここで「データが存在し、かつ空白やハイフンではない」場合のみ生成する
+                // これにより、生徒1が空で生徒2に名前がある場合でも、
+                // 生徒2の分だけが正確にプルダウンに追加されます
+                if (name && 
+                    name !== "—" && 
+                    name.toString().trim() !== "" && 
+                    name !== "undefined") {
+                    
                     const option = document.createElement('option');
                     option.value = parentId; 
                     option.textContent = name;
