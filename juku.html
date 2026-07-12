@@ -1565,37 +1565,35 @@ function updateAllDropdowns(snapshot) {
 let isUpdatingDropdown = false; // ★【追加】処理中フラグ
 
 function loadStudentDropdown() {
-    // すでに更新中なら何もしない
-    if (isUpdatingDropdown) return;
-    
     const studentSelect = document.getElementById("studentSelect");
-    if (!studentSelect) return;
-
-    isUpdatingDropdown = true; // ロック開始
+    if (!studentSelect) {
+        console.error("エラー: 'studentSelect' が見つかりません");
+        return;
+    }
     
-    // 一度リセット
+    // 1. まず現在の状態をクリア
     studentSelect.innerHTML = '<option value="">対象を選択</option>';
 
     db.collection("parents").get().then((snapshot) => {
-    snapshot.forEach((doc) => {
-        const data = doc.data();
-        // ★ここをチェック：全データが正しく取得できているか
-        console.log("世帯名:", data.parentName, "/ S1:", data.student1, "/ S2:", data.student2, "/ S3:", data.student3);
-
-        const students = [data.student1, data.student2, data.student3];
-        
-        students.forEach((name) => {
-            if (name && typeof name === 'string' && name.trim() !== "" && name !== "—") {
-                const option = document.createElement("option");
-                option.value = doc.id; 
-                option.textContent = name; 
-                document.getElementById("studentSelect").appendChild(option);
-            }
+        let count = 0;
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            const students = [data.student1, data.student2, data.student3];
+            
+            students.forEach((name) => {
+                if (name && typeof name === 'string' && name.trim() !== "" && name !== "—") {
+                    const option = document.createElement("option");
+                    option.value = doc.id; 
+                    option.textContent = name; 
+                    studentSelect.appendChild(option);
+                    count++;
+                }
+            });
         });
-    });
-    console.log("プルダウン更新完了");
-    }).finally(() => {
-        isUpdatingDropdown = false; // ★ロック解除
+        // 【重要】何個追加できたか出力
+        console.log("プルダウン更新完了: 合計 " + count + " 名を追加しました。");
+    }).catch((e) => {
+        console.error("データ取得エラー:", e);
     });
 }
 
