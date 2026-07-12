@@ -641,36 +641,36 @@ function editParent(id) {
 }
         // auth.onAuthStateChanged はこの関数の外に置くのが適切です
         let isMonitoring = false; // 監視中フラグ
-        auth.onAuthStateChanged((user) => {
-            const loginArea = document.getElementById("loginArea");
-            const mainAdminArea = document.getElementById("mainAdminArea");
-            
-            if (user && user.email === "ken5oizumi@gmail.com") {
-                if (loginArea) loginArea.style.display = "none";
-                if (mainAdminArea) mainAdminArea.style.display = "block";
-                // 既に監視中なら実行しない
-        if (!isMonitoring) {
-                
-                generateDropdowns();
-                startWatchParents();
-                isMonitoring = true; // 監視フラグを立てる
-            }
-            } else {
-                if (loginArea) loginArea.style.display = "block";
-                if (mainAdminArea) mainAdminArea.style.display = "none";
-                isMonitoring = false; // ログアウトしたらフラグを下ろす
-            }
+        let authInitialized = false; // Firebaseの認証読み込みが完了したか
 
-            console.log("--- 認証状態の変化 ---");
-    if (user) {
-        console.log("ログイン中のユーザー:", user.email);
-        console.log("メールアドレス一致:", user.email === "ken5oizumi@gmail.com");
+auth.onAuthStateChanged((user) => {
+    // 最初の読み込みが終わったフラグを立てる
+    authInitialized = true; 
+
+    console.log("--- 認証状態の変化 ---");
+
+    if (user && user.email === "ken5oizumi@gmail.com") {
+        // ログイン成功時の処理
+        document.getElementById("loginArea").style.display = "none";
+        document.getElementById("mainAdminArea").style.display = "block";
+        if (!isMonitoring) {
+            generateDropdowns();
+            startWatchParents();
+            isMonitoring = true;
+        }
     } else {
-        console.log("ユーザーはログアウト状態です");
-        console.trace(); // <--- これを追加してください
-    if (loginArea) loginArea.style.display = "block";
+        // ここが重要：
+        // 1. 初回読み込み完了後であること
+        // 2. user が本当に存在しないこと
+        // この両方を満たす場合のみログイン画面を表示する
+        if (authInitialized && !user) {
+            console.log("確定：未ログイン状態です");
+            document.getElementById("loginArea").style.display = "block";
+            document.getElementById("mainAdminArea").style.display = "none";
+            isMonitoring = false;
+        }
     }
-        });
+});
 
         function createNewParent() {
     const newData = {
