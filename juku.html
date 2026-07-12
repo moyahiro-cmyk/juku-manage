@@ -784,7 +784,7 @@ auth.onAuthStateChanged((user) => {
             currentMonth = today.getMonth();
             updateNormalDayDisplay();
 
-            // 2. 【最重要】生徒プルダウンの再生成
+            // 2. 生徒プルダウンの生成（ここを修正）
     const studentSelect = document.getElementById('studentSelect');
     if (!studentSelect) return;
     
@@ -793,23 +793,25 @@ auth.onAuthStateChanged((user) => {
     db.collection("parents").get().then((snapshot) => {
         snapshot.forEach((doc) => {
             const data = doc.data();
-            const parentId = doc.id;
+            const parentId = doc.id; // 山田さん、田中さん等のID
+
+            // 3つのフィールドを個別にチェックして追加する
+            const studentFields = ['student1', 'student2', 'student3'];
             
-            // 太郎・次郎・三郎を個別に処理して、全てoptionに追加する
-            const students = [data.student1, data.student2, data.student3];
-            
-            students.forEach((name) => {
+            studentFields.forEach(field => {
+                const name = data[field];
+                // 名前が入っていて、かつ「—」でない場合のみ追加
                 if (name && name !== "—" && name !== "") {
                     const option = document.createElement('option');
-                    option.value = parentId; // 保護者のID
-                    option.textContent = name; // 生徒の名前（太郎、次郎など）
+                    option.value = parentId; // 予定登録時は世帯IDを使う
+                    option.textContent = name; // 例：田中 岬 (小3)
                     studentSelect.appendChild(option);
                 }
             });
         });
-        console.log("生徒プルダウンの生成完了");
+        console.log("生徒プルダウンの更新完了");
     });
-        }
+}
 
         function updateDayDropdown() {
             const yearSel = document.getElementById('yearSelect');
