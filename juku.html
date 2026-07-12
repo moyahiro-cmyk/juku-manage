@@ -741,75 +741,41 @@ auth.onAuthStateChanged((user) => {
         }
 
         function generateDropdowns() {
-            const yearSel = document.getElementById('yearSelect');
-            const monthSel = document.getElementById('monthSelect');
-            const startHourSel = document.getElementById('startHourSelect');
-            const endHourSel = document.getElementById('endHourSelect');
-            const today = new Date();
-
-            if (!yearSel || !monthSel || !startHourSel || !endHourSel) return;
-
-            yearSel.innerHTML = '';
-            for (let y = 2026; y <= 2028; y++) {
-                let opt = document.createElement('option'); opt.value = String(y); opt.innerText = y;
-                if (y === today.getFullYear()) opt.selected = true;
-                yearSel.appendChild(opt);
-            }
-
-            monthSel.innerHTML = '';
-            for (let i = 1; i <= 12; i++) {
-                let opt = document.createElement('option'); opt.value = String(i).padStart(2, '0'); opt.innerText = i;
-                if (i === (today.getMonth() + 1)) opt.selected = true;
-                monthSel.appendChild(opt);
-            }
-            
-            updateDayDropdown();
-            const daySel = document.getElementById('daySelect');
-            if (daySel) { daySel.value = String(today.getDate()).padStart(2, '0'); }
-
-            startHourSel.innerHTML = ''; endHourSel.innerHTML = '';
-            for (let i = 0; i <= 23; i++) {
-                let opt1 = document.createElement('option'); opt1.value = String(i).padStart(2, '0'); opt1.innerText = i;
-                let opt2 = document.createElement('option'); opt2.value = String(i).padStart(2, '0'); opt2.innerText = i;
-                if (i === 18) opt1.selected = true;
-                if (i === 19) opt2.selected = true;
-                startHourSel.appendChild(opt1); endHourSel.appendChild(opt2);
-            }
-
-            // ⚠️ 分の選択肢を確実に復活させ、初期値をセット
-            document.getElementById('startMinuteSelect').value = "00";
-            document.getElementById('endMinuteSelect').value = "00";
-            
-            currentYear = today.getFullYear();
-            currentMonth = today.getMonth();
-            updateNormalDayDisplay();
-
-            // 2. 生徒プルダウンの生成（ここを修正）
     const studentSelect = document.getElementById('studentSelect');
     if (!studentSelect) return;
     
-    // 一度中身を空にしてから再構築
+    // 1. 最初に対象選択肢だけを残してリセット
     studentSelect.innerHTML = '<option value="">対象を選択</option>';
 
+    // 2. 保護者コレクション全体を取得
     db.collection("parents").get().then((snapshot) => {
         snapshot.forEach((doc) => {
             const data = doc.data();
-            const parentId = doc.id;
+            const parentId = doc.id; // 山田さん、田中さん等のID
+
+            // 3. 生徒フィールドを配列にまとめる
+            const studentFields = ['student1', 'student2', 'student3'];
             
-            // 田中さん、山田さん等、各世帯の中にいる生徒を全てリストアップ
-            const students = [data.student1, data.student2, data.student3];
-            
-            students.forEach((name) => {
-                // "—" でなく、中身が空でないものだけを追加
+            studentFields.forEach((field) => {
+                const name = data[field];
+                
+                // 4. データが存在し、かつ「—」でない場合のみ追加
                 if (name && name !== "—" && name !== "") {
                     const option = document.createElement('option');
-                    option.value = parentId; // 予定登録用のID
-                    option.textContent = name; // 例：田中 葵 (小5)
+                    
+                    // 【重要】ここがポイント
+                    // valueには保護者のID（親のID）を入れることで、
+                    // 誰を選んでも正しく親のドキュメントへ書き込めるようにします
+                    option.value = parentId; 
+                    
+                    // 表示名は「田中 葵 (小5)」のようにそのまま表示
+                    option.textContent = name;
+                    
                     studentSelect.appendChild(option);
                 }
             });
         });
-        console.log("プルダウン生成完了：全生徒を登録しました");
+        console.log("全生徒のリスト生成が完了しました。");
     });
 }
 
