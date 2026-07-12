@@ -744,38 +744,31 @@ auth.onAuthStateChanged((user) => {
     const studentSelect = document.getElementById('studentSelect');
     if (!studentSelect) return;
     
-    // 1. 最初に対象選択肢だけを残してリセット
+    // リセット
     studentSelect.innerHTML = '<option value="">対象を選択</option>';
 
-    // 2. 保護者コレクション全体を取得
     db.collection("parents").get().then((snapshot) => {
         snapshot.forEach((doc) => {
             const data = doc.data();
-            const parentId = doc.id; // 山田さん、田中さん等のID
+            const parentId = doc.id; // 山田さん、加藤さん等のID
 
-            // 3. 生徒フィールドを配列にまとめる
+            // student1〜3を配列で回す
             const studentFields = ['student1', 'student2', 'student3'];
-            
+
             studentFields.forEach((field) => {
                 const name = data[field];
                 
-                // 4. データが存在し、かつ「—」でない場合のみ追加
-                if (name && name !== "—" && name !== "") {
+                // 【重要】ここで「データが存在する」かつ「空白ではない」ことだけを確認
+                // "—" も判定から除外
+                if (name && name !== "—" && name.trim() !== "") {
                     const option = document.createElement('option');
-                    
-                    // 【重要】ここがポイント
-                    // valueには保護者のID（親のID）を入れることで、
-                    // 誰を選んでも正しく親のドキュメントへ書き込めるようにします
                     option.value = parentId; 
-                    
-                    // 表示名は「田中 葵 (小5)」のようにそのまま表示
                     option.textContent = name;
-                    
                     studentSelect.appendChild(option);
                 }
             });
         });
-        console.log("全生徒のリスト生成が完了しました。");
+        console.log("プルダウンの生成が完了しました");
     });
 }
 
