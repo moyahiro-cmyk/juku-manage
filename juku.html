@@ -1609,24 +1609,30 @@ function updateAllDropdowns(snapshot) {
 
 // 【追加】保護者リストを読み込んでプルダウンを作る関数
 function loadStudentDropdown() {
-    const studentSelect = document.getElementById("studentSelect"); // 既存のプルダウンIDを確認してください
+    const studentSelect = document.getElementById("studentSelect");
+    if (!studentSelect) return;
     studentSelect.innerHTML = '<option value="">対象を選択</option>';
 
     db.collection("parents").get().then((snapshot) => {
         snapshot.forEach((doc) => {
             const data = doc.data();
-            // 生徒名を連結して表示用にする
-            const students = [data.student1, data.student2, data.student3]
-                .filter(s => s && s !== "—");
             
-            const option = document.createElement("option");
-            option.value = doc.id; // ドキュメントIDを値にする
-            option.text = students.join("・"); // "山田太郎・山田花子" のように表示
-            studentSelect.appendChild(option);
+            // フィールド student1, student2, student3 をチェックして名前を集める
+            let nameList = [];
+            if (data.student1 && data.student1 !== "—") nameList.push(data.student1);
+            if (data.student2 && data.student2 !== "—") nameList.push(data.student2);
+            if (data.student3 && data.student3 !== "—") nameList.push(data.student3);
+            
+            // 名前が見つかった場合のみオプションを追加
+            if (nameList.length > 0) {
+                const option = document.createElement("option");
+                option.value = doc.id; // ドキュメントID
+                option.text = nameList.join("・"); // "山田太郎・山田次郎" と表示
+                studentSelect.appendChild(option);
+            }
         });
     });
 }
-
     </script>
 </body>
 </html>
