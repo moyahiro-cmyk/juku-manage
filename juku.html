@@ -488,7 +488,13 @@ function initSelectors() {
 
 async function sendSchedule() {
     const pSelect = document.getElementById("parentSelect");
-    const sInput = document.getElementById("studentNameInputInput"); // これで統一
+    const sInput = document.getElementById("studentNameInput"); // ここで改めて探す
+    
+    // もしそれでも null なら、HTMLのIDが本当に studentNameInput か確認が必要
+    if (!sInput) {
+        alert("エラー: 'studentNameInput' というIDの入力欄が見つかりません。HTMLを確認してください。");
+        return;
+    }
     
     // ガード処理
     if (!pSelect) { console.error("エラー: parentSelect が見つかりません"); return; }
