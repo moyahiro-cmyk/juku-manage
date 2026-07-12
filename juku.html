@@ -640,6 +640,7 @@ function editParent(id) {
     }
 }
         // auth.onAuthStateChanged はこの関数の外に置くのが適切です
+        let isMonitoring = false; // 監視中フラグ
         auth.onAuthStateChanged((user) => {
             const loginArea = document.getElementById("loginArea");
             const mainAdminArea = document.getElementById("mainAdminArea");
@@ -647,11 +648,17 @@ function editParent(id) {
             if (user && user.email === "ken5oizumi@gmail.com") {
                 if (loginArea) loginArea.style.display = "none";
                 if (mainAdminArea) mainAdminArea.style.display = "block";
+                // 既に監視中なら実行しない
+        if (!isMonitoring) {
+                
                 generateDropdowns();
-                startWatchParents(); 
+                startWatchParents();
+                isMonitoring = true; // 監視フラグを立てる
+            }
             } else {
                 if (loginArea) loginArea.style.display = "block";
                 if (mainAdminArea) mainAdminArea.style.display = "none";
+                isMonitoring = false; // ログアウトしたらフラグを下ろす
             }
         });
 
