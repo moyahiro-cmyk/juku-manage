@@ -613,10 +613,16 @@ function startWatchParents() {
                 `;
                 tableBody.insertAdjacentHTML('beforeend', row);
 
-                updateAllDropdowns(snapshot);
-
-            });
-        }
+                const pSelect = document.getElementById("parentSelect");
+if (pSelect) {
+    pSelect.innerHTML = '<option value="">対象を選択</option>';
+    dataArray.forEach(p => {
+        const option = document.createElement("option");
+        option.value = p.id;
+        option.textContent = p.parentName + " 様";
+        pSelect.appendChild(option);
+    });
+}
     });
 }
 
@@ -1685,9 +1691,12 @@ let isUpdatingDropdown = false; // ★【追加】処理中フラグ
 
 function loadStudentDropdown() {
     const parentSelect = document.getElementById("parentSelect");
-    if (!parentSelect) return;
+    if (!parentSelect) {
+        console.error("エラー: 'parentSelect' が見つかりません");
+        return;
+    }
     
-    // 1. クリア
+    // 1. まず現在の状態をクリア
     parentSelect.innerHTML = '<option value="">対象を選択</option>';
 
     db.collection("parents").get().then((snapshot) => {
@@ -1695,15 +1704,15 @@ function loadStudentDropdown() {
         snapshot.forEach((doc) => {
             const data = doc.data();
             
-            // ★重要：保護者データ（parentNameがあるもの）だけを対象にする
-            if (data.parentName) {
-                const option = document.createElement("option");
-                option.value = doc.id; 
-                option.textContent = data.parentName + " 様"; 
-                parentSelect.appendChild(option);
-                count++;
-            }
+            // 生徒ごとに分けるのではなく、保護者データ1件につき1つのoptionを作る
+            const option = document.createElement("option");
+            option.value = doc.id; 
+            // 生徒名ではなく、保護者名を表示する
+            option.textContent = data.parentName + " 様"; 
+            parentSelect.appendChild(option);
+            count++;
         });
+        
         console.log("プルダウン更新完了: 合計 " + count + " 名（保護者）を追加しました。");
     }).catch((e) => {
         console.error("データ取得エラー:", e);
