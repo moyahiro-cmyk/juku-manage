@@ -788,28 +788,28 @@ auth.onAuthStateChanged((user) => {
     const studentSelect = document.getElementById('studentSelect');
     if (!studentSelect) return;
     
+    // 一度中身を空にしてから再構築
     studentSelect.innerHTML = '<option value="">対象を選択</option>';
 
     db.collection("parents").get().then((snapshot) => {
         snapshot.forEach((doc) => {
             const data = doc.data();
-            const parentId = doc.id; // 山田さん、田中さん等のID
-
-            // 3つのフィールドを個別にチェックして追加する
-            const studentFields = ['student1', 'student2', 'student3'];
+            const parentId = doc.id;
             
-            studentFields.forEach(field => {
-                const name = data[field];
-                // 名前が入っていて、かつ「—」でない場合のみ追加
+            // 田中さん、山田さん等、各世帯の中にいる生徒を全てリストアップ
+            const students = [data.student1, data.student2, data.student3];
+            
+            students.forEach((name) => {
+                // "—" でなく、中身が空でないものだけを追加
                 if (name && name !== "—" && name !== "") {
                     const option = document.createElement('option');
-                    option.value = parentId; // 予定登録時は世帯IDを使う
-                    option.textContent = name; // 例：田中 岬 (小3)
+                    option.value = parentId; // 予定登録用のID
+                    option.textContent = name; // 例：田中 葵 (小5)
                     studentSelect.appendChild(option);
                 }
             });
         });
-        console.log("生徒プルダウンの更新完了");
+        console.log("プルダウン生成完了：全生徒を登録しました");
     });
 }
 
