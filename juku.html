@@ -487,23 +487,26 @@ function initSelectors() {
 }
 
 async function sendSchedule() {
-    // 1. 各要素を取得
+    // 1. 各要素を取得（idを studentNameInput に統一）
     const pSelect = document.getElementById("parentSelect");
-    const sInput = document.getElementById("studentNameInput"); // HTMLのIDと完全に一致させる
+    const sInput = document.getElementById("studentNameInput");
     
-    // 2. 要素がない場合の詳細なチェック
-    if (!pSelect) {
-        alert("エラー: 保護者選択欄（parentSelect）が見つかりません。");
+    // 2. もし見つからなかったら、即座に終了せず「探している」とコンソールに出す
+    if (!sInput) {
+        console.error("エラー: 'studentNameInput' が見つかりません。HTMLを確認してください。");
+        alert("システムエラー: 生徒名入力欄が読み込めていません。ページを再読み込みしてください。");
         return;
     }
-    if (!sInput) {
-        alert("エラー: 生徒名入力欄（studentNameInput）が見つかりません。HTMLを確認してください。");
+    if (!pSelect) {
+        alert("システムエラー: 保護者選択欄が読み込めていません。");
         return;
     }
 
-    // 3. 値を取得
+    // 3. 実行処理
     const studentName = sInput.value;
     const parentId = pSelect.value;
+    
+    // 以下、既存の処理
     const selectedParentName = pSelect.options[pSelect.selectedIndex].text;
 
     if (!studentName || parentId === "") {
@@ -511,7 +514,7 @@ async function sendSchedule() {
         return;
     }
 
-    // ...以降の処理（年月日の取得など）...
+    // (以下、日付などの取得処理)
     const year = document.getElementById('yearSelect')?.value;
     const month = document.getElementById('monthSelect')?.value;
     const day = document.getElementById('daySelect')?.value;
