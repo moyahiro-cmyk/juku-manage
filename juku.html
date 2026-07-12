@@ -654,7 +654,6 @@ auth.onAuthStateChanged((user) => {
         document.getElementById("loginArea").style.display = "none";
         document.getElementById("mainAdminArea").style.display = "block";
         if (!isMonitoring) {
-            generateDropdowns();
             startWatchParents();
             isMonitoring = true;
         }
@@ -740,38 +739,6 @@ auth.onAuthStateChanged((user) => {
             if (dayIdx === 6) displayEl.classList.add('sat');
         }
 
-      function generateDropdowns() {
-    const studentSelect = document.getElementById('studentSelect');
-    if (!studentSelect) return;
-    
-    // 【重要】これまでのオプションをすべてクリアする
-    // これにより、何回呼び出されてもリストは常に「最新の1回分」になります
-    studentSelect.innerHTML = '<option value="">対象を選択</option>';
-
-    // 【確認】リセット直後のオプション数を出力
-    console.log("リセット直後のオプション数:", studentSelect.options.length);
-
-    db.collection("parents").get().then((snapshot) => {
-        snapshot.forEach((doc) => {
-            const data = doc.data();
-            const parentId = doc.id; 
-            const fields = ['student1', 'student2', 'student3'];
-            
-            fields.forEach((field) => {
-                const name = data[field];
-                
-                // データがある時だけ追加
-                if (name && typeof name === 'string' && name.trim() !== "" && name !== "—") {
-                    const option = document.createElement('option');
-                    option.value = parentId; 
-                    option.textContent = name;
-                    studentSelect.appendChild(option);
-                }
-            });
-        });
-        console.log("プルダウンの再生成が完了しました。現在のオプション数:", studentSelect.options.length);
-    });
-}
 
         function updateDayDropdown() {
             const yearSel = document.getElementById('yearSelect');
