@@ -783,6 +783,32 @@ auth.onAuthStateChanged((user) => {
             currentYear = today.getFullYear();
             currentMonth = today.getMonth();
             updateNormalDayDisplay();
+
+            // 2. 【最重要】生徒プルダウンの再生成
+    const studentSelect = document.getElementById('studentSelect');
+    if (!studentSelect) return;
+    
+    studentSelect.innerHTML = '<option value="">対象を選択</option>';
+
+    db.collection("parents").get().then((snapshot) => {
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            const parentId = doc.id;
+            
+            // 太郎・次郎・三郎を個別に処理して、全てoptionに追加する
+            const students = [data.student1, data.student2, data.student3];
+            
+            students.forEach((name) => {
+                if (name && name !== "—" && name !== "") {
+                    const option = document.createElement('option');
+                    option.value = parentId; // 保護者のID
+                    option.textContent = name; // 生徒の名前（太郎、次郎など）
+                    studentSelect.appendChild(option);
+                }
+            });
+        });
+        console.log("生徒プルダウンの生成完了");
+    });
         }
 
         function updateDayDropdown() {
