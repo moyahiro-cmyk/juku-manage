@@ -639,7 +639,7 @@ function editParent(id) {
         });
     }
 }
-
+        // auth.onAuthStateChanged はこの関数の外に置くのが適切です
         auth.onAuthStateChanged((user) => {
             const loginArea = document.getElementById("loginArea");
             const mainAdminArea = document.getElementById("mainAdminArea");
