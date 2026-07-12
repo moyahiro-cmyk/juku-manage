@@ -752,19 +752,19 @@ auth.onAuthStateChanged((user) => {
             const data = doc.data();
             const parentId = doc.id; 
 
-            // フィールドを列挙
-            const studentFields = ['student1', 'student2', 'student3'];
-
-            studentFields.forEach((field) => {
+            // 各フィールドを個別にチェックして、存在し、かつ中身がある場合のみ追加
+            const fields = ['student1', 'student2', 'student3'];
+            
+            fields.forEach((field) => {
                 const name = data[field];
                 
-                // ここで「データが存在し、かつ空白やハイフンではない」場合のみ生成する
-                // これにより、生徒1が空で生徒2に名前がある場合でも、
-                // 生徒2の分だけが正確にプルダウンに追加されます
+                // 1. name が存在するか（undefinedでないか）
+                // 2. name が空文字列でないか
+                // 3. name が '—' でないか
                 if (name && 
-                    name !== "—" && 
-                    name.toString().trim() !== "" && 
-                    name !== "undefined") {
+                    typeof name === 'string' && 
+                    name.trim() !== "" && 
+                    name !== "—") {
                     
                     const option = document.createElement('option');
                     option.value = parentId; 
@@ -773,6 +773,7 @@ auth.onAuthStateChanged((user) => {
                 }
             });
         });
+        console.log("全生徒のリスト生成完了（フィールドの有無もチェック済み）");
     });
 }
 
