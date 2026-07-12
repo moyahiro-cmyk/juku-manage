@@ -1523,7 +1523,8 @@ function initAllDropdowns() {
         pSelect.innerHTML = '<option value="">保護者を選択してください</option>';
         Object.keys(initialParents).forEach(key => {
             const p = initialParents[key];
-            pSelect.innerHTML += `<option value="${key}">${p.parentName} 様（${key}）</option>`;
+            // key（生徒名）ではなく p.parentName（保護者名）を表示するように修正
+            pSelect.innerHTML += `<option value="${key}">${p.parentName} 様</option>`;
         });
     }
 
