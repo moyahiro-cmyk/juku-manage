@@ -1619,23 +1619,20 @@ function loadStudentDropdown() {
         snapshot.forEach((doc) => {
             const data = doc.data();
             
-            // フィールドの中身を直接配列にする
-            const names = [data.student1, data.student2, data.student3];
+            // student1〜3を配列化
+            const students = [data.student1, data.student2, data.student3];
             
-            // "—" 以外で空でない名前だけを抽出
-            const validNames = names.filter(n => n && n !== "—");
-            
-            // 山田太郎・山田次郎 のような文字列を作る
-            const displayName = validNames.join("・");
+            // "—" でない名前だけを抽出
+            const validNames = students.filter(name => name && name !== "—");
 
-            // 表示する名前がある場合のみ追加
             if (validNames.length > 0) {
                 const option = document.createElement("option");
-                option.value = doc.id;
-                option.textContent = displayName;
+                option.value = doc.id; // ドキュメントID
+                option.textContent = validNames.join("・"); // "山田太郎・山田次郎"
                 studentSelect.appendChild(option);
             }
         });
+        console.log("プルダウン更新完了");
     });
 }
     </script>
