@@ -44,6 +44,10 @@
         
         .day-detail-box { background: #f8f9fa; padding: 12px; margin-top: 10px; border-radius: 6px; border: 1px dashed #3498db; min-height: 40px; font-size: 0.9em; }
 
+        .dot-blue::after { color: #3498db !important; }
+.dot-red::after { color: #e74c3c !important; }
+.dot-green::after { color: #2ecc71 !important; }
+
         /* ⚙️ パスワード変更エリア */
         .settings-box { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0; margin-top: 25px; }
         .settings-box h3 { margin-top: 0; font-size: 1em; color: #2c3e50; }
@@ -94,6 +98,24 @@
                 <div id="urgentCardContainer"></div>
             </div>
 
+            <!-- タブボタン -->
+<div style="display: flex; gap: 5px; margin-bottom: 10px;">
+    <button onclick="switchTab('student')" style="background:#3498db; flex:1;">お子様の予定</button>
+    <button onclick="switchTab('news')" style="background:#e74c3c; flex:1;">お知らせ</button>
+    <button onclick="switchTab('study')" style="background:#2ecc71; flex:1;">自習室</button>
+</div>
+
+<!-- カレンダーのIDをタブごとに変えるためにここを修正 -->
+<div id="calendarArea">
+    <div class="calendar-header">
+        <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀</button>
+        <span id="calendarMonthTitle">2026年06月</span>
+        <button class="calendar-nav-btn" onclick="changeMonth(1)">▶</button>
+    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+    <div class="day-detail-box" id="dayDetailBox">タップした日付の内容がここに表示されます。</div>
+</div>
+            
             <!-- 📅 スケジュールカレンダーエリア -->
             <h2>📅 授業・面談予定スケジュール</h2>
             <div class="calendar-header">
@@ -273,47 +295,62 @@
             });
         }
 
-        // 📅 カレンダー描画ロジック（我が子の予定のみ）
-        function renderCalendar() {
-            const grid = document.getElementById('calendarGrid');
-            const monthTitle = document.getElementById('calendarMonthTitle');
-            
-            monthTitle.innerText = `${currentYear}年${String(currentMonth + 1).padStart(2, '0')}月`;
-            grid.innerHTML = '';
+        // 【関数の外に置く】現在のタブを保持
+let activeTab = 'student'; 
 
-            const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
-            weekdaysJa.forEach((w, idx) => {
-                const div = document.createElement('div');
-                div.className = `weekday ${idx===0?'sunday':''} ${idx===6?'saturday':''}`;
-                div.innerText = w; grid.appendChild(div);
-            });
+function switchTab(tab) {
+    activeTab = tab;
+    renderCalendar(); // タブを変えたら再描画
+}
 
-            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-            const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+// 📅 カレンダー描画ロジック
+function renderCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    const monthTitle = document.getElementById('calendarMonthTitle');
+    
+    monthTitle.innerText = `${currentYear}年${String(currentMonth + 1).padStart(2, '0')}月`;
+    grid.innerHTML = '';
 
-            for (let i = 0; i < firstDay; i++) {
-                const div = document.createElement('div'); div.className = 'calendar-day empty'; grid.appendChild(div);
-            }
+    // ... (曜日ヘッダー描画はそのまま) ...
+    const weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
+    weekdaysJa.forEach((w, idx) => {
+        const div = document.createElement('div');
+        div.className = `weekday ${idx===0?'sunday':''} ${idx===6?'saturday':''}`;
+        div.innerText = w; grid.appendChild(div);
+    });
 
-            for (let day = 1; day <= totalDays; day++) {
-                const div = document.createElement('div'); div.className = 'calendar-day'; div.innerText = day;
-                const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
-                if (dayOfWeek === 0) div.classList.add('sunday');
-                if (dayOfWeek === 6) div.classList.add('saturday');
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-                const formattedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                let targetEvents = allSchedules.filter(item => item.date === formattedDateStr);
+    for (let i = 0; i < firstDay; i++) {
+        const div = document.createElement('div'); div.className = 'calendar-day empty'; grid.appendChild(div);
+    }
 
-                if (targetEvents.length > 0) div.classList.add('has-event');
-                
-                div.onclick = () => {
-                    document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
-                    div.classList.add('selected');
-                    showDayDetail(formattedDateStr, day);
-                };
-                grid.appendChild(div);
-            }
+    for (let day = 1; day <= totalDays; day++) {
+        const div = document.createElement('div'); div.className = 'calendar-day'; div.innerText = day;
+        const formattedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        // 【重要】現在アクティブなタブのデータだけを抽出
+        let targetEvents = allSchedules.filter(item => 
+            item.date === formattedDateStr && (item.type || 'student') === activeTab
+        );
+
+        if (targetEvents.length > 0) {
+            div.classList.add('has-event');
+            // タブに応じた色クラスを付与
+            if(activeTab === 'student') div.classList.add('dot-blue');
+            if(activeTab === 'news')    div.classList.add('dot-red');
+            if(activeTab === 'study')   div.classList.add('dot-green');
         }
+        
+        div.onclick = () => {
+            document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
+            div.classList.add('selected');
+            showDayDetail(formattedDateStr, day);
+        };
+        grid.appendChild(div);
+    }
+}
 
         function showDayDetail(dateStr, dayNum) {
             const detailBox = document.getElementById('dayDetailBox');
