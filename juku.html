@@ -1101,6 +1101,37 @@ window.sendSchedule = async function() {
     }
 };
 
+// ページ読み込み完了後に全関数を初期化する
+window.addEventListener("DOMContentLoaded", () => {
+    
+    // 1. sendSchedule をここで定義（再定義）
+    window.sendSchedule = async function() {
+        const pSelect = document.getElementById("parentSelect");
+        const sInput = document.getElementById("studentNameInput");
+        
+        if (!pSelect || !sInput) {
+            console.error("要素未検出: pSelect=", pSelect, "sInput=", sInput);
+            alert("システムエラー: 入力欄が見つかりません。ページを更新してください。");
+            return;
+        }
+
+        const studentName = sInput.value.trim();
+        const parentId = pSelect.value;
+        const selectedParentName = pSelect.options[pSelect.selectedIndex].text;
+
+        // ... (以下、保存処理) ...
+        // 重複チェックなどは以前の統合版ロジックをここに記述
+        // ...
+    };
+
+    // 2. initLessonSelectors もここで確実に呼び出す
+    if (typeof initLessonSelectors === 'function') {
+        initLessonSelectors();
+    } else {
+        console.warn("initLessonSelectors が定義されていません");
+    }
+});
+
         function sendUrgentBroadcast() {
             const target = document.getElementById('broadcastTarget').value;
             const title = document.getElementById('urgentTitle').value.trim();
@@ -1471,8 +1502,6 @@ function updateStudyDayDropdown() {
 window.onload = function() {
     initAllDropdowns(); // 年月日と時間の初期化を一括で実行
     renderStudyCalendar(); // 画面を開いた時にもカレンダーを表示
-
-    initLessonSelectors()
 
     // ★ここを追加：ページ読み込み時にリストを取得してプルダウンを完成させる
     loadStudentDropdown();
