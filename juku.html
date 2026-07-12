@@ -741,8 +741,9 @@ auth.onAuthStateChanged((user) => {
         }
 
        function generateDropdowns() {
+    // 【対策】すでに追加済みのオプションがあれば、二重生成をストップ
     const studentSelect = document.getElementById('studentSelect');
-    if (!studentSelect) return;
+    if (studentSelect && studentSelect.options.length > 1) return;
     
     // リセット
     studentSelect.innerHTML = '<option value="">対象を選択</option>';
