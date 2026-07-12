@@ -1518,18 +1518,24 @@ window.addEventListener('DOMContentLoaded', () => {
 
 function initAllDropdowns() {
     // 1. 保護者リスト（parentSelect）の初期化
+   // 1. 保護者リスト（parentSelect）の初期化
     const pSelect = document.getElementById('parentSelect');
     if (pSelect) {
-        pSelect.innerHTML = '<option value="">保護者を選択してください</option>';
+        // まず中身を完全に空にします
+        pSelect.innerHTML = '';
+        
+        // デフォルトの選択肢を追加
+        const defaultOption = document.createElement('option');
+        defaultOption.value = "";
+        defaultOption.textContent = "保護者を選択してください";
+        pSelect.appendChild(defaultOption);
+        
+        // データから保護者名をループして追加
         Object.keys(initialParents).forEach(key => {
             const p = initialParents[key];
-            
-            // ★ここを修正：
-            // valueには生徒名（key）を保持させ、
-            // 表示名（textContent）には保護者名（p.parentName）だけを指定します
             const option = document.createElement('option');
-            option.value = key; // 内部的には生徒名で管理
-            option.textContent = p.parentName + " 様"; // 画面表示は保護者名のみ
+            option.value = key; // 送信される値は生徒名（内部ID）
+            option.textContent = p.parentName + " 様"; // 画面表示は保護者名
             pSelect.appendChild(option);
         });
     }
