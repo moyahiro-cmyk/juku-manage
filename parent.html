@@ -60,15 +60,23 @@
 <body>
 
     <div class="phone-wrapper">
-        <!-- 🔒 ログイン画面 -->
-        <div id="loginArea" class="login-box">
-            <h1>えんごばと<br><span style="font-size:0.7em; color:#7f8c8d; font-weight:normal;">保護者専用マイページ</span></h1>
-            <p style="font-size:0.85em; color:#555; text-align:left; margin-top:25px;">塾から配布された登録カードの情報を入力してください。</p>
-            <input type="email" id="loginEmail" placeholder="メールアドレス（ユーザーID）" required>
-            <input type="password" id="loginPassword" placeholder="パスワード" required>
-            <button onclick="handleLogin()">ログイン</button>
-            <div id="loginError" class="error-msg">サインインに失敗しました。メールアドレスとパスワードを確認してください。</div>
-        </div>
+        <!-- 🔒 ログイン画面の該当部分 -->
+<div id="loginArea" class="login-box">
+    <h1>えんごばと<br><span style="font-size:0.7em; color:#7f8c8d; font-weight:normal;">保護者専用マイページ</span></h1>
+    <p style="font-size:0.85em; color:#555; text-align:left; margin-top:25px;">塾から配布された登録カードの情報を入力してください。</p>
+    <input type="email" id="loginEmail" placeholder="メールアドレス（ユーザーID）" required>
+    
+    <!-- ここからパスワード表示ボタン付きの構成に変更 -->
+    <div style="position: relative; display: flex; align-items: center;">
+        <input type="password" id="loginPassword" placeholder="パスワード" required style="width: 100%; padding-right: 40px;">
+        <button type="button" onclick="togglePasswordVisibility()" 
+                style="position: absolute; right: 5px; background: none; border: none; cursor: pointer; font-size: 1.2em;">👁️</button>
+    </div>
+    <!-- ここまで -->
+
+    <button onclick="handleLogin()">ログイン</button>
+    <div id="loginError" class="error-msg">サインインに失敗しました。メールアドレスとパスワードを確認してください。</div>
+</div>
 
         <!-- 📱 メイン画面（ログイン後に表示） -->
         <div id="mainContent">
@@ -337,6 +345,17 @@
             else if (currentMonth < 0) { currentMonth = 11; currentYear -= 1; }
             renderCalendar();
         }
+
+        // パスワード表示切替の関数
+function togglePasswordVisibility() {
+    const passwordField = document.getElementById("loginPassword");
+    if (passwordField.type === "password") {
+        passwordField.type = "text";
+    } else {
+        passwordField.type = "password";
+    }
+}
+
     </script>
 </body>
 </html>
