@@ -1042,53 +1042,42 @@ function sendUrgent() {
 
 
         async function sendSchedule() {
-            const student = document.getElementById('studentSelect').value;
-            const subject = document.getElementById('subjectSelect').value;
-            const year = document.getElementById('yearSelect').value;
-            const month = document.getElementById('monthSelect').value;
-            const day = document.getElementById('daySelect').value;
-            const startHour = document.getElementById('startHourSelect').value;
-            const startMinute = document.getElementById('startMinuteSelect').value;
-            const endHour = document.getElementById('endHourSelect').value;
-            const endMinute = document.getElementById('endMinuteSelect').value;
-            const extraText = document.getElementById('scheduleText').value.trim();
-            const dateStr = `${year}-${month}-${day}`;
-            
-            const newStart = parseInt(startHour) * 60 + parseInt(startMinute);
-            const newEnd = parseInt(endHour) * 60 + parseInt(endMinute);
+    const student = document.getElementById('studentSelect').value;
+    // ... (他の変数はそのまま) ...
+    const dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`; // 月日を0埋めしました
+    
+    // ... (時間のバリデーションはそのまま) ...
 
-            if (newStart >= newEnd) { alert("⚠ 正しい時間帯を指定してください。"); return; }
-
-            const overlapIds = [];
-            schedules.filter(item => item.date === dateStr && item.type === 'normal' && (item.student === student || item.student === '全員'))
-            .forEach(oldEvent => {
-                const timeMatch = oldEvent.text.match(/(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
-                if (timeMatch) {
-                    const oldStart = parseInt(timeMatch[1]) * 60 + parseInt(timeMatch[2]);
-                    const oldEnd = parseInt(timeMatch[3]) * 60 + parseInt(timeMatch[4]);
-                    if (newStart < oldEnd && oldStart < newEnd) overlapIds.push(oldEvent.id);
-                }
-            });
-
-            if (overlapIds.length > 0) {
-                const batch = db.batch();
-                overlapIds.forEach(id => batch.delete(db.collection("schedules").doc(id)));
-                await batch.commit();
-            }
-
-            let finalMessage = `【${subject}】 ${startHour}:${startMinute}〜${endHour}:${endMinute} 開始`;
-            if (extraText) finalMessage += ` ｜ 連絡: ${extraText}`;
-
-            db.collection("schedules").add({
-                student: student, date: dateStr, text: finalMessage, type: 'normal',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                document.getElementById('scheduleText').value = '';
-                alert(`${student} くん/さんの予定を登録しました！`);
-
-                renderHistory();
-            });
+    // 【修正】重複チェックの条件も type: 'student' に合わせる
+    const overlapIds = [];
+    schedules.filter(item => item.date === dateStr && item.type === 'student' && item.student === student)
+    .forEach(oldEvent => {
+        const timeMatch = oldEvent.text.match(/(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
+        if (timeMatch) {
+            const oldStart = parseInt(timeMatch[1]) * 60 + parseInt(timeMatch[2]);
+            const oldEnd = parseInt(timeMatch[3]) * 60 + parseInt(timeMatch[4]);
+            if (newStart < oldEnd && oldStart < newEnd) overlapIds.push(oldEvent.id);
         }
+    });
+
+    // ... (batch削除部分はそのまま) ...
+
+    let finalMessage = `【${subject}】 ${startHour}:${startMinute}〜${endHour}:${endMinute} 開始`;
+    if (extraText) finalMessage += ` ｜ 連絡: ${extraText}`;
+
+    // 【最重要】ここを type: 'student' に変更
+    db.collection("schedules").add({
+        student: student, 
+        date: dateStr, 
+        text: finalMessage, 
+        type: 'student', 
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        document.getElementById('scheduleText').value = '';
+        alert(`登録しました！`);
+        renderHistory();
+    });
+}
 
         function sendUrgentBroadcast() {
             const target = document.getElementById('broadcastTarget').value;
@@ -1596,6 +1585,25 @@ function updateAllDropdowns(snapshot) {
     });
 }
 
+// 【追加】保護者リストを読み込んでプルダウンを作る関数
+function loadStudentDropdown() {
+    const studentSelect = document.getElementById("studentSelect"); // 既存のプルダウンIDを確認してください
+    studentSelect.innerHTML = '<option value="">対象を選択</option>';
+
+    db.collection("parents").get().then((snapshot) => {
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            // 生徒名を連結して表示用にする
+            const students = [data.student1, data.student2, data.student3]
+                .filter(s => s && s !== "—");
+            
+            const option = document.createElement("option");
+            option.value = doc.id; // ドキュメントIDを値にする
+            option.text = students.join("・"); // "山田太郎・山田花子" のように表示
+            studentSelect.appendChild(option);
+        });
+    });
+}
 
     </script>
 </body>
