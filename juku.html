@@ -748,6 +748,9 @@ auth.onAuthStateChanged((user) => {
     // これにより、何回呼び出されてもリストは常に「最新の1回分」になります
     studentSelect.innerHTML = '<option value="">対象を選択</option>';
 
+    // 【確認】リセット直後のオプション数を出力
+    console.log("リセット直後のオプション数:", studentSelect.options.length);
+
     db.collection("parents").get().then((snapshot) => {
         snapshot.forEach((doc) => {
             const data = doc.data();
