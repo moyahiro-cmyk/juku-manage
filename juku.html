@@ -192,11 +192,34 @@
                 <!-- 📅 1. 授業予定の入力画面 -->
                 <div id="page1" class="box">
                     <h2>【個別】授業予定の登録</h2>
-                    <label>対象の生徒を指定:</label>
-                    <!-- 中身を空にする -->
-    <select id="studentSelect">
-        <option value="">読み込み中...</option>
-    </select>
+                    <div class="input-group">
+  <label>対象の保護者を選択：</label>
+  <select id="parentSelect">
+    <option value="">保護者を選択してください</option>
+  </select>
+</div>
+
+<!-- 【追加】生徒名の手入力欄 -->
+<div class="input-group">
+  <label>生徒名（手入力）：</label>
+  <input type="text" id="studentNameInput" placeholder="例：山田 太郎">
+</div>
+
+<!-- 日付・時間の修正（idを付与） -->
+<div class="input-group">
+  <label>日付を指定：</label>
+  <select id="yearSelect"></select> 年
+  <select id="monthSelect"></select> 月
+  <select id="daySelect"></select> 日
+</div>
+
+<div class="input-group">
+  <label>時間帯を指定：</label>
+  <select id="startHour"></select> 時
+  <select id="startMinute"></select> 分 ～
+  <select id="endHour"></select> 時
+  <select id="endMinute"></select> 分
+</div>
 
                     <label>教科を選択:</label>
                     <select id="subjectSelect">
@@ -208,33 +231,6 @@
                         <option value="その他">その他（面談・イベント等）</option>
                     </select>
                     
-                    
-                    
-                    <label>日付を指定:</label>
-                    <div class="inline-selects">
-                        <select id="yearSelect" onchange="handleNormalDateUpdate()"></select><span>年</span>
-                        <select id="monthSelect" onchange="handleNormalDateUpdate()"></select><span>月</span>
-                        <select id="daySelect" onchange="handleNormalDateUpdate()"></select><span>日</span>
-                        <span id="normalDayDisplay" class="day-display"></span>
-                    </div>
-                    
-                    <label>時間帯を指定:</label>
-                    <div class="inline-selects">
-                        <select id="startHourSelect"></select><span>時</span>
-                        <select id="startMinuteSelect">
-                            <option value="00">00</option>
-                            <option value="15">15</option>
-                            <option value="30">30</option>
-                            <option value="45">45</option>
-                        </select><span> 〜</span>
-                        <select id="endHourSelect"></select><span>時</span>
-                        <select id="endMinuteSelect">
-                            <option value="00">00</option>
-                            <option value="15">15</option>
-                            <option value="30">30</option>
-                            <option value="45">45</option>
-                        </select><span>分</span>
-                    </div>
 
                     <label>追加の連絡事項:</label>
                     <input type="text" id="scheduleText" placeholder="例：本日は単語テストから始めます">
@@ -469,12 +465,51 @@ function updateStudentDropdown(snapshot) {
         const option = document.createElement("option");
         option.value = doc.id; // ドキュメントIDを値にすると処理しやすいです
         // student1 の名前（例：田中 葵 (小5)）をそのまま表示
-        option.textContent = data.student1; 
+        option.textContent = data.parentName; 
         select.appendChild(option);
     });
 }
 
-        function startWatchParents() {
+// プルダウン生成関数
+function initSelectors() {
+    const yearSelect = document.getElementById('yearSelect');
+    const now = new Date();
+    // 年の生成（今年から3年分）
+    for(let i=0; i<3; i++) {
+        let y = now.getFullYear() + i;
+        yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+    }
+    // ※月・日・時・分も同様のループで生成
+    // 保護者リストの反映
+    const parentSelect = document.getElementById('parentSelect');
+    Object.keys(initialParents).forEach(key => {
+        const p = initialParents[key];
+        parentSelect.innerHTML += `<option value="${key}">${p.parentName} 様（${key}）</option>`;
+    });
+}
+
+async function sendSchedule() {
+    const parentName = document.getElementById('parentSelect').value;
+    const studentName = document.getElementById('studentNameInput').value; // 手入力欄を取得
+    const year = document.getElementById('yearSelect').value;
+    const month = document.getElementById('monthSelect').value;
+    const day = document.getElementById('daySelect').value;
+    
+    // 必須チェック（手入力欄が空なら保護者名を使うなどの処理も可能）
+    if(!studentName) {
+        alert("生徒名を入力してください。");
+        return;
+    }
+
+    await db.collection("schedules").add({
+        parentName: parentName,
+        studentName: studentName,
+        date: `${year}-${month}-${day}`,
+        // ...以下省略
+    });
+}
+
+function startWatchParents() {
     db.collection("parents").onSnapshot((snapshot) => {
         // もしデータがない場合に勝手に登録する処理（不要なら削除）
         if (snapshot.empty) {
