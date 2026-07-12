@@ -1618,21 +1618,23 @@ function loadStudentDropdown() {
     db.collection("parents").get().then((snapshot) => {
         snapshot.forEach((doc) => {
             const data = doc.data();
-            
-            // student1〜3を配列化
+            const parentId = doc.id; // 山田さんという世帯のID
+
+            // student1, 2, 3 を確認し、存在する生徒だけを処理する
             const students = [data.student1, data.student2, data.student3];
             
-            // "—" でない名前だけを抽出
-            const validNames = students.filter(name => name && name !== "—");
-
-            if (validNames.length > 0) {
-                const option = document.createElement("option");
-                option.value = doc.id; // ドキュメントID
-                option.textContent = validNames.join("・"); // "山田太郎・山田次郎"
-                studentSelect.appendChild(option);
-            }
+            students.forEach((name) => {
+                if (name && name !== "—") {
+                    const option = document.createElement("option");
+                    // ★重要：valueには保護者のIDを入れる
+                    option.value = parentId; 
+                    // ★ここでお子さんの名前をそのまま表示
+                    option.textContent = name; 
+                    studentSelect.appendChild(option);
+                }
+            });
         });
-        console.log("プルダウン更新完了");
+        console.log("プルダウン更新完了：全員分の名前を追加しました");
     });
 }
     </script>
