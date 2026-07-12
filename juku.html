@@ -488,19 +488,19 @@ function initSelectors() {
 
 async function sendSchedule() {
     const pSelect = document.getElementById("parentSelect");
-    // HTML側のIDが "studentName" であることを想定しています
-    const sInput = document.getElementById("studentName"); 
+    // ★ここをHTML側のIDである studentNameInput に合わせました
+    const sInput = document.getElementById("studentNameInput"); 
     
     if (!pSelect) { console.error("エラー: parentSelect が見つかりません"); return; }
-    if (!sInput) { console.error("エラー: studentName が見つかりません"); return; }
+    if (!sInput) { console.error("エラー: studentNameInput が見つかりません"); return; }
 
     const parentName = pSelect.value;
-    const studentName = sInput.value; // ここを修正しました
+    const studentName = sInput.value; 
     const year = document.getElementById('yearSelect').value;
     const month = document.getElementById('monthSelect').value;
     const day = document.getElementById('daySelect').value;
     
-    // 選択された保護者名を取得
+    // 選択された保護者名（テキスト部分）を取得
     const selectedParentName = pSelect.options[pSelect.selectedIndex].text;
 
     if (!studentName || pSelect.value === "") {
@@ -516,7 +516,7 @@ async function sendSchedule() {
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         alert("登録しました！");
-        // リセット処理もIDを統一
+        // 登録後のリセットも正しいIDへ
         sInput.value = ''; 
     } catch (e) {
         console.error("エラー:", e);
