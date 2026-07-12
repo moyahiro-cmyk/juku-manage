@@ -614,21 +614,30 @@ function editParent(id) {
         };
 
     if (!editingKey) {
-        db.collection("parents").add(data).then(() => {
+        // 1. まず認証にユーザーを作成
+    auth.createUserWithEmailAndPassword(data.email, data.pass)
+        .then((userCredential) => {
+            // 2. 認証ができたら Firestore に保存
+            return db.collection("parents").add(data);
+        })
+        .then(() => {
             alert("新規登録しました！");
-            loadParents(); // リスト再描画
-            switchTab(4);  // リスト画面へ
+            loadParents(); 
+            switchTab(4); 
+        })
+        .catch((error) => {
+            console.error("登録エラー:", error);
+            // エラー時（メアド重複など）の案内
+            alert("登録に失敗しました: " + error.message);
         });
-    } else {
-        // 既存データの更新
-        db.collection("parents").doc(editingKey).update(data).then(() => {
-            alert("更新しました！");
-            loadParents(); // リスト再描画
-            switchTab(4);  // リスト画面へ
-        });
-    }
+} else {
+    // 既存データの更新（ここは元の通りでOK）
+    db.collection("parents").doc(editingKey).update(data).then(() => {
+        alert("更新しました！");
+        loadParents(); 
+        switchTab(4); 
+    });
 }
-
 
         auth.onAuthStateChanged((user) => {
             const loginArea = document.getElementById("loginArea");
