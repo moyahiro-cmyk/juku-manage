@@ -1577,23 +1577,23 @@ function loadStudentDropdown() {
     studentSelect.innerHTML = '<option value="">対象を選択</option>';
 
     db.collection("parents").get().then((snapshot) => {
-        snapshot.forEach((doc) => {
-            const data = doc.data();
-            const parentId = doc.id;
+    snapshot.forEach((doc) => {
+        const data = doc.data();
+        // ★ここをチェック：全データが正しく取得できているか
+        console.log("世帯名:", data.parentName, "/ S1:", data.student1, "/ S2:", data.student2, "/ S3:", data.student3);
 
-            const students = [data.student1, data.student2, data.student3];
-            
-            students.forEach((name) => {
-                // 文字列のトリムと空判定を厳密に
-                if (name && typeof name === 'string' && name.trim() !== "" && name !== "—") {
-                    const option = document.createElement("option");
-                    option.value = parentId; 
-                    option.textContent = name; 
-                    studentSelect.appendChild(option);
-                }
-            });
+        const students = [data.student1, data.student2, data.student3];
+        
+        students.forEach((name) => {
+            if (name && typeof name === 'string' && name.trim() !== "" && name !== "—") {
+                const option = document.createElement("option");
+                option.value = doc.id; 
+                option.textContent = name; 
+                document.getElementById("studentSelect").appendChild(option);
+            }
         });
-        console.log("プルダウン更新完了");
+    });
+    console.log("プルダウン更新完了");
     }).finally(() => {
         isUpdatingDropdown = false; // ★ロック解除
     });
