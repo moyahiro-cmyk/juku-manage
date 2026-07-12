@@ -211,9 +211,7 @@
   <select id="yearSelect"></select> 年
   <select id="monthSelect"></select> 月
   <select id="daySelect"></select> 日
-</div>
-
-<div class="input-group">
+  
   <label>時間帯を指定：</label>
   <select id="startHour"></select> 時
   <select id="startMinute"></select> 分 ～
@@ -1519,6 +1517,16 @@ function initAllDropdowns() {
     // 1. 年・月・日の生成とセット
     const ySel = document.getElementById('studyYearSelect');
     const mSel = document.getElementById('studyMonthSelect');
+
+    // 1. 保護者プルダウンの生成
+    const parentSelect = document.getElementById('parentSelect');
+    if (parentSelect) {
+        parentSelect.innerHTML = '<option value="">保護者を選択してください</option>';
+        Object.keys(initialParents).forEach(name => {
+            const p = initialParents[name];
+            parentSelect.innerHTML += `<option value="${name}">${p.parentName} 様</option>`;
+        });
+    }
 
     // 年 (2026-2028)
     ySel.innerHTML = '';
