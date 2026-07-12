@@ -1468,6 +1468,9 @@ function updateStudyDayDropdown() {
 window.onload = function() {
     initAllDropdowns(); // 年月日と時間の初期化を一括で実行
     renderStudyCalendar(); // 画面を開いた時にもカレンダーを表示
+
+    // ★ここを追加：ページ読み込み時にリストを取得してプルダウンを完成させる
+    loadStudentDropdown();
     
     // イベントリスナーを追加
     document.getElementById('studyYearSelect').addEventListener('change', updateStudyDayDropdown);
