@@ -486,53 +486,7 @@ function initSelectors() {
     });
 }
 
-async function sendSchedule() {
-    // 1. 各要素を取得（idを studentNameInput に統一）
-    const pSelect = document.getElementById("parentSelect");
-    const sInput = document.getElementById("studentNameInput");
-    
-    // 2. もし見つからなかったら、即座に終了せず「探している」とコンソールに出す
-    if (!sInput) {
-        console.error("エラー: 'studentNameInput' が見つかりません。HTMLを確認してください。");
-        alert("システムエラー: 生徒名入力欄が読み込めていません。ページを再読み込みしてください。");
-        return;
-    }
-    if (!pSelect) {
-        alert("システムエラー: 保護者選択欄が読み込めていません。");
-        return;
-    }
 
-    // 3. 実行処理
-    const studentName = sInput.value;
-    const parentId = pSelect.value;
-    
-    // 以下、既存の処理
-    const selectedParentName = pSelect.options[pSelect.selectedIndex].text;
-
-    if (!studentName || parentId === "") {
-        alert("保護者の選択と生徒名の入力は必須です。");
-        return;
-    }
-
-    // (以下、日付などの取得処理)
-    const year = document.getElementById('yearSelect')?.value;
-    const month = document.getElementById('monthSelect')?.value;
-    const day = document.getElementById('daySelect')?.value;
-
-    try {
-        await db.collection("schedules").add({
-            parentName: selectedParentName,
-            studentName: studentName,
-            date: `${year}-${month}-${day}`,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        alert("登録しました！");
-        sInput.value = ''; 
-    } catch (e) {
-        console.error("登録エラー:", e);
-        alert("保存に失敗しました。" + e.message);
-    }
-}
 
 // 既存の updateDayDropdown はそのまま使用してOKです
 
@@ -1059,11 +1013,23 @@ function sendUrgent() {
     });
 }
 
+window.sendSchedule = async function() {
+    // 1. 各要素を安全に取得（nullチェック済み）
+    const pSelect = document.getElementById("parentSelect");
+    const sInput = document.getElementById("studentNameInput"); // 手入力用
+    const subjectSelect = document.getElementById('subjectSelect');
+    
+    // 必須入力のガード（要素が存在しないとクラッシュするため）
+    if (!pSelect || !sInput || !subjectSelect) {
+        console.error("エラー: 必要なHTML要素が見つかりません。");
+        alert("システムエラー: 画面の準備が終わっていません。");
+        return;
+    }
 
-        async function sendSchedule() {
-    // 1. まずHTMLから全ての値を安全に取得する
-    const student = document.getElementById('parentSelect').value;
-    const subject = document.getElementById('subjectSelect').value;
+    // 2. 値を取得
+    const studentName = sInput.value.trim(); // 手入力名
+    const parentId = pSelect.value;          // 保護者ID
+    const subject = subjectSelect.value;
     const year = document.getElementById('yearSelect').value;
     const month = document.getElementById('monthSelect').value;
     const day = document.getElementById('daySelect').value;
@@ -1071,51 +1037,69 @@ function sendUrgent() {
     const startMinute = document.getElementById('startMinuteSelect').value;
     const endHour = document.getElementById('endHourSelect').value;
     const endMinute = document.getElementById('endMinuteSelect').value;
-    const extraText = document.getElementById('scheduleText').value.trim();
+    const extraText = document.getElementById('scheduleText')?.value.trim() || "";
 
-    // 2. 基本的なチェック
-    if (!student) { alert("対象の生徒を選択してください。"); return; }
+    // 3. バリデーション
+    if (!studentName || parentId === "") {
+        alert("保護者の選択と生徒名の入力は必須です。");
+        return;
+    }
     
     const dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     const newStart = parseInt(startHour) * 60 + parseInt(startMinute);
     const newEnd = parseInt(endHour) * 60 + parseInt(endMinute);
 
-    if (newStart >= newEnd) { alert("⚠ 正しい時間帯を指定してください。"); return; }
-
-    // 3. 重複チェック（type: 'student' で絞り込み）
-    const overlapIds = [];
-    schedules.filter(item => item.date === dateStr && item.type === 'student' && item.student === student)
-    .forEach(oldEvent => {
-        const timeMatch = oldEvent.text.match(/(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
-        if (timeMatch) {
-            const oldStart = parseInt(timeMatch[1]) * 60 + parseInt(timeMatch[2]);
-            const oldEnd = parseInt(timeMatch[3]) * 60 + parseInt(timeMatch[4]);
-            if (newStart < oldEnd && oldStart < newEnd) overlapIds.push(oldEvent.id);
-        }
-    });
-
-    if (overlapIds.length > 0) {
-        const batch = db.batch();
-        overlapIds.forEach(id => batch.delete(db.collection("schedules").doc(id)));
-        await batch.commit();
+    if (newStart >= newEnd) {
+        alert("⚠ 正しい時間帯を指定してください。");
+        return;
     }
 
-    // 4. 保存
-    let finalMessage = `【${subject}】 ${startHour}:${startMinute}〜${endHour}:${endMinute} 開始`;
-    if (extraText) finalMessage += ` ｜ 連絡: ${extraText}`;
+    // 4. 重複チェック（必要であれば実行）
+    // ※ 注意: 'schedules' 配列がグローバル変数として定義されている前提です
+    try {
+        const overlapIds = [];
+        if (typeof schedules !== 'undefined') {
+            schedules.filter(item => item.date === dateStr && item.type === 'student' && item.student === studentName)
+            .forEach(oldEvent => {
+                const timeMatch = oldEvent.text?.match(/(\d{2}):(\d{2})〜(\d{2}):(\d{2})/);
+                if (timeMatch) {
+                    const oldStart = parseInt(timeMatch[1]) * 60 + parseInt(timeMatch[2]);
+                    const oldEnd = parseInt(timeMatch[3]) * 60 + parseInt(timeMatch[4]);
+                    if (newStart < oldEnd && oldStart < newEnd) overlapIds.push(oldEvent.id);
+                }
+            });
+        }
 
-    db.collection("schedules").add({
-        student: student, 
-        date: dateStr, 
-        text: finalMessage, 
-        type: 'student', 
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-        document.getElementById('scheduleText').value = '';
-        alert(`登録しました！`);
-        renderHistory();
-    }).catch(err => alert("エラー: " + err.message));
-}
+        if (overlapIds.length > 0) {
+            const batch = db.batch();
+            overlapIds.forEach(id => batch.delete(db.collection("schedules").doc(id)));
+            await batch.commit();
+        }
+
+        // 5. 保存実行
+        const selectedParentName = pSelect.options[pSelect.selectedIndex].text;
+        let finalMessage = `【${subject}】 ${startHour}:${startMinute}〜${endHour}:${endMinute} 開始`;
+        if (extraText) finalMessage += ` ｜ 連絡: ${extraText}`;
+
+        await db.collection("schedules").add({
+            parentName: selectedParentName,
+            studentName: studentName, // 手入力名
+            student: studentName,     // 検索用としても保存
+            date: dateStr,
+            text: finalMessage,
+            type: 'student',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        alert("登録しました！");
+        sInput.value = ''; // 入力欄をクリア
+        if (typeof renderHistory === 'function') renderHistory(); // 履歴を更新
+
+    } catch (e) {
+        console.error("登録エラー:", e);
+        alert("保存に失敗しました。" + e.message);
+    }
+};
 
         function sendUrgentBroadcast() {
             const target = document.getElementById('broadcastTarget').value;
