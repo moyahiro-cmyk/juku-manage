@@ -667,6 +667,8 @@ function editParent(id) {
         console.log("メールアドレス一致:", user.email === "ken5oizumi@gmail.com");
     } else {
         console.log("ユーザーはログアウト状態です");
+        console.trace(); // <--- これを追加してください
+    if (loginArea) loginArea.style.display = "block";
     }
         });
 
