@@ -551,73 +551,61 @@ function initLessonSelectors() {
 
 function startWatchParents() {
     db.collection("parents").onSnapshot((snapshot) => {
-        // もしデータがない場合に勝手に登録する処理（不要なら削除）
         if (snapshot.empty) {
             console.log("データが空です。");
             return;
         }
 
-        parentsData = {};
         let dataArray = [];
         snapshot.forEach((doc) => {
             const data = doc.data();
-            // データがなければ強制的にステータスをOZにする
             if (!data.status || data.status === "連携済み") {
                 data.status = "OZ";
             }
-            parentsData[doc.id] = data;
             dataArray.push({ id: doc.id, ...data });
         });
 
-        // 1. ソート用の定義（重複しないようここに置く）
         const statusOrder = { "OZ": 1, "JY": 2, "卒業": 3 };
-        
-        // 2. データのクリーンアップ
         dataArray.forEach(p => {
             if (!p.status || p.status.trim() === "") {
                 p.status = "OZ";
             }
         });
 
-        // 3. ソート処理（ここを正しく記述）
         dataArray.sort((a, b) => {
             const valA = statusOrder[a.status] || 4;
             const valB = statusOrder[b.status] || 4;
             return valA - valB;
         });
 
-        // 4. テーブル描画
         const tableBody = document.getElementById("parentTableBody");
         if (tableBody) {
             tableBody.innerHTML = "";
+            dataArray.forEach((p) => {
+                const validStatus = p.status;
+                const statusBadge = (p.connectId && p.pass) 
+                    ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
+                    : `<span style="color: #7f8c8d;">○ 未連携</span>`;
 
-            // ...（テーブル描画の処理が済んだ後）
+                const row = `
+                    <tr>
+                        <td style="text-align:center; font-weight:bold;">${validStatus}</td>
+                        <td>${p.student1 || "—"}</td>
+                        <td>${p.student2 || "—"}</td>
+                        <td>${p.student3 || "—"}</td>
+                        <td><strong>${p.parentName} 様</strong></td>
+                        <td><code>${p.email}</code></td>
+                        <td><code>${p.pass}</code></td>
+                        <td>${statusBadge}</td>
+                        <td>${p.lastCheck || "-"}</td>
+                        <td><button onclick="editParent('${p.id}')">編集</button></td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
 
-        // ここで dataArray のループを閉じます
-        dataArray.forEach((p) => {
-            const validStatus = p.status;
-            const statusBadge = (p.connectId && p.pass) 
-                ? `<span style="color: #2cc357; font-weight: bold;">● 連携済み</span>` 
-                : `<span style="color: #7f8c8d;">○ 未連携</span>`;
-
-            const row = `
-                <tr>
-                    <td style="text-align:center; font-weight:bold;">${validStatus}</td>
-                    <td>${p.student1 || "—"}</td>
-                    <td>${p.student2 || "—"}</td>
-                    <td>${p.student3 || "—"}</td>
-                    <td><strong>${p.parentName} 様</strong></td>
-                    <td><code>${p.email}</code></td>
-                    <td><code>${p.pass}</code></td>
-                    <td>${statusBadge}</td>
-                    <td>${p.lastCheck || "-"}</td>
-                    <td><button onclick="editParent('${p.id}')">編集</button></td>
-                </tr>
-            `;
-            tableBody.insertAdjacentHTML('beforeend', row);
-        }); // ← ここで dataArray.forEach を閉じる
-
-        // ここでプルダウンを更新（テーブル描画とは別に実行）
+        // ここでプルダウンを保護者名で強制更新
         const pSelect = document.getElementById("parentSelect");
         if (pSelect) {
             pSelect.innerHTML = '<option value="">対象を選択</option>';
@@ -628,8 +616,8 @@ function startWatchParents() {
                 pSelect.appendChild(option);
             });
         }
-    }); // ← ここで onSnapshot を閉じる
-} // ← ここで startWatchParents 関数を閉じる
+    });
+}
 
 
 
